@@ -8,6 +8,7 @@ import {
   YAxis,
 } from 'recharts';
 import EmptyState from './EmptyState.jsx';
+import { useResolvedPalette } from '../../theme/useResolvedPalette.js';
 
 const RANGES = [
   { value: '7d', label: 'Last 7 days' },
@@ -22,7 +23,7 @@ const ChartTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
 
   return (
-    <div className="rounded-xl bg-white px-3 py-2 shadow-lg ring-1 ring-black/5">
+    <div className="rounded-xl bg-surface-card px-3 py-2 shadow-lg ring-1 ring-black/5">
       <p className="font-display text-sm font-bold text-brand-ink">
         {payload[0].value.toLocaleString()}
       </p>
@@ -36,8 +37,12 @@ const ChartTooltip = ({ active, payload, label }) => {
 export default function ActivityChart({ points = [], range = '7d', onRangeChange }) {
   const hasData = points.length > 0;
 
+  // Recharts writes these into SVG presentation attributes, which do not take
+  // var() reliably — so the palette is resolved to hex and re-read on change.
+  const palette = useResolvedPalette();
+
   return (
-    <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5 sm:p-6">
+    <section className="rounded-2xl bg-surface-card p-5 shadow-sm ring-1 ring-black/5 sm:p-6">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="font-display text-xl font-bold text-brand-ink">Activity</h2>
@@ -53,7 +58,7 @@ export default function ActivityChart({ points = [], range = '7d', onRangeChange
           <select
             value={range}
             onChange={(e) => onRangeChange?.(e.target.value)}
-            className="appearance-none rounded-full border border-brand-ink/12 bg-white
+            className="appearance-none rounded-full border border-brand-ink/12 bg-surface-card
                        py-2 pl-4 pr-9 font-body text-sm text-brand-ink outline-none
                        transition-colors hover:border-brand-ink/25
                        focus-visible:border-brand-pink focus-visible:ring-2
@@ -83,35 +88,35 @@ export default function ActivityChart({ points = [], range = '7d', onRangeChange
             <AreaChart data={points} margin={{ top: 8, right: 8, bottom: 0, left: -18 }}>
               <defs>
                 <linearGradient id="jkActivityFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#FF2E93" stopOpacity={0.28} />
-                  <stop offset="100%" stopColor="#FF2E93" stopOpacity={0} />
+                  <stop offset="0%" stopColor={palette.primary} stopOpacity={0.28} />
+                  <stop offset="100%" stopColor={palette.primary} stopOpacity={0} />
                 </linearGradient>
               </defs>
 
-              <CartesianGrid stroke="#0A0A0A" strokeOpacity={0.06} vertical={false} />
+              <CartesianGrid stroke={palette.ink} strokeOpacity={0.06} vertical={false} />
               <XAxis
                 dataKey="date"
                 tickFormatter={formatAxisDate}
                 tickLine={false}
                 axisLine={false}
-                tick={{ fill: '#0A0A0A', fillOpacity: 0.4, fontSize: 12 }}
+                tick={{ fill: palette.ink, fillOpacity: 0.4, fontSize: 12 }}
                 dy={8}
               />
               <YAxis
                 tickLine={false}
                 axisLine={false}
-                tick={{ fill: '#0A0A0A', fillOpacity: 0.4, fontSize: 12 }}
+                tick={{ fill: palette.ink, fillOpacity: 0.4, fontSize: 12 }}
                 width={56}
               />
-              <Tooltip content={<ChartTooltip />} cursor={{ stroke: '#FF2E93', strokeOpacity: 0.25 }} />
+              <Tooltip content={<ChartTooltip />} cursor={{ stroke: palette.primary, strokeOpacity: 0.25 }} />
               <Area
                 type="monotone"
                 dataKey="value"
-                stroke="#FF2E93"
+                stroke={palette.primary}
                 strokeWidth={2.5}
                 fill="url(#jkActivityFill)"
                 dot={false}
-                activeDot={{ r: 5, fill: '#FF2E93', stroke: '#fff', strokeWidth: 2 }}
+                activeDot={{ r: 5, fill: palette.primary, stroke: palette.surfaceCard, strokeWidth: 2 }}
               />
             </AreaChart>
           </ResponsiveContainer>

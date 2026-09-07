@@ -89,7 +89,7 @@ export default function AdminSettings() {
           Settings
         </h1>
         <EmptyState
-          className="min-h-[50vh] bg-white"
+          className="min-h-[50vh] bg-surface-card"
           icon="🔒"
           title="Owner access only"
           hint="Only the main administrator can change the site theme."
@@ -164,7 +164,7 @@ export default function AdminSettings() {
                 role="radio"
                 aria-checked={active}
                 onClick={() => preview(t.id)}
-                className={`flex items-center gap-3 rounded-2xl bg-white p-3 text-left transition
+                className={`flex items-center gap-3 rounded-2xl bg-surface-card p-3 text-left transition
                             hover:ring-2 hover:ring-brand-pink/30 focus-visible:outline-2
                             focus-visible:outline-offset-2 focus-visible:outline-brand-pink
                             ${active ? 'ring-2 ring-brand-pink' : 'ring-1 ring-black/5'}`}
@@ -199,35 +199,50 @@ export default function AdminSettings() {
         </div>
       </div>
 
+      {/*
+        Floats above the page rather than sitting in the flow, so it stays
+        reachable from anywhere in a 30-item grid without scrolling to the end.
+        role=region + aria-live so a screen reader is told unsaved changes are
+        pending when it appears.
+      */}
       {dirty ? (
-        <div className="sticky bottom-4 flex flex-wrap items-center justify-between gap-3
-                        rounded-2xl bg-white p-4 shadow-lg ring-1 ring-black/5">
+        <div
+          role="region"
+          aria-live="polite"
+          aria-label="Unsaved theme changes"
+          className="fixed inset-x-4 bottom-4 z-40 mx-auto flex max-w-lg flex-wrap items-center
+                     justify-between gap-3 rounded-2xl bg-surface-card/95 p-3 pl-4 shadow-2xl
+                     ring-1 ring-black/10 backdrop-blur sm:inset-x-auto sm:right-6 sm:bottom-6"
+        >
           <p className="text-sm text-brand-ink/70">
-            Previewing <span className="font-semibold text-brand-ink">
+            Previewing{' '}
+            <span className="font-semibold text-brand-ink">
               {THEMES.find((t) => t.id === themeId)?.name}
-            </span> — not yet live.
+            </span>
           </p>
-          <div className="flex gap-2">
+
+          <div className="flex shrink-0 gap-2">
             <button
               type="button"
               onClick={revert}
               disabled={saving}
               className="rounded-xl px-4 py-2.5 text-sm font-semibold text-brand-ink/70
                          ring-1 ring-brand-ink/12 transition-colors hover:bg-brand-ink/5
-                         disabled:opacity-60"
+                         focus-visible:outline-2 focus-visible:outline-offset-2
+                         focus-visible:outline-brand-pink disabled:opacity-60"
             >
-              Cancel
+              Discard
             </button>
             <button
               type="button"
               onClick={handleSave}
               disabled={saving}
-              className="rounded-xl bg-brand-pink px-5 py-2.5 text-sm font-semibold text-white
+              className="rounded-xl bg-brand-pink px-5 py-2.5 text-sm font-semibold text-on-primary
                          transition-colors hover:bg-brand-pink-dark
                          focus-visible:outline-2 focus-visible:outline-offset-2
                          focus-visible:outline-brand-pink disabled:opacity-60"
             >
-              {saving ? 'Saving…' : 'Save theme'}
+              {saving ? 'Saving…' : 'Save'}
             </button>
           </div>
         </div>

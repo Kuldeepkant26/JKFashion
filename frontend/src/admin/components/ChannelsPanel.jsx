@@ -20,7 +20,7 @@ export default function ChannelsPanel({ items = [] }) {
                 return (
                   <div
                     key={channel.id}
-                    className="rounded-2xl bg-white p-4 text-center shadow-sm ring-1 ring-black/5"
+                    className="rounded-2xl bg-surface-card p-4 text-center shadow-sm ring-1 ring-black/5"
                   >
                     <p className="font-body text-sm font-semibold text-brand-ink">
                       {channel.name}

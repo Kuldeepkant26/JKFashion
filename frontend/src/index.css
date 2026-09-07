@@ -115,30 +115,51 @@
   --color-secondary: var(--brand-secondary);
   --color-accent: var(--brand-accent);
   --color-ink: var(--brand-ink);
-  --color-on-primary: var(--on-primary);
   --color-surface: var(--surface-primary);
   --color-surface-card: var(--surface-card);
   --color-surface-muted: var(--surface-muted);
 }
 
 /* --------------------------------------------------------------------------
-   Build-time tokens that must NOT follow the theme.
+   Admin panel chrome — follows the selected theme.
 
-   The admin panel keeps its own stable pink/cream chrome: an admin previewing
-   a dark preset must not make the panel they are working in unreadable. The
-   login screen is the one deliberate exception — it opts in to themed tokens.
+   These names are historical (`brand-pink`, `admin-cream`) and are used across
+   ~24 admin components. Pointing them at the runtime palette rather than
+   renaming every call site means the whole panel re-themes with the site.
+
+   The panel stays legible under all 30 presets because the surfaces below are
+   derived, not fixed: they tint toward the active primary but keep their
+   contrast relationship, and flip polarity under a dark preset.
    -------------------------------------------------------------------------- */
-@theme {
-  --color-brand-pink: #FF2E93;
-  --color-brand-pink-dark: #E01B77;
-  --color-brand-pink-soft: #FF87C2;
-  --color-brand-ink: #0A0A0A;
+:root {
+  /* Warm neutral surfaces, tinted a few percent toward the active brand. */
+  --admin-cream: color-mix(in oklab, var(--brand-primary) 4%, #FDFBFA);
+  --admin-sidebar: color-mix(in oklab, var(--brand-primary) 7%, #FFFFFF);
+}
 
+:root[data-scheme="dark"] {
+  --admin-cream: color-mix(in oklab, var(--brand-primary) 8%, #0E0E12);
+  --admin-sidebar: color-mix(in oklab, var(--brand-primary) 12%, #16161C);
+}
+
+@theme inline {
+  --color-brand-pink: var(--brand-primary);
+  --color-brand-pink-dark: var(--brand-primary-deep);
+  --color-brand-pink-soft: var(--brand-accent);
+  --color-brand-ink: var(--brand-ink);
+
+  --color-admin-cream: var(--admin-cream);
+  --color-admin-sidebar: var(--admin-sidebar);
+
+  /* Label colour for a primary-filled control. `text-on-primary` replaces
+     `text-white` wherever it sat on a pink fill — white drops to 3.5:1 on the
+     brand pink and would vanish entirely on a pale preset. */
+  --color-on-primary: var(--on-primary);
+}
+
+@theme {
   --font-display: 'Playfair Display', Georgia, serif;
   --font-body: 'Montserrat', system-ui, sans-serif;
-
-  --color-admin-cream: #FDF8F4;
-  --color-admin-sidebar: #FFF6FA;
 }
 
 /* Prevent horizontal scroll & Mobile scroll fixes */

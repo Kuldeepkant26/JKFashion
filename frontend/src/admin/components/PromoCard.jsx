@@ -18,9 +18,9 @@ export default function PromoCard() {
         className="pointer-events-none absolute -right-6 -top-6 h-40 w-64 opacity-70"
         aria-hidden="true"
       >
-        <path d="M60 110a70 70 0 0 1 120-50" fill="none" stroke="#FF87C2" strokeWidth="10" strokeLinecap="round" />
-        <path d="M85 118a52 52 0 0 1 88-38" fill="none" stroke="#FF2E93" strokeWidth="10" strokeLinecap="round" />
-        <path d="M110 126a34 34 0 0 1 58-26" fill="none" stroke="#0A0A0A" strokeWidth="10" strokeLinecap="round" />
+        <path d="M60 110a70 70 0 0 1 120-50" fill="none" stroke="var(--brand-accent)" strokeWidth="10" strokeLinecap="round" />
+        <path d="M85 118a52 52 0 0 1 88-38" fill="none" stroke="var(--brand-primary)" strokeWidth="10" strokeLinecap="round" />
+        <path d="M110 126a34 34 0 0 1 58-26" fill="none" stroke="var(--brand-ink)" strokeWidth="10" strokeLinecap="round" />
       </svg>
 
       <div className="relative max-w-[62%]">
@@ -36,7 +36,7 @@ export default function PromoCard() {
           target="_blank"
           rel="noopener noreferrer"
           className="mt-4 inline-flex items-center gap-2 rounded-full bg-brand-pink px-4 py-2
-                     font-body text-sm font-semibold text-white transition-colors
+                     font-body text-sm font-semibold text-on-primary transition-colors
                      hover:bg-brand-pink-dark focus-visible:outline-2
                      focus-visible:outline-offset-2 focus-visible:outline-brand-pink"
         >

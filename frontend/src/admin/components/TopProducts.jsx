@@ -4,7 +4,7 @@ import EmptyState from './EmptyState.jsx';
 /** The "top performers" panel — which products are drawing the most interest. */
 export default function TopProducts({ items = [] }) {
   return (
-    <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5 sm:p-6">
+    <section className="rounded-2xl bg-surface-card p-5 shadow-sm ring-1 ring-black/5 sm:p-6">
       <h2 className="font-display text-xl font-bold text-brand-ink">Top products</h2>
       <p className="mt-0.5 font-body text-xs text-brand-ink/45">Most viewed this period</p>
 

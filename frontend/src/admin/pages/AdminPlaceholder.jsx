@@ -12,7 +12,7 @@ export default function AdminPlaceholder({ title }) {
       </h1>
 
       <EmptyState
-        className="min-h-[50vh] bg-white"
+        className="min-h-[50vh] bg-surface-card"
         icon="🚧"
         title={`${title} is not built yet`}
         hint="This section is planned for a later pass."

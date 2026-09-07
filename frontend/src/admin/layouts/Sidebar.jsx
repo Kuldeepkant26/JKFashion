@@ -45,7 +45,7 @@ export default function Sidebar({ user, onNavigate, onSignOut, signingOut }) {
                transition-colors focus-visible:outline-2 focus-visible:outline-offset-2
                focus-visible:outline-brand-pink ${
                  isActive
-                   ? 'bg-brand-pink text-white font-semibold'
+                   ? 'bg-brand-pink text-on-primary font-semibold'
                    : 'text-brand-ink/65 hover:bg-brand-pink/8 hover:text-brand-ink'
                }`
             }

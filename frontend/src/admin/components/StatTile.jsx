@@ -9,7 +9,7 @@ export default function StatTile({ label, value, deltaPct, direction }) {
   const isUp = direction === 'up';
 
   return (
-    <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5">
+    <div className="rounded-2xl bg-surface-card p-5 shadow-sm ring-1 ring-black/5">
       <div className="flex items-center justify-between gap-3">
         <span className="font-body text-sm text-brand-ink/55">{label}</span>
         <span
