@@ -6,15 +6,45 @@ import { ROUTES } from '../../constants/routePaths.js';
 import { company } from '../../data/site.js';
 import logo from '../../assets/jk-fashion-logo.png';
 
-const UserIcon = () => (
-  <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden className="h-5 w-5">
-    <path d="M10 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm0 1.5c-3.3 0-6 1.8-6 4v.5a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V15.5c0-2.2-2.7-4-6-4Z" />
+const MailIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" aria-hidden className="h-6 w-6">
+    <rect x="2.5" y="5" width="19" height="14" rx="3" fill="currentColor" />
+    <path
+      d="M3.5 7.5 10.8 13a2 2 0 0 0 2.4 0l7.3-5.5"
+      stroke="#fff"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 );
 
 const LockIcon = () => (
-  <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden className="h-5 w-5">
-    <path d="M6 8V6.5a4 4 0 1 1 8 0V8h.5A1.5 1.5 0 0 1 16 9.5v6A1.5 1.5 0 0 1 14.5 17h-9A1.5 1.5 0 0 1 4 15.5v-6A1.5 1.5 0 0 1 5.5 8H6Zm1.5-1.5V8h5V6.5a2.5 2.5 0 0 0-5 0Z" />
+  <svg viewBox="0 0 24 24" fill="none" aria-hidden className="h-6 w-6">
+    <path
+      d="M8 10V7.5a4 4 0 1 1 8 0V10"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+    />
+    <rect x="4.5" y="10" width="15" height="11" rx="3.5" fill="currentColor" />
+    <circle cx="12" cy="15" r="1.6" fill="#fff" />
+    <path d="M12 15.6v2.2" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" />
+  </svg>
+);
+
+const EyeIcon = ({ off }) => (
+  <svg viewBox="0 0 24 24" fill="none" aria-hidden className="h-5 w-5">
+    <path
+      d="M2.5 12S6 6.5 12 6.5 21.5 12 21.5 12 18 17.5 12 17.5 2.5 12 2.5 12Z"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinejoin="round"
+    />
+    <circle cx="12" cy="12" r="2.6" stroke="currentColor" strokeWidth="1.8" />
+    {off ? (
+      <path d="M4 20 20 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    ) : null}
   </svg>
 );
 
@@ -52,88 +82,99 @@ export default function AdminLogin() {
     }
   };
 
+  /**
+   * Pill inputs that sit on a white card with a soft coloured glow, rather than
+   * a bordered box — the border only appears to mark a field error.
+   */
   const inputClass = (field, extra = '') =>
-    `w-full rounded-xl border bg-white py-3 pl-11 font-body text-sm text-brand-ink
-     outline-none transition-colors placeholder:text-brand-ink/35
-     focus-visible:border-brand-pink focus-visible:ring-2 focus-visible:ring-brand-pink/25
-     ${extra} ${fieldErrors[field] ? 'border-rose-400' : 'border-brand-ink/12'}`;
+    `w-full rounded-full border bg-white py-4 pl-16 font-body text-[15px] text-ink-light
+     shadow-[0_10px_30px_-12px_var(--login-glow)] outline-none transition
+     placeholder:text-ink-light/35
+     focus-visible:shadow-[0_12px_34px_-10px_var(--login-glow-strong)]
+     ${extra} ${fieldErrors[field] ? 'border-rose-300' : 'border-transparent'}`;
 
   return (
-    <div className="font-body grid min-h-screen lg:grid-cols-2">
+    <div
+      className="font-body relative min-h-screen overflow-hidden"
+      style={{
+        background: 'var(--gradient-wash)',
+        // Local aliases so the long shadow utilities above stay readable.
+        '--login-glow': 'color-mix(in oklab, var(--brand-primary) 22%, transparent)',
+        '--login-glow-strong': 'color-mix(in oklab, var(--brand-primary) 38%, transparent)',
+      }}
+    >
       {/*
-        Decorative half. Dropped below lg so a phone gets the full width for the
-        form rather than scrolling past artwork to reach it.
-        Themed: this is the one admin surface that follows the site theme, since
-        it has no content that a dark preset could make unreadable.
+        Decorative waves bleeding off the right edge. Hidden below lg — on a
+        phone they would crowd the form rather than frame it.
+        Light tints, not the saturated primary: full-strength brand colour over
+        this much area is what made the previous version read as heavy.
       */}
-      <div
-        className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-center lg:p-14"
-        style={{ background: 'var(--gradient-brand)' }}
+      <svg
+        aria-hidden
+        viewBox="0 0 600 900"
+        preserveAspectRatio="none"
+        className="pointer-events-none absolute inset-y-0 right-0 hidden h-full w-[46%] lg:block"
       >
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -left-24 -top-28 h-104 w-104 rounded-full bg-white/10"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -bottom-40 -left-16 h-88 w-88 rounded-full bg-white/5"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute bottom-16 -right-24 h-72 w-72 rounded-full bg-white/10"
-        />
+        <defs>
+          <linearGradient id="jkWaveA" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="var(--brand-light)" />
+            <stop offset="100%" stopColor="var(--brand-primary)" />
+          </linearGradient>
+          <linearGradient id="jkWaveB" x1="0" y1="1" x2="1" y2="0">
+            <stop offset="0%" stopColor="var(--brand-primary)" />
+            <stop offset="100%" stopColor="var(--brand-accent)" />
+          </linearGradient>
+        </defs>
 
-        <div className="relative">
-          {/* The logo is pink-on-transparent, which clashes with most of the 30
-              gradients — inverted to white it reads correctly on all of them. */}
+        {/* top-right billow */}
+        <path
+          fill="url(#jkWaveA)"
+          d="M600 0v250c-40 18-78-6-118-2s-70 34-112 28-64-44-104-48-72 22-110 6-56-56-56-84V0Z"
+        />
+        {/* bottom-right billow */}
+        <path
+          fill="url(#jkWaveB)"
+          d="M600 900H0v-92c46-30 92-58 140-58s76 40 122 34 74-52 122-58 116 30 216 62Z"
+        />
+      </svg>
+
+      <div className="relative mx-auto grid min-h-screen w-full max-w-6xl items-center gap-10
+                      px-6 py-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16 lg:px-10">
+        {/* ---------------------------------------------------- form column */}
+        <div className="mx-auto w-full max-w-md">
           <img
             src={logo}
             alt={company.name}
-            className="h-12 w-auto object-contain brightness-0 invert"
+            className="mx-auto mb-8 h-12 w-auto object-contain"
           />
 
-          <h2 className="mt-12 font-display text-5xl font-bold tracking-tight text-white xl:text-6xl">
-            Welcome
-          </h2>
-          <p className="mt-4 max-w-md text-base leading-relaxed text-white/80">
-            Manage your products, enquiries and site content from one place.
-          </p>
-        </div>
-      </div>
+          <div className="text-center">
+            <h1 className="font-display text-4xl font-bold tracking-tight text-ink-light sm:text-5xl">
+              Hello!
+            </h1>
+            <p className="mt-2 text-[15px] text-ink-light/60">Sign in to your account</p>
+          </div>
 
-      {/* Form half */}
-      <div className="grid place-items-center bg-admin-cream px-5 py-10 sm:px-10">
-        <div className="w-full max-w-sm">
-          {/* The brand mark only appears here on small screens, where the
-              decorative panel that carries it is hidden. */}
-          <img
-            src={logo}
-            alt={company.name}
-            className="mb-8 h-12 w-auto object-contain lg:hidden"
-          />
-
-          <h1 className="font-display text-3xl font-bold text-brand-ink">Sign in</h1>
-          <p className="mt-1.5 text-sm text-brand-ink/55">
-            Enter your credentials to access the admin panel.
-          </p>
-
-          <form onSubmit={handleSubmit} noValidate className="mt-8">
+          <form onSubmit={handleSubmit} noValidate className="mt-10">
             {error ? (
               // role=alert so a screen reader announces the failure rather than
               // leaving the user waiting on a form that silently did nothing.
               <p
                 role="alert"
-                className="mb-5 rounded-lg bg-rose-50 px-3 py-2.5 text-sm text-rose-700"
+                className="mb-6 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700"
               >
                 {error}
               </p>
             ) : null}
 
-            <label className="mb-4 block">
-              <span className="mb-1.5 block text-sm font-medium text-brand-ink/75">Email</span>
+            <label className="mb-6 block">
+              <span className="sr-only">Email</span>
               <span className="relative block">
-                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-brand-ink/35">
-                  <UserIcon />
+                <span
+                  className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2"
+                  style={{ color: 'var(--brand-primary)' }}
+                >
+                  <MailIcon />
                 </span>
                 <input
                   type="email"
@@ -141,19 +182,22 @@ export default function AdminLogin() {
                   onChange={(e) => setEmail(e.target.value)}
                   autoComplete="username"
                   required
-                  placeholder="admin@jkfashion.com"
-                  className={inputClass('email', 'pr-4')}
+                  placeholder="E-mail"
+                  className={inputClass('email', 'pr-5')}
                 />
               </span>
               {fieldErrors.email ? (
-                <span className="mt-1.5 block text-xs text-rose-600">{fieldErrors.email}</span>
+                <span className="mt-2 block pl-5 text-xs text-rose-600">{fieldErrors.email}</span>
               ) : null}
             </label>
 
-            <label className="mb-4 block">
-              <span className="mb-1.5 block text-sm font-medium text-brand-ink/75">Password</span>
+            <label className="block">
+              <span className="sr-only">Password</span>
               <span className="relative block">
-                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-brand-ink/35">
+                <span
+                  className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2"
+                  style={{ color: 'var(--brand-primary)' }}
+                >
                   <LockIcon />
                 </span>
                 <input
@@ -162,7 +206,7 @@ export default function AdminLogin() {
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
                   required
-                  placeholder="••••••••"
+                  placeholder="Password"
                   className={inputClass('password', 'pr-16')}
                 />
                 {/*
@@ -174,21 +218,22 @@ export default function AdminLogin() {
                   onClick={() => setShowPassword((v) => !v)}
                   aria-pressed={showPassword}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded px-1.5 py-1
-                             text-xs font-semibold tracking-wide text-brand-pink
-                             transition-colors hover:text-brand-pink-dark
-                             focus-visible:outline-2 focus-visible:outline-offset-2
-                             focus-visible:outline-brand-pink"
+                  className="absolute right-5 top-1/2 -translate-y-1/2 rounded-full p-1
+                             transition-opacity hover:opacity-70
+                             focus-visible:outline-2 focus-visible:outline-offset-2"
+                  style={{ color: 'var(--brand-primary)' }}
                 >
-                  {showPassword ? 'HIDE' : 'SHOW'}
+                  <EyeIcon off={showPassword} />
                 </button>
               </span>
               {fieldErrors.password ? (
-                <span className="mt-1.5 block text-xs text-rose-600">{fieldErrors.password}</span>
+                <span className="mt-2 block pl-5 text-xs text-rose-600">
+                  {fieldErrors.password}
+                </span>
               ) : null}
             </label>
 
-            <div className="mb-6 flex items-center justify-end">
+            <div className="mt-4 mb-8 flex items-center justify-end px-2">
               {/*
                 A real control, not a dead link: there is no password-reset flow
                 on this API, so it says what to actually do instead of pointing
@@ -198,16 +243,19 @@ export default function AdminLogin() {
                 type="button"
                 onClick={() => setShowHelp((v) => !v)}
                 aria-expanded={showHelp}
-                className="text-sm font-medium text-brand-pink transition-colors
-                           hover:text-brand-pink-dark focus-visible:outline-2
-                           focus-visible:outline-offset-2 focus-visible:outline-brand-pink"
+                className="text-sm font-medium transition-opacity hover:opacity-75
+                           focus-visible:outline-2 focus-visible:outline-offset-2"
+                style={{ color: 'var(--brand-primary)' }}
               >
                 Forgot password?
               </button>
             </div>
 
             {showHelp ? (
-              <p className="mb-5 rounded-lg bg-brand-pink/8 px-3 py-2.5 text-xs text-brand-ink/70">
+              <p
+                className="mb-6 rounded-2xl px-4 py-3 text-xs text-ink-light/70"
+                style={{ background: 'var(--brand-tint-10)' }}
+              >
                 Contact the site owner to have your password reset.
               </p>
             ) : null}
@@ -215,19 +263,32 @@ export default function AdminLogin() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full rounded-xl px-4 py-3 font-body text-sm font-semibold
-                         transition-opacity hover:opacity-90
+              className="mx-auto block w-full max-w-76 rounded-full px-6 py-4 font-body
+                         text-sm font-bold uppercase tracking-[0.12em]
+                         shadow-[0_14px_30px_-10px_var(--login-glow-strong)]
+                         transition hover:-translate-y-0.5 hover:opacity-95
                          focus-visible:outline-2 focus-visible:outline-offset-2
-                         focus-visible:outline-brand-pink
-                         disabled:cursor-not-allowed disabled:opacity-60"
-              style={{ background: 'var(--brand-primary)', color: 'var(--on-primary)' }}
+                         disabled:cursor-not-allowed disabled:opacity-60
+                         disabled:hover:translate-y-0"
+              style={{ background: 'var(--gradient-button)', color: 'var(--on-primary)' }}
             >
               {submitting ? 'Signing in…' : 'Sign in'}
             </button>
           </form>
 
-          <p className="mt-8 text-center text-xs text-brand-ink/40">
+          <p className="mt-10 text-center text-xs text-ink-light/45">
             {company.name} · Admin access only
+          </p>
+        </div>
+
+        {/* ------------------------------------------------ welcome column */}
+        <div className="hidden text-center lg:block">
+          <h2 className="font-display text-5xl font-bold tracking-tight text-ink-light xl:text-6xl">
+            Welcome Back!
+          </h2>
+          <p className="mx-auto mt-8 max-w-md text-lg leading-loose text-ink-light/65">
+            Sign in to manage your products, enquiries and site content — and to
+            choose the colour theme your visitors see.
           </p>
         </div>
       </div>

@@ -55,6 +55,45 @@
   --control-surface: color-mix(in oklab, var(--surface-primary) 90%, transparent);
   --control-border: color-mix(in oklab, var(--brand-ink) 14%, transparent);
 
+  /* Light tint ramp. Saturated brand colour over large areas reads heavy, so
+     airy surfaces (the login wash, input fills, soft glows) mix the primary
+     down toward white rather than using it neat. */
+  --brand-tint-05: color-mix(in oklab, var(--brand-primary) 5%, #FFFFFF);
+  --brand-tint-10: color-mix(in oklab, var(--brand-primary) 10%, #FFFFFF);
+  --brand-tint-20: color-mix(in oklab, var(--brand-primary) 20%, #FFFFFF);
+  --brand-tint-35: color-mix(in oklab, var(--brand-primary) 35%, #FFFFFF);
+
+  /* A lighter partner for the primary, so decorative shapes keep depth without
+     going dark. Pale presets stay light; deep ones lift toward their accent. */
+  --brand-light: color-mix(in oklab, var(--brand-accent) 65%, #FFFFFF);
+
+  /* Soft wash used behind auth screens — barely-there brand colour. */
+  --gradient-wash: linear-gradient(160deg,
+      var(--brand-tint-10) 0%,
+      color-mix(in oklab, var(--brand-accent) 12%, #FFFFFF) 45%,
+      #FFFFFF 100%);
+
+  /* Ink for surfaces that are light regardless of the preset's scheme.
+     A dark preset's --brand-ink is near-white, which vanishes on the login
+     wash; this keeps that one screen readable without forcing the preset. */
+  --ink-on-light: #0A0A0A;
+
+  /* The decorative blobs: light, luminous, never the flat saturated primary. */
+  --gradient-soft: linear-gradient(140deg,
+      var(--brand-light) 0%,
+      color-mix(in oklab, var(--brand-primary) 55%, #FFFFFF) 100%);
+
+  /* Primary buttons.
+     --on-primary is validated against --brand-primary and nothing else, so the
+     fill stays on that colour and only shades 6% toward the deep variant for a
+     hint of depth. Running the full way to --brand-primary-deep dropped the
+     label under 4.5:1 on 10 of the 30 presets, and on several of those no
+     label colour could recover it — the mid-tone fill was the problem, not the
+     text. Measured worst case here is 4.53:1 across all 30. */
+  --gradient-button: linear-gradient(90deg,
+      var(--brand-primary) 0%,
+      color-mix(in oklab, var(--brand-primary-deep) 6%, var(--brand-primary)) 100%);
+
   /* Gradients. The far stop is nudged toward ink so a preset whose primary and
      secondary sit close together still reads as a gradient, not a flat smear.
      (The generator also enforces OKLCH separation at authoring time.) */
@@ -150,6 +189,11 @@
 
   --color-admin-cream: var(--admin-cream);
   --color-admin-sidebar: var(--admin-sidebar);
+
+  /* For surfaces that stay light under every preset (the login screen). A real
+     token rather than an arbitrary value, so `/60` opacity modifiers work —
+     Tailwind will not parse color-mix() inside text-[color:...]. */
+  --color-ink-light: var(--ink-on-light);
 
   /* Label colour for a primary-filled control. `text-on-primary` replaces
      `text-white` wherever it sat on a pink fill — white drops to 3.5:1 on the
