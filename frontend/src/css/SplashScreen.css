@@ -1,0 +1,202 @@
+/* ==========================================================================
+   SPLASH SCREEN — JK Fashion logo-completion animation
+   --------------------------------------------------------------------------
+   Timeline (~2.6s):
+     0.15s  brushstroke wipes on, left to right
+     0.95s  JK monogram draws, stroke by stroke
+     1.70s  wordmark settles (letterspacing + fade)
+     2.20s  brief settle, then App.jsx lifts the screen away
+   ========================================================================== */
+
+.splash {
+  position: fixed;
+  inset: 0;
+  /* Above every in-page layer: the navbar sits at 9999 and its sidebar and
+     close button reach 10001, so the splash has to clear all of them. */
+  z-index: 2147483000;
+  display: grid;
+  place-items: center;
+  background: #FFFFFF;
+  opacity: 1;
+  transition: opacity 0.55s ease, visibility 0.55s ease;
+}
+
+/* Faint pink haze behind the mark so the white doesn't read as flat */
+.splash::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(120vw, 1100px);
+  height: min(70vh, 620px);
+  transform: translate(-50%, -50%);
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 46, 147, 0.11) 0%,
+    rgba(255, 46, 147, 0.035) 45%,
+    transparent 74%
+  );
+  opacity: 0;
+  animation: splashHaze 1.5s ease-out 0.25s forwards;
+  pointer-events: none;
+}
+
+.splash--exit {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.splash__stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(0.25rem, 1.6vw, 0.9rem);
+  padding: 0 1.5rem;
+  animation: splashSettle 1s cubic-bezier(0.22, 1, 0.36, 1) 2.05s both;
+}
+
+.splash__mark {
+  width: min(88vw, 560px);
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+/* -------------------------------------------------- 1. the brushstroke */
+
+/* The clip rect starts collapsed and opens rightward, so the paint
+   appears to be laid down by a moving brush. */
+.splash__wipe {
+  transform-origin: left center;
+  transform: scaleX(0);
+  animation: splashWipe 1.05s cubic-bezier(0.62, 0.02, 0.34, 1) 0.15s forwards;
+}
+
+.splash__brush {
+  opacity: 0.97;
+}
+
+/* -------------------------------------------------- 2. the JK monogram */
+
+/* The script is near-black, matching the logo. On white it already has plenty
+   of contrast, so this is just a soft pink lift that ties it to the brush
+   rather than a glow it needs in order to be legible. */
+.splash__script {
+  filter: drop-shadow(0 3px 10px rgba(255, 46, 147, 0.22));
+}
+
+.splash__stroke {
+  /* Generous dash length so every path is fully hidden before it draws.
+     pathLength isn't set, so this must exceed the longest path. */
+  stroke-dasharray: 620;
+  stroke-dashoffset: 620;
+  animation: splashDraw 0.62s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+.splash__stroke--1 { animation-delay: 0.95s; }
+.splash__stroke--2 { animation-delay: 1.24s; }
+.splash__stroke--3 { animation-delay: 1.12s; }
+.splash__stroke--4 { animation-delay: 1.34s; }
+.splash__stroke--5 { animation-delay: 1.46s; }
+
+/* -------------------------------------------------- 3. the wordmark */
+
+.splash__wordmark {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55ch;
+  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  color: #0A0A0A;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.splash__brandname {
+  font-size: clamp(1.5rem, 4.2vw, 2.6rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  opacity: 0;
+  animation: splashRise 0.75s cubic-bezier(0.22, 1, 0.36, 1) 1.70s forwards;
+}
+
+.splash__brandword {
+  font-family: 'Montserrat', system-ui, -apple-system, sans-serif;
+  font-size: clamp(0.72rem, 2.1vw, 1.05rem);
+  font-weight: 300;
+  text-transform: uppercase;
+  color: #E01B77;
+  opacity: 0;
+  letter-spacing: 0.05em;
+  animation: splashTrack 0.95s cubic-bezier(0.22, 1, 0.36, 1) 1.86s forwards;
+}
+
+/* ==========================================================================
+   Keyframes
+   ========================================================================== */
+
+@keyframes splashWipe {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+@keyframes splashDraw {
+  from { stroke-dashoffset: 620; }
+  to   { stroke-dashoffset: 0; }
+}
+
+@keyframes splashRise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes splashTrack {
+  from { opacity: 0; letter-spacing: 0.05em; }
+  to   { opacity: 1; letter-spacing: 0.42em; }
+}
+
+@keyframes splashHaze {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* One quiet breath before the screen lifts */
+@keyframes splashSettle {
+  0%   { transform: scale(1); }
+  55%  { transform: scale(1.018); }
+  100% { transform: scale(1); }
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+
+@media (max-width: 480px) {
+  .splash__mark { width: 92vw; }
+  .splash__wordmark { gap: 0.4ch; }
+  @keyframes splashTrack {
+    from { opacity: 0; letter-spacing: 0.05em; }
+    to   { opacity: 1; letter-spacing: 0.3em; }
+  }
+}
+
+/* ==========================================================================
+   Reduced motion — show the finished logo, skip the performance
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .splash__wipe,
+  .splash__stroke,
+  .splash__brandname,
+  .splash__brandword,
+  .splash__stage,
+  .splash::after {
+    animation: none !important;
+  }
+  .splash__wipe { transform: scaleX(1); }
+  .splash__stroke { stroke-dashoffset: 0; }
+  .splash__brandname,
+  .splash__brandword,
+  .splash::after { opacity: 1; }
+  .splash__brandword { letter-spacing: 0.42em; }
+}

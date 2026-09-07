@@ -1,0 +1,96 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   Tailwind v4 design tokens.
+   Anything declared in @theme becomes a real utility — `--color-brand-pink`
+   generates `bg-brand-pink`, `text-brand-pink`, `border-brand-pink`, etc.
+   Keep brand values here so Tailwind and the hand-written CSS stay in sync.
+   ========================================================================== */
+@theme {
+  --color-brand-pink: #FF2E93;
+  --color-brand-pink-dark: #E01B77;
+  --color-brand-pink-soft: #FF87C2;
+  --color-brand-ink: #0A0A0A;
+  --color-brand-navy: #00123A;
+  --color-brand-gold: #F8C64B;
+
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body: 'Montserrat', system-ui, sans-serif;
+
+  /* Admin panel surfaces — warm neutrals that carry the brand pink without
+     competing with it. */
+  --color-admin-cream: #FDF8F4;
+  --color-admin-sidebar: #FFF6FA;
+}
+
+/* Client Brand Colors - Selected Shades */
+:root {
+  /* Primary Colors */
+  --color-navy-blue: #00123A;
+  --color-navy-ink: #00123A;
+  --color-yellow-gold: #F8C64B;
+  --color-forest-green: #0C6C0B;
+  --color-dark-gray: #373737;
+  --color-light-gray: #D6D6D6;
+  --color-light-yellow: #FFD368;
+
+  /* Theme Surfaces */
+  --surface-primary: #FFFFFF;
+  --surface-secondary: #F5F5F5;
+  --surface-card: #FFFFFF;
+  --surface-muted: #F0F2F5;
+  --text-primary: #111827;
+  --text-secondary: #4B5563;
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --navbar-glass-bg: rgba(255, 255, 255, 0.55);
+  --navbar-glass-bg-scrolled: rgba(255, 255, 255, 0.72);
+  --navbar-glass-border: rgba(0, 18, 58, 0.08);
+  --navbar-glass-shadow: rgba(0, 18, 58, 0.12);
+  --control-surface: rgba(255, 255, 255, 0.85);
+  --control-border: rgba(0, 18, 58, 0.12);
+}
+
+/* Prevent horizontal scroll & Mobile scroll fixes */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden;
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  font-family: 'Montserrat', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  scroll-behavior: smooth;
+}
+
+/* Mobile: Allow body scroll when scroll stack is disabled */
+@media screen and (max-width: 768px) {
+  html, body {
+    overflow-y: auto;
+    height: auto;
+  }
+}
+
+#root {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+/* ==========================================================================
+   App shell — hidden behind the splash, revealed when it lifts
+   `App.jsx` toggles these classes; without them the navbar renders over
+   the splash screen (both previously sat at z-index 9999).
+   ========================================================================== */
+
+.app-shell {
+  transition: opacity 0.5s ease;
+}
+
+.app-shell--masked {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.app-shell--ready {
+  opacity: 1;
+}

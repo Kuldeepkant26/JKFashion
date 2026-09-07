@@ -1,0 +1,308 @@
+/* About Us Section - Matching Hero Theme */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Montserrat:wght@300;400;500;600;700&display=swap');
+
+.aboutus-section {
+  min-height: 100vh;
+  background: var(--surface-primary);
+  padding: 80px 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.aboutus-section .aboutus-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 5%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+}
+
+/* Left Side - Icon and Image */
+.aboutus-section .aboutus-left {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.aboutus-section .aboutus-left .icon-and-image {
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+}
+
+.aboutus-section .aboutus-left .aboutus-icon {
+  position: absolute;
+  top: -40px;
+  left: -40px;
+  width: 160px;
+  height: 160px;
+  color: var(--color-navy-blue);
+  opacity: 0.15;
+  z-index: 1;
+  animation: rotateIcon 20s linear infinite;
+}
+
+.aboutus-section .aboutus-left .icon-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.aboutus-section .aboutus-left .aboutus-image {
+  position: relative;
+  z-index: 2;
+  opacity: 0;
+  animation: fadeInScale 1s ease-out 0.3s forwards;
+}
+
+.aboutus-section .aboutus-left .image-placeholder {
+  width: 100%;
+  padding-bottom: 120%;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  transition: all 0.4s ease;
+}
+
+.aboutus-section .aboutus-left .image-placeholder:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.2);
+}
+
+.aboutus-section .aboutus-left .aboutus-actual-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s ease;
+}
+
+.aboutus-section .aboutus-left .image-placeholder:hover .aboutus-actual-image {
+  transform: scale(1.05);
+}
+
+/* Right Side - Content */
+.aboutus-section .aboutus-right {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  opacity: 0;
+  animation: fadeInRight 0.8s ease-out 0.4s forwards;
+}
+
+.aboutus-section .aboutus-right .aboutus-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(42px, 5vw, 64px);
+  font-weight: 700;
+  line-height: 1.2;
+  background: linear-gradient(135deg, var(--color-yellow-gold) 0%, var(--color-forest-green) 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.aboutus-section .aboutus-right .gradient-accent {
+  background: linear-gradient(135deg, var(--color-yellow-gold) 0%, var(--color-forest-green) 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 800;
+}
+
+.aboutus-section .aboutus-right .aboutus-text {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.aboutus-section .aboutus-right .aboutus-paragraph {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 2;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.aboutus-section .aboutus-right .aboutus-cta {
+  margin-top: 20px;
+}
+
+.aboutus-section .aboutus-right .circle-btn {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: var(--color-navy-blue);
+  border: 1px solid rgba(248, 198, 75, 0.6);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s ease;
+  box-shadow: 0 6px 20px rgba(0, 18, 58, 0.15);
+}
+
+.aboutus-section .aboutus-right .circle-btn:hover {
+  background: linear-gradient(135deg, var(--color-forest-green) 0%, var(--color-navy-blue) 100%);
+  transform: scale(1.1) rotate(90deg);
+  box-shadow: 0 10px 35px rgba(248, 198, 75, 0.3);
+}
+
+.aboutus-section .aboutus-right .circle-btn .btn-line {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 2px;
+  background: var(--color-light-yellow);
+}
+
+.aboutus-section .aboutus-right .circle-btn .btn-line::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(90deg);
+  width: 40px;
+  height: 2px;
+  background: var(--color-light-yellow);
+}
+
+/* Animations */
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes rotateIcon {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive Design */
+@media screen and (max-width: 1200px) {
+  .aboutus-section .aboutus-container {
+    grid-template-columns: 1fr;
+    gap: 60px;
+    padding: 0 6%;
+  }
+
+  .aboutus-section .aboutus-left {
+    order: 1;
+  }
+
+  .aboutus-section .aboutus-right {
+    order: 2;
+    text-align: center;
+    align-items: center;
+  }
+
+  .aboutus-section .aboutus-left .icon-and-image {
+    max-width: 450px;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .aboutus-section {
+    padding: 60px 0;
+  }
+
+  .aboutus-section .aboutus-container {
+    gap: 50px;
+    padding: 0 5%;
+  }
+
+  .aboutus-section .aboutus-left .aboutus-icon {
+    width: 120px;
+    height: 120px;
+    top: -30px;
+    left: -30px;
+  }
+
+  .aboutus-section .aboutus-right .aboutus-title {
+    font-size: clamp(36px, 8vw, 56px);
+  }
+
+  .aboutus-section .aboutus-right .aboutus-paragraph {
+    font-size: 14px;
+    line-height: 1.9;
+  }
+
+  .aboutus-section .aboutus-right .circle-btn {
+    width: 90px;
+    height: 90px;
+  }
+
+  .aboutus-section .aboutus-right .circle-btn .btn-line {
+    width: 35px;
+  }
+
+  .aboutus-section .aboutus-right .circle-btn .btn-line::before {
+    width: 35px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .aboutus-section {
+    padding: 50px 0;
+  }
+
+  .aboutus-section .aboutus-container {
+    gap: 40px;
+  }
+
+  .aboutus-section .aboutus-left .aboutus-icon {
+    width: 100px;
+    height: 100px;
+    top: -20px;
+    left: -20px;
+  }
+
+  .aboutus-section .aboutus-right .aboutus-title {
+    font-size: 32px;
+  }
+
+  .aboutus-section .aboutus-right .aboutus-paragraph {
+    font-size: 13px;
+  }
+
+  .aboutus-section .aboutus-right .circle-btn {
+    width: 80px;
+    height: 80px;
+  }
+
+  .aboutus-section .aboutus-right .circle-btn .btn-line {
+    width: 30px;
+  }
+
+  .aboutus-section .aboutus-right .circle-btn .btn-line::before {
+    width: 30px;
+  }
+}

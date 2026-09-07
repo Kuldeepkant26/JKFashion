@@ -1,0 +1,454 @@
+/* Aesthetic Showcase Section */
+.aesthetic-section {
+    position: relative;
+    padding: 8rem 0;
+    background: var(--surface-primary);
+    overflow: hidden;
+}
+
+.aesthetic-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 300px;
+    background: radial-gradient(ellipse at top, rgba(248, 198, 75, 0.08), transparent);
+    pointer-events: none;
+}
+
+.aesthetic-section .aesthetic-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 5%;
+    position: relative;
+    z-index: 1;
+}
+
+/* Header */
+.aesthetic-section .aesthetic-header {
+    text-align: center;
+    margin-bottom: 5rem;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.aesthetic-section .aesthetic-subtitle {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.125rem;
+    color: var(--text-secondary);
+    line-height: 1.8;
+    margin-top: 1rem;
+}
+
+/* Grid Layout - Unique Bento Box Style */
+.aesthetic-section .aesthetic-grid {
+    display: grid;
+    grid-template-columns: repeat(16, 1fr);
+    gap: 1.5rem;
+    grid-auto-rows: 200px;
+}
+
+/* Card Variants */
+.aesthetic-section .aesthetic-card {
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.12);
+}
+
+/* Hero Card - Main focal point with unique shape */
+.aesthetic-section .aesthetic-hero {
+    grid-column: 1 / 10;
+    grid-row: 1 / 3;
+    border-radius: 30px 30px 30px 5px;
+}
+
+.aesthetic-section .aesthetic-hero:hover {
+    transform: translateY(-12px) scale(1.01);
+    box-shadow: 0 25px 70px rgba(248, 198, 75, 0.25);
+}
+
+/* Vertical Showcase - Tall elegant card */
+.aesthetic-section .aesthetic-vertical {
+    grid-column: 10 / 14;
+    grid-row: 1 / 4;
+    border-radius: 5px 30px 5px 30px;
+}
+
+.aesthetic-section .aesthetic-vertical:hover {
+    transform: translateX(-8px) scale(1.015);
+    box-shadow: 0 20px 60px rgba(12, 108, 11, 0.2);
+}
+
+/* Square Accent - Compact highlight */
+.aesthetic-section .aesthetic-square {
+    grid-column: 14 / 17;
+    grid-row: 1 / 3;
+    border-radius: 30px 5px 30px 30px;
+}
+
+.aesthetic-section .aesthetic-square:hover {
+    transform: rotate(-2deg) scale(1.05);
+    box-shadow: 0 20px 60px rgba(0, 18, 58, 0.2);
+}
+
+/* Wide Panorama - Sweeping landscape */
+.aesthetic-section .aesthetic-panorama {
+    grid-column: 1 / 10;
+    grid-row: 3 / 5;
+    border-radius: 5px 30px 30px 30px;
+}
+
+.aesthetic-section .aesthetic-panorama:hover {
+    transform: translateY(8px) scale(1.01);
+    box-shadow: 0 25px 70px rgba(248, 198, 75, 0.3);
+}
+
+/* Portrait Highlight - Vertical emphasis */
+.aesthetic-section .aesthetic-portrait {
+    grid-column: 10 / 14;
+    grid-row: 4 / 6;
+    border-radius: 30px 30px 5px 5px;
+}
+
+.aesthetic-section .aesthetic-portrait:hover {
+    transform: translateY(-10px) scale(1.02);
+    box-shadow: 0 20px 60px rgba(12, 108, 11, 0.25);
+}
+
+/* Landscape Feature - Horizontal showcase */
+.aesthetic-section .aesthetic-landscape {
+    grid-column: 14 / 17;
+    grid-row: 3 / 6;
+    border-radius: 30px 5px 30px 5px;
+}
+
+.aesthetic-section .aesthetic-landscape:hover {
+    transform: translateX(8px) scale(1.015);
+    box-shadow: 0 20px 60px rgba(0, 18, 58, 0.25);
+}
+
+/* Image Wrapper */
+.aesthetic-section .aesthetic-image-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.aesthetic-section .aesthetic-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: brightness(0.95);
+}
+
+.aesthetic-section .aesthetic-card:hover .aesthetic-image {
+    transform: scale(1.1);
+    filter: brightness(1);
+}
+
+/* Overlay */
+.aesthetic-section .aesthetic-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        to top,
+        rgba(0, 18, 58, 0.9) 0%,
+        rgba(0, 18, 58, 0.6) 40%,
+        transparent 100%
+    );
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    display: flex;
+    align-items: flex-end;
+    padding: 2rem;
+}
+
+.aesthetic-section .aesthetic-card:hover .aesthetic-overlay {
+    opacity: 1;
+}
+
+/* Content */
+.aesthetic-section .aesthetic-content h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 0.5rem 0;
+    transform: translateY(20px);
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.1s;
+}
+
+.aesthetic-section .aesthetic-content p {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0;
+    transform: translateY(20px);
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.2s;
+}
+
+.aesthetic-section .aesthetic-card:hover .aesthetic-content h3,
+.aesthetic-section .aesthetic-card:hover .aesthetic-content p {
+    transform: translateY(0);
+}
+
+/* Featured Badge */
+.aesthetic-section .aesthetic-badge {
+    position: absolute;
+    top: 2rem;
+    right: 2rem;
+    background: linear-gradient(135deg, var(--color-yellow-gold), var(--color-light-yellow));
+    color: var(--color-navy-blue);
+    padding: 0.5rem 1.25rem;
+    border-radius: 50px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    box-shadow: 0 8px 25px rgba(248, 198, 75, 0.4);
+    transform: scale(0);
+    transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s;
+}
+
+.aesthetic-section .aesthetic-card:hover .aesthetic-badge {
+    transform: scale(1);
+}
+
+/* Decorative Elements */
+.aesthetic-section .aesthetic-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(248, 198, 75, 0.15) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.6s ease;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.aesthetic-section .aesthetic-card:hover::before {
+    opacity: 1;
+}
+
+.aesthetic-section .aesthetic-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 3px solid transparent;
+    border-radius: inherit;
+    transition: all 0.5s ease;
+    pointer-events: none;
+}
+
+.aesthetic-section .aesthetic-card:hover::after {
+    border-color: var(--color-yellow-gold);
+    box-shadow: inset 0 0 30px rgba(248, 198, 75, 0.1);
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .aesthetic-section {
+        padding: 6rem 0;
+    }
+
+    .aesthetic-section .aesthetic-grid {
+        grid-template-columns: repeat(12, 1fr);
+        grid-auto-rows: 220px;
+    }
+
+    .aesthetic-section .aesthetic-hero {
+        grid-column: 1 / 8;
+        grid-row: 1 / 3;
+    }
+
+    .aesthetic-section .aesthetic-vertical {
+        grid-column: 8 / 13;
+        grid-row: 1 / 4;
+    }
+
+    .aesthetic-section .aesthetic-square {
+        grid-column: 1 / 5;
+        grid-row: 3 / 5;
+    }
+
+    .aesthetic-section .aesthetic-panorama {
+        grid-column: 5 / 13;
+        grid-row: 4 / 6;
+    }
+
+    .aesthetic-section .aesthetic-portrait {
+        grid-column: 1 / 5;
+        grid-row: 5 / 7;
+    }
+
+    .aesthetic-section .aesthetic-landscape {
+        grid-column: 5 / 13;
+        grid-row: 6 / 8;
+    }
+}
+
+@media (max-width: 968px) {
+    .aesthetic-section {
+        padding: 5rem 0;
+    }
+
+    .aesthetic-section .aesthetic-header {
+        margin-bottom: 3rem;
+    }
+
+    .aesthetic-section .aesthetic-grid {
+        grid-template-columns: repeat(8, 1fr);
+        gap: 1rem;
+        grid-auto-rows: 200px;
+    }
+
+    .aesthetic-section .aesthetic-hero {
+        grid-column: 1 / 9;
+        grid-row: 1 / 3;
+        border-radius: 25px;
+    }
+
+    .aesthetic-section .aesthetic-vertical {
+        grid-column: 1 / 5;
+        grid-row: 3 / 5;
+        border-radius: 25px;
+    }
+
+    .aesthetic-section .aesthetic-square {
+        grid-column: 5 / 9;
+        grid-row: 3 / 5;
+        border-radius: 25px;
+    }
+
+    .aesthetic-section .aesthetic-panorama {
+        grid-column: 1 / 9;
+        grid-row: 5 / 7;
+        border-radius: 25px;
+    }
+
+    .aesthetic-section .aesthetic-portrait {
+        grid-column: 1 / 5;
+        grid-row: 7 / 9;
+        border-radius: 25px;
+    }
+
+    .aesthetic-section .aesthetic-landscape {
+        grid-column: 5 / 9;
+        grid-row: 7 / 9;
+        border-radius: 25px;
+    }
+
+    .aesthetic-section .aesthetic-content h3 {
+        font-size: 1.5rem;
+    }
+
+    .aesthetic-section .aesthetic-content p {
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .aesthetic-section {
+        padding: 4rem 0;
+    }
+
+    .aesthetic-section .aesthetic-header {
+        margin-bottom: 2.5rem;
+    }
+
+    .aesthetic-section .aesthetic-subtitle {
+        font-size: 1rem;
+    }
+
+    .aesthetic-section .aesthetic-grid {
+        grid-template-columns: repeat(6, 1fr);
+        gap: 0.875rem;
+        grid-auto-rows: 180px;
+    }
+
+    .aesthetic-section .aesthetic-hero,
+    .aesthetic-section .aesthetic-panorama {
+        grid-column: 1 / 7;
+        grid-row: span 2;
+        border-radius: 20px;
+    }
+
+    .aesthetic-section .aesthetic-vertical,
+    .aesthetic-section .aesthetic-square,
+    .aesthetic-section .aesthetic-portrait,
+    .aesthetic-section .aesthetic-landscape {
+        grid-column: 1 / 7;
+        grid-row: span 1;
+        border-radius: 20px;
+    }
+
+    .aesthetic-section .aesthetic-overlay {
+        padding: 1.5rem;
+    }
+
+    .aesthetic-section .aesthetic-content h3 {
+        font-size: 1.25rem;
+    }
+
+    .aesthetic-section .aesthetic-content p {
+        font-size: 0.875rem;
+    }
+
+    .aesthetic-section .aesthetic-badge {
+        top: 1rem;
+        right: 1rem;
+        padding: 0.4rem 1rem;
+        font-size: 0.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .aesthetic-section {
+        padding: 3rem 0;
+    }
+
+    .aesthetic-section .aesthetic-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+        grid-auto-rows: 250px;
+    }
+
+    .aesthetic-section .aesthetic-hero,
+    .aesthetic-section .aesthetic-vertical,
+    .aesthetic-section .aesthetic-square,
+    .aesthetic-section .aesthetic-panorama,
+    .aesthetic-section .aesthetic-portrait,
+    .aesthetic-section .aesthetic-landscape {
+        grid-column: 1;
+        grid-row: span 1;
+        border-radius: 18px;
+    }
+
+    .aesthetic-section .aesthetic-overlay {
+        padding: 1.25rem;
+    }
+
+    .aesthetic-section .aesthetic-content h3 {
+        font-size: 1.125rem;
+    }
+
+    .aesthetic-section .aesthetic-content p {
+        font-size: 0.8rem;
+    }
+}

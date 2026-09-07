@@ -1,0 +1,398 @@
+/* ========================================
+   VENTURES PAGE - BASE STYLES
+   ======================================== */
+
+.ventures-page {
+    min-height: 100vh;
+    width: 100%;
+    background: var(--surface-primary);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
+    position: relative;
+}
+
+/* ========================================
+   HERO SECTION
+   ======================================== */
+
+.ventures-page__hero-section {
+    min-height: 100vh;
+    width: 100%;
+    padding: 120px 20px 80px;
+    position: relative;
+    overflow: hidden;
+    transition: background-color 0.3s ease;
+    background: transparent;
+}
+
+/* Light Theme Hero */
+.ventures-page__hero-section.ventures-page__hero-section--light {
+    background: transparent;
+}
+
+.ventures-page__hero-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: center;
+    min-height: 80vh;
+    padding: 0 24px;
+    position: relative;
+    z-index: 2;
+}
+
+/* ========================================
+   HERO LEFT SIDE - CARD SWAP
+   ======================================== */
+
+.ventures-page__hero-left {
+    position: relative;
+    height: 600px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding-left: 0;
+}
+
+/* Override CardSwap defaults to remove dark background/border */
+.ventures-page__hero-left .card-swap-container {
+    position: relative;
+    bottom: auto;
+    right: auto;
+    transform: translateY(40px);
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    perspective: 1200px;
+    overflow: visible;
+}
+
+.ventures-page__hero-left .card {
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    border-radius: 24px;
+    overflow: hidden;
+}
+
+.ventures-page__card {
+    display: flex;
+    border-radius: 24px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    height: 420px;
+    box-shadow: none;
+    padding: 0;
+    background: transparent;
+    border: none;
+}
+
+.ventures-page__card:hover {
+    transform: scale(1.02);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.ventures-page__card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+@media (max-width: 768px) {
+    .ventures-page__card {
+        height: 360px;
+    }
+}
+
+@media (max-width: 480px) {
+    .ventures-page__card {
+        height: 320px;
+    }
+}
+
+/* ========================================
+   HERO RIGHT SIDE - CONTENT
+   ======================================== */
+
+.ventures-page__hero-right {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.ventures-page__hero-content {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+}
+
+.ventures-page__hero-badge {
+    display: inline-block;
+    width: fit-content;
+    padding: 10px 24px;
+    background: linear-gradient(135deg, var(--color-navy-blue), var(--color-yellow-gold));
+    color: #ffffff;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-radius: 50px;
+    animation: ventures-pulse 2s ease-in-out infinite;
+}
+
+@keyframes ventures-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+}
+
+.ventures-page__hero-title {
+    font-size: clamp(2.5rem, 5vw, 4.5rem);
+    font-weight: 800;
+    line-height: 1.2;
+    margin: 0;
+    font-family: 'Playfair Display', serif;
+    color: var(--color-navy-blue);
+}
+
+/* Light Theme Title */
+.ventures-page--light .ventures-page__hero-title {
+    color: var(--text-primary);
+}
+
+.ventures-page__hero-title-gradient {
+    background: linear-gradient(135deg, var(--color-navy-blue), var(--color-forest-green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: inline-block;
+}
+
+.ventures-page__hero-description {
+    font-size: 1.2rem;
+    line-height: 1.8;
+    max-width: 580px;
+    color: var(--text-secondary);
+    font-family: 'Montserrat', sans-serif;
+}
+
+/* ========================================
+   HERO STATS
+   ======================================== */
+
+.ventures-page__hero-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin: 20px 0;
+}
+
+.ventures-page__stat-item {
+    padding: 20px;
+    border-radius: 16px;
+    background: var(--surface-card);
+    border: 1px solid var(--border-subtle);
+    transition: all 0.3s ease;
+}
+
+.ventures-page__stat-item:hover {
+    transform: translateY(-5px);
+    background: var(--surface-muted);
+    border-color: var(--border-subtle);
+}
+
+.ventures-page__stat-number {
+    font-size: 2.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+}
+
+.ventures-page__stat-label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+/* ========================================
+   HERO CTA BUTTONS
+   ======================================== */
+
+.ventures-page__hero-cta {
+    display: flex;
+    gap: 16px;
+    margin-top: 12px;
+}
+
+.ventures-page__cta-primary,
+.ventures-page__cta-secondary {
+    padding: 16px 32px;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ventures-page__cta-primary {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #ffffff;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.ventures-page__cta-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.ventures-page__cta-secondary {
+    background: transparent;
+    color: inherit;
+}
+
+/* Light Theme Secondary Button */
+.ventures-page--light .ventures-page__cta-secondary {
+    border: 2px solid var(--border-subtle);
+    color: var(--text-primary);
+}
+
+.ventures-page--light .ventures-page__cta-secondary:hover {
+    background: var(--surface-muted);
+    border-color: var(--border-subtle);
+}
+
+/* ========================================
+   RESPONSIVE DESIGN - HERO SECTION
+   ======================================== */
+
+@media (max-width: 1024px) {
+    .ventures-page__hero-container {
+        grid-template-columns: 1fr;
+        gap: 60px;
+        padding: 40px 0;
+    }
+
+    .ventures-page__hero-left {
+        height: 500px;
+        order: 2;
+    }
+
+    .ventures-page__hero-right {
+        order: 1;
+        text-align: center;
+    }
+
+    .ventures-page__hero-content {
+        align-items: center;
+    }
+
+    .ventures-page__hero-stats {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .ventures-page__hero-cta {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .ventures-page__hero-section {
+        padding: 100px 16px 60px;
+    }
+
+    .ventures-page__hero-left {
+        height: 450px;
+    }
+
+    .ventures-page__card {
+        padding: 40px 30px;
+        min-height: 350px;
+    }
+
+    .ventures-page__card-icon {
+        font-size: 3rem;
+        margin-bottom: 20px;
+    }
+
+    .ventures-page__card-title {
+        font-size: 1.75rem;
+    }
+
+    .ventures-page__card-text {
+        font-size: 1rem;
+    }
+
+    .ventures-page__hero-title {
+        font-size: 2.5rem;
+    }
+
+    .ventures-page__hero-description {
+        font-size: 1.1rem;
+    }
+
+    .ventures-page__hero-stats {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .ventures-page__stat-number {
+        font-size: 2rem;
+    }
+
+    .ventures-page__hero-cta {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .ventures-page__cta-primary,
+    .ventures-page__cta-secondary {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .ventures-page__hero-section {
+        padding: 80px 16px 40px;
+    }
+
+    .ventures-page__hero-left {
+        height: 400px;
+    }
+
+    .ventures-page__card {
+        padding: 30px 24px;
+        min-height: 320px;
+    }
+
+    .ventures-page__card-icon {
+        font-size: 2.5rem;
+    }
+
+    .ventures-page__card-title {
+        font-size: 1.5rem;
+    }
+
+    .ventures-page__hero-badge {
+        font-size: 0.75rem;
+        padding: 8px 20px;
+    }
+
+    .ventures-page__stat-number {
+        font-size: 1.75rem;
+    }
+
+    .ventures-page__stat-label {
+        font-size: 0.85rem;
+    }
+}

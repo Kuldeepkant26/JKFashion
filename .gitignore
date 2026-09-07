@@ -1,0 +1,30 @@
+# ---------------------------------------------------------------------------
+# Secrets — MUST stay out of version control.
+# backend/.env holds the live MongoDB credential and the JWT signing secret.
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editors / OS
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.local
