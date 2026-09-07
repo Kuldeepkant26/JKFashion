@@ -14,7 +14,7 @@
 
 /* Theme Variants */
 .immersive-vision--light {
-    background-color: #f8f9fa;
+    background-color: var(--surface-secondary);
 }
 
 /* Background Elements */
@@ -110,7 +110,7 @@
 }
 
 .immersive-vision--light .immersive-vision__subtitle {
-    color: #5a6a7a;
+    color: var(--text-secondary);
 }
 
 /* Cards Grid */
@@ -197,7 +197,7 @@
 }
 
 .immersive-vision--light .immersive-vision__card-desc {
-    color: #6b7a8a;
+    color: var(--text-secondary);
 }
 
 /* Card Bottom Line */
@@ -310,7 +310,7 @@
 }
 
 .immersive-vision--light .immersive-vision__stat-label {
-    color: #6b7a8a;
+    color: var(--text-secondary);
 }
 
 .immersive-vision .immersive-vision__stat-divider {

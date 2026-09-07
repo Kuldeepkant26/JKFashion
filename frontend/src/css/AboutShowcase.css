@@ -37,7 +37,7 @@
     font-weight: 600;
     letter-spacing: 2px;
     text-transform: uppercase;
-    background: linear-gradient(135deg, var(--color-navy-blue), var(--color-yellow-gold));
+    background: var(--gradient-heading);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -60,7 +60,7 @@
 
 /* Light Theme Title */
 .ventures-showcase.ventures-showcase--light .ventures-showcase__title {
-    background: linear-gradient(135deg, #0b1b3a 0%, var(--brand-secondary) 100%);
+    background: var(--gradient-heading);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -187,7 +187,7 @@
 .ventures-showcase__stat-number {
     font-size: 3rem;
     font-weight: 800;
-    background: linear-gradient(135deg, var(--color-navy-blue), var(--color-forest-green));
+    background: var(--gradient-heading);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;

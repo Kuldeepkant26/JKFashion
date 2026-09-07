@@ -78,7 +78,7 @@
 }
 
 .cta-section .gradient-text {
-    background: linear-gradient(135deg, var(--color-yellow-gold) 0%, var(--color-forest-green) 70%, var(--color-navy-blue) 100%);
+    background: var(--gradient-heading);
     background-size: 200% 200%;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;

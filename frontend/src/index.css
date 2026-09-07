@@ -73,6 +73,22 @@
       color-mix(in oklab, var(--brand-accent) 12%, #FFFFFF) 45%,
       #FFFFFF 100%);
 
+  /* Primary, darkened just enough to carry large text on a light background.
+     The raw primary is tuned for fills: on white it drops under 3:1 on 9 of the
+     30 presets (graphite-mint reaches only 1.74:1, effectively invisible).
+     Mixed toward a fixed near-black rather than --brand-ink: a dark preset's
+     ink is near-WHITE, so mixing toward it lightens the text and makes the
+     problem worse. Use this for coloured TEXT on light surfaces; use
+     --brand-primary for fills. */
+  --brand-primary-text: color-mix(in oklab, var(--brand-primary) 70%, #101014);
+
+  /* Gradient for text clipped with background-clip:text. Both stops are
+     text-safe: the general --gradient-brand ends on the ink-shifted secondary,
+     which on a light page left the tail of a heading at 1.74:1 on 9 presets. */
+  --gradient-heading: linear-gradient(135deg,
+      var(--brand-primary-text) 0%,
+      color-mix(in oklab, var(--brand-primary-text) 70%, var(--brand-secondary)) 100%);
+
   /* Ink for surfaces that are light regardless of the preset's scheme.
      A dark preset's --brand-ink is near-white, which vanishes on the login
      wash; this keeps that one screen readable without forcing the preset. */

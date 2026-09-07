@@ -157,7 +157,7 @@
     font-size: 5rem;
     font-weight: 900;
     font-family: 'Playfair Display', serif;
-    background: linear-gradient(135deg, var(--color-navy-blue), var(--color-yellow-gold));
+    background: var(--gradient-heading);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;

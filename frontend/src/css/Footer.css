@@ -90,7 +90,7 @@
 
 .social-link:hover {
     transform: translateY(-5px);
-    background: var(--color-navy-blue);
+    background: var(--brand-primary);
     color: #ffffff;
     box-shadow: 0 10px 25px color-mix(in oklab, var(--brand-ink) 25%, transparent);
     border-color: transparent;

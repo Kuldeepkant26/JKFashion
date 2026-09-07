@@ -188,7 +188,7 @@
     font-weight: 300;
     letter-spacing: 0.3em;
     text-transform: uppercase;
-    background: linear-gradient(135deg, var(--color-yellow-gold) 0%, var(--color-light-yellow) 50%, var(--brand-secondary-shifted) 100%);
+    background: var(--gradient-heading);
     background-size: 200% 200%;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -892,7 +892,7 @@
     font-weight: 500;
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    background: linear-gradient(135deg, var(--color-yellow-gold) 0%, var(--color-forest-green) 50%, var(--color-navy-blue) 100%);
+    background: var(--gradient-heading);
     background-size: 200% 200%;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;

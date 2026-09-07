@@ -27,7 +27,7 @@
 
 .faq-section .faq-main-icon {
   font-size: 48px;
-  color: var(--color-forest-green);
+  color: var(--brand-primary-text);
   display: inline-block;
   animation: pulse 2s ease-in-out infinite;
 }
@@ -45,7 +45,7 @@
   font-family: 'Playfair Display', serif;
   font-size: clamp(36px, 5vw, 56px);
   font-weight: 700;
-  background: linear-gradient(135deg, var(--color-yellow-gold) 0%, var(--brand-secondary-shifted) 90%);
+  background: var(--gradient-heading);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -54,7 +54,7 @@
 }
 
 .faq-section .gradient-text {
-  background: linear-gradient(135deg, var(--color-yellow-gold) 0%, var(--brand-secondary-shifted) 90%);
+  background: var(--gradient-heading);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -173,8 +173,8 @@
 .faq-section .faq-cta-button {
   font-family: 'Montserrat', sans-serif;
   padding: 14px 40px;
-  background: var(--color-navy-blue);
-  color: #ffffff;
+  background: var(--brand-primary);
+  color: var(--on-primary);
   border: 1px solid color-mix(in oklab, var(--brand-primary) 50%, transparent);
   border-radius: 8px;
   font-size: 16px;
@@ -188,7 +188,7 @@
 }
 
 .faq-section .faq-cta-button:hover {
-  background: #030d2c;
+  background: color-mix(in oklab, var(--brand-primary-deep) 12%, var(--brand-primary));
   transform: translateY(-2px);
   box-shadow: 0 8px 24px color-mix(in oklab, var(--brand-ink) 20%, transparent);
 }

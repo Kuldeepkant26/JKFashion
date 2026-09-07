@@ -99,7 +99,7 @@
   font-size: clamp(42px, 5vw, 64px);
   font-weight: 700;
   line-height: 1.2;
-  background: linear-gradient(135deg, var(--color-yellow-gold) 0%, var(--brand-secondary-shifted) 90%);
+  background: var(--gradient-heading);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -108,7 +108,7 @@
 }
 
 .aboutus-section .aboutus-right .gradient-accent {
-  background: linear-gradient(135deg, var(--color-yellow-gold) 0%, var(--brand-secondary-shifted) 90%);
+  background: var(--gradient-heading);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -138,7 +138,7 @@
   width: 100px;
   height: 100px;
   border-radius: 50%;
-  background: var(--color-navy-blue);
+  background: var(--brand-primary);
   border: 1px solid color-mix(in oklab, var(--brand-primary) 60%, transparent);
   cursor: pointer;
   position: relative;
@@ -148,7 +148,7 @@
 }
 
 .aboutus-section .aboutus-right .circle-btn:hover {
-  background: linear-gradient(135deg, var(--color-forest-green) 0%, var(--color-navy-blue) 100%);
+  background: linear-gradient(135deg, var(--brand-primary-deep) 0%, var(--brand-secondary) 100%);
   transform: scale(1.1) rotate(90deg);
   box-shadow: 0 10px 35px color-mix(in oklab, var(--brand-primary) 30%, transparent);
 }

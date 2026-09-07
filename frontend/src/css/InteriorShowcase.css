@@ -100,7 +100,7 @@
   font-family: 'Playfair Display', serif;
   font-size: clamp(2.5rem, 5vw, 4rem);
   font-weight: 800;
-  background: linear-gradient(135deg, var(--color-yellow-gold) 0%, var(--brand-secondary-shifted) 90%);
+  background: var(--gradient-heading);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -110,7 +110,7 @@
 }
 
 .showcase-section .showcase-title .gradient-accent {
-  background: linear-gradient(135deg, var(--color-yellow-gold) 0%, var(--brand-secondary-shifted) 90%);
+  background: var(--gradient-heading);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -131,8 +131,8 @@
   font-family: 'Montserrat', sans-serif;
   display: inline-block;
   padding: 1.1rem 3rem;
-  background: var(--color-navy-blue);
-  color: #ffffff;
+  background: var(--brand-primary);
+  color: var(--on-primary);
   border: 1px solid color-mix(in oklab, var(--brand-primary) 60%, transparent);
   border-radius: 4px;
   font-size: 0.9rem;
