@@ -2,7 +2,7 @@
   "name": "jk-fashion",
   "version": "1.0.0",
   "private": true,
-  "description": "JK Fashion — marketing site (frontend) and admin API (backend)",
+  "description": "JK Fashion — orchestration only. The real apps live in frontend/ and backend/; this file exists so both dev servers start with one command. Its only dependency is `concurrently`.",
   "scripts": {
     "dev": "concurrently -n api,web -c magenta,cyan \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
     "install:all": "npm --prefix backend install && npm --prefix frontend install",

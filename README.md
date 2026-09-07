@@ -4,9 +4,15 @@ Marketing site plus an admin panel for a schiffli embroidery and lace
 manufacturer.
 
 ```
-frontend/   React 19 + Vite + Tailwind v4 — the public site and the admin panel
-backend/    Express + TypeScript + MongoDB — the admin API
+frontend/        React 19 + Vite + Tailwind v4 — the public site and the admin panel
+backend/         Express + TypeScript + MongoDB — the admin API
+package.json     orchestration only — runs both dev servers with one command
 ```
+
+The root `package.json` is **not** a third application. Its only dependency is
+`concurrently`, and it exists so `npm run dev` starts the API and the site
+together instead of needing two terminals. Delete it and the two apps still
+work; you would just run each one yourself.
 
 ## Running it
 
