@@ -76,7 +76,7 @@
 }
 
 .home-page::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, var(--color-yellow-gold) 0%, var(--color-forest-green) 100%);
+    background: var(--gradient-brand-180);
     border-radius: 5px;
 }
 
@@ -149,7 +149,7 @@
     width: 120px;
     height: 3px;
     background: linear-gradient(90deg, var(--color-yellow-gold) 0%, var(--color-light-yellow) 100%);
-    box-shadow: 0 0 12px rgba(248, 198, 75, 0.35);
+    box-shadow: 0 0 12px color-mix(in oklab, var(--brand-primary) 35%, transparent);
     margin: 0;
 }
 
@@ -193,16 +193,16 @@
     padding: 18px 45px;
     background-color: var(--color-navy-blue);
     color: #ffffff;
-    border: 1px solid rgba(248, 198, 75, 0.7);
+    border: 1px solid color-mix(in oklab, var(--brand-primary) 70%, transparent);
     border-radius: 0;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 6px 18px rgba(0, 18, 58, 0.18);
+    box-shadow: 0 6px 18px color-mix(in oklab, var(--brand-ink) 18%, transparent);
 }
 
 .home-page .home-hero-screenshot-btn:hover {
     background-color: #030d2c;
-    box-shadow: 0 8px 28px rgba(0, 18, 58, 0.25);
+    box-shadow: 0 8px 28px color-mix(in oklab, var(--brand-ink) 25%, transparent);
     transform: translateY(-2px);
 }
 
@@ -234,7 +234,7 @@
     top: 60px;
     width: 64px;
     height: 64px;
-    border: 1px solid rgba(248, 198, 75, 0.45);
+    border: 1px solid color-mix(in oklab, var(--brand-primary) 45%, transparent);
     border-radius: 50%;
     transform: translateX(-40%);
     opacity: 0.7;
@@ -319,7 +319,7 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, var(--color-yellow-gold) 0%, var(--color-forest-green) 100%);
+    background: var(--gradient-brand);
     border-radius: 50%;
     transform: scale(0);
     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -336,7 +336,7 @@
 .home-page .carousel-indicator:hover {
     border-color: var(--color-forest-green);
     transform: scale(1.15);
-    box-shadow: 0 0 12px rgba(248, 198, 75, 0.4);
+    box-shadow: 0 0 12px color-mix(in oklab, var(--brand-primary) 40%, transparent);
 }
 
 /* Responsive Design for Hero Section */
@@ -715,7 +715,7 @@
     font-weight: 700;
     line-height: 1.2;
     letter-spacing: -0.02em;
-    background: linear-gradient(135deg, var(--color-yellow-gold) 0%, var(--color-forest-green) 90%);
+    background: linear-gradient(135deg, var(--color-yellow-gold) 0%, var(--brand-secondary-shifted) 90%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -846,13 +846,13 @@
 }
 
 .home-page .home-dot.active {
-    background: linear-gradient(135deg, var(--color-yellow-gold), var(--color-forest-green));
+    background: var(--gradient-brand);
     width: 30px;
     border-radius: 5px;
 }
 
 .home-page .home-dot:hover {
-    background: rgba(248, 198, 75, 0.55);
+    background: color-mix(in oklab, var(--brand-primary) 55%, transparent);
 }
 
 .home-page .home-image-overlay {
@@ -895,13 +895,13 @@
 
 .home-page .home-service-card {
     padding: 3rem 2rem;
-    background: linear-gradient(135deg, #ffffff 0%, rgba(248, 198, 75, 0.03) 100%);
-    border: 1px solid rgba(248, 198, 75, 0.2);
+    background: linear-gradient(135deg, #ffffff 0%, color-mix(in oklab, var(--brand-primary) 3%, transparent) 100%);
+    border: 1px solid color-mix(in oklab, var(--brand-primary) 20%, transparent);
     border-radius: 12px;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     text-align: center;
-    box-shadow: 0 4px 18px rgba(0, 18, 58, 0.08);
+    box-shadow: 0 4px 18px color-mix(in oklab, var(--brand-ink) 8%, transparent);
 }
 
 .home-page .home-service-card::before {
@@ -922,8 +922,8 @@
 
 .home-page .home-service-card:hover {
     transform: translateY(-8px);
-    border-color: rgba(0, 18, 58, 0.2);
-    box-shadow: 0 20px 45px rgba(0, 18, 58, 0.15);
+    border-color: color-mix(in oklab, var(--brand-ink) 20%, transparent);
+    box-shadow: 0 20px 45px color-mix(in oklab, var(--brand-ink) 15%, transparent);
 }
 
 .home-page .home-service-icon {

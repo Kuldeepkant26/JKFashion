@@ -43,7 +43,7 @@
 .prestige-orb-3 {
     width: 400px;
     height: 400px;
-    background: radial-gradient(circle, rgba(248, 198, 75, 0.6), transparent);
+    background: radial-gradient(circle, color-mix(in oklab, var(--brand-primary) 60%, transparent), transparent);
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -84,7 +84,7 @@
     font-weight: 700;
     letter-spacing: 0.15em;
     text-transform: uppercase;
-    background: linear-gradient(135deg, var(--color-yellow-gold), var(--color-forest-green));
+    background: var(--gradient-brand);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -195,7 +195,7 @@
     align-items: center;
     justify-content: center;
     margin-bottom: 2rem;
-    box-shadow: 0 20px 60px rgba(248, 198, 75, 0.5);
+    box-shadow: 0 20px 60px color-mix(in oklab, var(--brand-primary) 50%, transparent);
 }
 
 .prestige-icon {
@@ -294,7 +294,7 @@
 
 .prestige-dot.active {
     background: var(--color-yellow-gold);
-    box-shadow: 0 0 20px rgba(248, 198, 75, 0.8);
+    box-shadow: 0 0 20px color-mix(in oklab, var(--brand-primary) 80%, transparent);
 }
 
 .prestige-dot.active::before {
@@ -423,7 +423,7 @@
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, var(--color-yellow-gold), var(--color-forest-green));
+    background: var(--gradient-brand-90);
     transform: scaleX(0);
     transition: transform 0.4s ease;
 }
@@ -434,7 +434,7 @@
 
 .prestige-feature-card:hover {
     border-color: var(--color-yellow-gold);
-    box-shadow: 0 20px 60px rgba(248, 198, 75, 0.2);
+    box-shadow: 0 20px 60px color-mix(in oklab, var(--brand-primary) 20%, transparent);
 }
 
 .prestige-feature-icon {
@@ -453,7 +453,7 @@
 
 .prestige-feature-card:hover .prestige-feature-icon {
     transform: rotateY(360deg) scale(1.1);
-    box-shadow: 0 15px 40px rgba(248, 198, 75, 0.5);
+    box-shadow: 0 15px 40px color-mix(in oklab, var(--brand-primary) 50%, transparent);
 }
 
 .prestige-feature-card h3 {

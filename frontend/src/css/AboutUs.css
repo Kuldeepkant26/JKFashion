@@ -99,7 +99,7 @@
   font-size: clamp(42px, 5vw, 64px);
   font-weight: 700;
   line-height: 1.2;
-  background: linear-gradient(135deg, var(--color-yellow-gold) 0%, var(--color-forest-green) 90%);
+  background: linear-gradient(135deg, var(--color-yellow-gold) 0%, var(--brand-secondary-shifted) 90%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -108,7 +108,7 @@
 }
 
 .aboutus-section .aboutus-right .gradient-accent {
-  background: linear-gradient(135deg, var(--color-yellow-gold) 0%, var(--color-forest-green) 90%);
+  background: linear-gradient(135deg, var(--color-yellow-gold) 0%, var(--brand-secondary-shifted) 90%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -139,18 +139,18 @@
   height: 100px;
   border-radius: 50%;
   background: var(--color-navy-blue);
-  border: 1px solid rgba(248, 198, 75, 0.6);
+  border: 1px solid color-mix(in oklab, var(--brand-primary) 60%, transparent);
   cursor: pointer;
   position: relative;
   overflow: hidden;
   transition: all 0.4s ease;
-  box-shadow: 0 6px 20px rgba(0, 18, 58, 0.15);
+  box-shadow: 0 6px 20px color-mix(in oklab, var(--brand-ink) 15%, transparent);
 }
 
 .aboutus-section .aboutus-right .circle-btn:hover {
   background: linear-gradient(135deg, var(--color-forest-green) 0%, var(--color-navy-blue) 100%);
   transform: scale(1.1) rotate(90deg);
-  box-shadow: 0 10px 35px rgba(248, 198, 75, 0.3);
+  box-shadow: 0 10px 35px color-mix(in oklab, var(--brand-primary) 30%, transparent);
 }
 
 .aboutus-section .aboutus-right .circle-btn .btn-line {

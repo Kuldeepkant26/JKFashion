@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "themes": "node ../scripts/gen-themes.mjs src/theme/themes.js ../backend/src/config/themes.ts"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.17",

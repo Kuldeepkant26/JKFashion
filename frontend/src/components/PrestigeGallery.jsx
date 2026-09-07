@@ -18,7 +18,7 @@ const PrestigeGallery = () => {
             icon: FaGem,
             stat: '500+',
             statLabel: 'Designs On File',
-            accentColor: '#F8C64B'
+            accentColor: 'var(--brand-primary)'
         },
         {
             id: 2,
@@ -29,7 +29,7 @@ const PrestigeGallery = () => {
             icon: FaCrown,
             stat: '2M+',
             statLabel: 'Stitches Per Day',
-            accentColor: '#0C6C0B'
+            accentColor: 'var(--brand-secondary)'
         },
         {
             id: 3,
@@ -40,7 +40,7 @@ const PrestigeGallery = () => {
             icon: FaAward,
             stat: '100%',
             statLabel: 'Inspected',
-            accentColor: '#F8C64B'
+            accentColor: 'var(--brand-primary)'
         },
         {
             id: 4,
@@ -51,7 +51,7 @@ const PrestigeGallery = () => {
             icon: FaStar,
             stat: '25+',
             statLabel: 'Years Running',
-            accentColor: '#0C6C0B'
+            accentColor: 'var(--brand-secondary)'
         }
     ];
 

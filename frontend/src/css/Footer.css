@@ -77,8 +77,8 @@
     width: 45px;
     height: 45px;
     border-radius: 12px;
-    background: rgba(0, 18, 58, 0.05);
-    border: 1px solid rgba(0, 18, 58, 0.08);
+    background: color-mix(in oklab, var(--brand-ink) 5%, transparent);
+    border: 1px solid color-mix(in oklab, var(--brand-ink) 8%, transparent);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -92,7 +92,7 @@
     transform: translateY(-5px);
     background: var(--color-navy-blue);
     color: #ffffff;
-    box-shadow: 0 10px 25px rgba(0, 18, 58, 0.25);
+    box-shadow: 0 10px 25px color-mix(in oklab, var(--brand-ink) 25%, transparent);
     border-color: transparent;
 }
 
@@ -229,8 +229,8 @@
     height: 1px;
     background: linear-gradient(90deg, 
         transparent 0%, 
-        rgba(0, 18, 58, 0.15) 20%, 
-        rgba(0, 18, 58, 0.15) 80%, 
+        color-mix(in oklab, var(--brand-ink) 15%, transparent) 20%, 
+        color-mix(in oklab, var(--brand-ink) 15%, transparent) 80%, 
         transparent 100%
     );
     margin: 3rem 0 2rem;
@@ -283,7 +283,7 @@
 .footer-decoration-1 {
     width: 400px;
     height: 400px;
-    background: rgba(0, 18, 58, 0.4);
+    background: color-mix(in oklab, var(--brand-ink) 40%, transparent);
     top: -100px;
     right: -100px;
 }
@@ -291,7 +291,7 @@
 .footer-decoration-2 {
     width: 350px;
     height: 350px;
-    background: rgba(248, 198, 75, 0.35);
+    background: color-mix(in oklab, var(--brand-primary) 35%, transparent);
     bottom: -50px;
     left: -100px;
 }

@@ -95,7 +95,7 @@
     font-weight: 700;
     letter-spacing: 0.05em;
     text-transform: uppercase;
-    box-shadow: 0 10px 30px rgba(248, 198, 75, 0.5);
+    box-shadow: 0 10px 30px color-mix(in oklab, var(--brand-primary) 50%, transparent);
 }
 
 /* Details Section */
@@ -237,7 +237,7 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--color-yellow-gold), var(--color-forest-green));
+    background: var(--gradient-brand);
     flex-shrink: 0;
 }
 
@@ -270,7 +270,7 @@
 
 .modal-btn-primary:hover {
     transform: translateY(-3px);
-    box-shadow: 0 10px 30px rgba(248, 198, 75, 0.4);
+    box-shadow: 0 10px 30px color-mix(in oklab, var(--brand-primary) 40%, transparent);
 }
 
 .modal-btn-secondary {

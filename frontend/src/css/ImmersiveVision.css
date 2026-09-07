@@ -31,7 +31,7 @@
     right: -20%;
     width: 70%;
     height: 100%;
-    background: radial-gradient(ellipse, rgba(248, 198, 75, 0.08) 0%, transparent 70%);
+    background: radial-gradient(ellipse, color-mix(in oklab, var(--brand-primary) 8%, transparent) 0%, transparent 70%);
     border-radius: 50%;
 }
 
@@ -41,7 +41,7 @@
     left: -10%;
     width: 50%;
     height: 80%;
-    background: radial-gradient(ellipse, rgba(12, 108, 11, 0.06) 0%, transparent 70%);
+    background: radial-gradient(ellipse, color-mix(in oklab, var(--brand-secondary) 6%, transparent) 0%, transparent 70%);
     border-radius: 50%;
 }
 
@@ -95,7 +95,7 @@
 }
 
 .immersive-vision .immersive-vision__title-highlight {
-    background: linear-gradient(135deg, var(--color-yellow-gold), var(--color-forest-green));
+    background: var(--gradient-brand);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -151,7 +151,7 @@
 }
 
 .immersive-vision--light .immersive-vision__card:hover {
-    box-shadow: 0 12px 40px rgba(0, 18, 58, 0.1);
+    box-shadow: 0 12px 40px color-mix(in oklab, var(--brand-ink) 10%, transparent);
 }
 
 /* Card Icon */
@@ -169,7 +169,7 @@
 }
 
 .immersive-vision--light .immersive-vision__card-icon {
-    background: linear-gradient(135deg, rgba(248, 198, 75, 0.1), rgba(12, 108, 11, 0.1));
+    background: linear-gradient(135deg, color-mix(in oklab, var(--brand-primary) 10%, transparent), color-mix(in oklab, var(--brand-secondary) 10%, transparent));
 }
 
 .immersive-vision .immersive-vision__card:hover .immersive-vision__card-icon {
@@ -228,8 +228,8 @@
 }
 
 .immersive-vision--light .immersive-vision__quote {
-    background: linear-gradient(135deg, rgba(0, 18, 58, 0.03), rgba(12, 108, 11, 0.03));
-    border: 1px solid rgba(0, 18, 58, 0.08);
+    background: linear-gradient(135deg, color-mix(in oklab, var(--brand-ink) 3%, transparent), color-mix(in oklab, var(--brand-secondary) 3%, transparent));
+    border: 1px solid color-mix(in oklab, var(--brand-ink) 8%, transparent);
 }
 
 .immersive-vision .immersive-vision__quote--animate {
@@ -296,7 +296,7 @@
     font-family: 'Playfair Display', serif;
     font-size: clamp(2rem, 4vw, 3rem);
     font-weight: 700;
-    background: linear-gradient(135deg, var(--color-yellow-gold), var(--color-forest-green));
+    background: var(--gradient-brand);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;

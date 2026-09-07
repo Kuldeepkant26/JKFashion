@@ -188,9 +188,9 @@ const SignatureProjects = () => {
                                     <rect x="2" y="2" width="396" height="496" rx="22" stroke="url(#borderGradient)" strokeWidth="2" strokeDasharray="20 10" />
                                     <defs>
                                         <linearGradient id="borderGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                            <stop offset="0%" stopColor="#F8C64B" />
-                                            <stop offset="50%" stopColor="#00123A" />
-                                            <stop offset="100%" stopColor="#F8C64B" />
+                                            <stop offset="0%" stopColor="var(--brand-primary)" />
+                                            <stop offset="50%" stopColor="var(--brand-ink)" />
+                                            <stop offset="100%" stopColor="var(--brand-primary)" />
                                         </linearGradient>
                                     </defs>
                                 </svg>

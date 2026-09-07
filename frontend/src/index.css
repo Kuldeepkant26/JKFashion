@@ -1,53 +1,144 @@
 @import "tailwindcss";
 
 /* ==========================================================================
-   Tailwind v4 design tokens.
-   Anything declared in @theme becomes a real utility — `--color-brand-pink`
-   generates `bg-brand-pink`, `text-brand-pink`, `border-brand-pink`, etc.
-   Keep brand values here so Tailwind and the hand-written CSS stay in sync.
+   THEME ARCHITECTURE — three layers.
+
+   Layer 1  runtime palette   — 8 values, rewritten on <html> by applyTheme()
+   Layer 2  derived semantics — surfaces/borders/gradients, computed from L1
+   Layer 3  Tailwind bridge   — @theme inline, so utilities point AT layer 1
+
+   The `inline` keyword on layer 3 is what makes the whole feature work.
+   A plain `@theme { --color-x: #FF2E93 }` bakes the hex into every utility at
+   BUILD time, so a runtime switch cannot move it. `@theme inline` substitutes
+   the declaration instead, emitting `.bg-primary { background: var(--brand-primary) }`
+   — the live variable. Changing that variable on <html> therefore repaints
+   every Tailwind utility AND all 341 legacy var() references at once, with no
+   rebuild. Verified against Tailwind 4.1.17 before this was written.
    ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   LAYER 1 — runtime palette.
+   These 8 values ARE the theme. applyTheme() overwrites them as inline styles
+   on <html>, which outrank :root by specificity — so no !important is needed
+   and these stay an honest fallback if JS never runs.
+   Defaults = 'signature-pink', matching the logo and the admin panel.
+   -------------------------------------------------------------------------- */
+:root {
+  --brand-primary: #FF2E93;
+  --brand-primary-deep: #E01B77;
+  --brand-secondary: #7B1E52;
+  --brand-accent: #FF87C2;
+  --brand-ink: #0A0A0A;
+  --brand-neutral: #373737;
+  --brand-neutral-soft: #D6D6D6;
+  --on-primary: #0A0A0A;
+}
+
+/* --------------------------------------------------------------------------
+   LAYER 2 — derived semantics. Written once, never varies per preset.
+   -------------------------------------------------------------------------- */
+:root {
+  /* Surfaces. Tinted a few percent toward the brand so the page reads as one
+     palette rather than brand-coloured elements floating on neutral grey. */
+  --surface-primary: #FFFFFF;
+  --surface-secondary: color-mix(in oklab, var(--brand-primary) 4%, #F7F7F8);
+  --surface-card: #FFFFFF;
+  --surface-muted: color-mix(in oklab, var(--brand-primary) 6%, #F0F2F5);
+  --text-primary: var(--brand-ink);
+  --text-secondary: color-mix(in oklab, var(--brand-ink) 65%, transparent);
+  --border-subtle: color-mix(in oklab, var(--brand-ink) 10%, transparent);
+
+  --navbar-glass-bg: color-mix(in oklab, var(--surface-primary) 88%, transparent);
+  --navbar-glass-bg-scrolled: color-mix(in oklab, var(--surface-primary) 94%, transparent);
+  --navbar-glass-border: color-mix(in oklab, var(--brand-ink) 8%, transparent);
+  --navbar-glass-shadow: color-mix(in oklab, var(--brand-ink) 12%, transparent);
+  --control-surface: color-mix(in oklab, var(--surface-primary) 90%, transparent);
+  --control-border: color-mix(in oklab, var(--brand-ink) 14%, transparent);
+
+  /* Gradients. The far stop is nudged toward ink so a preset whose primary and
+     secondary sit close together still reads as a gradient, not a flat smear.
+     (The generator also enforces OKLCH separation at authoring time.) */
+  --brand-secondary-shifted: color-mix(in oklab, var(--brand-secondary) 82%, var(--brand-ink));
+  --gradient-brand: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary-shifted) 100%);
+  --gradient-brand-90: linear-gradient(90deg, var(--brand-primary) 0%, var(--brand-secondary-shifted) 100%);
+  --gradient-brand-180: linear-gradient(180deg, var(--brand-primary) 0%, var(--brand-secondary-shifted) 100%);
+  --gradient-warm: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-accent) 100%);
+  --gradient-deep: linear-gradient(135deg, var(--brand-ink) 0%, var(--brand-secondary) 100%);
+  --gradient-tri: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 50%, var(--brand-ink) 100%);
+  --gradient-sheen: linear-gradient(90deg, transparent, var(--brand-primary), transparent);
+
+  /* ---- Legacy alias shim -------------------------------------------------
+     The public CSS still names the old real-estate palette in 341 places.
+     Pointing those names at layer 1 themes every one of them without editing
+     23 stylesheets. Deliberately a shim: call sites can be renamed gradually,
+     and nothing breaks while they are.
+     gold -> primary   (most-used; read as "the brand colour")
+     green -> secondary (it was always gold's gradient partner)
+     navy -> ink        (it carried body text; mapping it to a third hue would
+                         cost legibility under most presets)
+     --------------------------------------------------------------------- */
+  --color-yellow-gold: var(--brand-primary);
+  --color-forest-green: var(--brand-secondary);
+  --color-navy-blue: var(--brand-ink);
+  --color-navy-ink: var(--brand-ink);
+  --color-light-yellow: var(--brand-accent);
+  --color-dark-gray: var(--brand-neutral);
+  --color-light-gray: var(--brand-neutral-soft);
+}
+
+/* Dark presets flip surface polarity only — every other token is derived and
+   follows automatically. */
+:root[data-scheme="dark"] {
+  --surface-primary: #101014;
+  --surface-secondary: color-mix(in oklab, var(--brand-primary) 8%, #17171C);
+  --surface-card: #17171C;
+  --surface-muted: color-mix(in oklab, var(--brand-primary) 10%, #1E1E24);
+  --border-subtle: color-mix(in oklab, var(--brand-ink) 16%, transparent);
+  --navbar-glass-border: color-mix(in oklab, var(--brand-ink) 14%, transparent);
+  --navbar-glass-shadow: rgb(0 0 0 / 0.5);
+  --control-border: color-mix(in oklab, var(--brand-ink) 22%, transparent);
+}
+
+/* Switching rewrites ~350 tokens at once; without this every one of them would
+   animate its own transition and the page would visibly sweep. */
+.theme-switching,
+.theme-switching * {
+  transition: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   LAYER 3 — Tailwind bridge. `inline` is load-bearing; see the note above.
+   -------------------------------------------------------------------------- */
+@theme inline {
+  --color-primary: var(--brand-primary);
+  --color-primary-deep: var(--brand-primary-deep);
+  --color-secondary: var(--brand-secondary);
+  --color-accent: var(--brand-accent);
+  --color-ink: var(--brand-ink);
+  --color-on-primary: var(--on-primary);
+  --color-surface: var(--surface-primary);
+  --color-surface-card: var(--surface-card);
+  --color-surface-muted: var(--surface-muted);
+}
+
+/* --------------------------------------------------------------------------
+   Build-time tokens that must NOT follow the theme.
+
+   The admin panel keeps its own stable pink/cream chrome: an admin previewing
+   a dark preset must not make the panel they are working in unreadable. The
+   login screen is the one deliberate exception — it opts in to themed tokens.
+   -------------------------------------------------------------------------- */
 @theme {
   --color-brand-pink: #FF2E93;
   --color-brand-pink-dark: #E01B77;
   --color-brand-pink-soft: #FF87C2;
   --color-brand-ink: #0A0A0A;
-  --color-brand-navy: #00123A;
-  --color-brand-gold: #F8C64B;
 
   --font-display: 'Playfair Display', Georgia, serif;
   --font-body: 'Montserrat', system-ui, sans-serif;
 
-  /* Admin panel surfaces — warm neutrals that carry the brand pink without
-     competing with it. */
   --color-admin-cream: #FDF8F4;
   --color-admin-sidebar: #FFF6FA;
-}
-
-/* Client Brand Colors - Selected Shades */
-:root {
-  /* Primary Colors */
-  --color-navy-blue: #00123A;
-  --color-navy-ink: #00123A;
-  --color-yellow-gold: #F8C64B;
-  --color-forest-green: #0C6C0B;
-  --color-dark-gray: #373737;
-  --color-light-gray: #D6D6D6;
-  --color-light-yellow: #FFD368;
-
-  /* Theme Surfaces */
-  --surface-primary: #FFFFFF;
-  --surface-secondary: #F5F5F5;
-  --surface-card: #FFFFFF;
-  --surface-muted: #F0F2F5;
-  --text-primary: #111827;
-  --text-secondary: #4B5563;
-  --border-subtle: rgba(0, 0, 0, 0.08);
-  --navbar-glass-bg: rgba(255, 255, 255, 0.55);
-  --navbar-glass-bg-scrolled: rgba(255, 255, 255, 0.72);
-  --navbar-glass-border: rgba(0, 18, 58, 0.08);
-  --navbar-glass-shadow: rgba(0, 18, 58, 0.12);
-  --control-surface: rgba(255, 255, 255, 0.85);
-  --control-border: rgba(0, 18, 58, 0.12);
 }
 
 /* Prevent horizontal scroll & Mobile scroll fixes */

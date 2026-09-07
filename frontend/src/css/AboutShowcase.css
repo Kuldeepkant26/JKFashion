@@ -60,7 +60,7 @@
 
 /* Light Theme Title */
 .ventures-showcase.ventures-showcase--light .ventures-showcase__title {
-    background: linear-gradient(135deg, #0b1b3a 0%, #0c6c0b 100%);
+    background: linear-gradient(135deg, #0b1b3a 0%, var(--brand-secondary) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
