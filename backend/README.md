@@ -98,6 +98,8 @@ Short-lived **access token** (15 min, `Authorization: Bearer`) plus a long-lived
 | POST | `/api/v1/auth/logout` | access token |
 | GET | `/api/v1/auth/me` | access token |
 | GET | `/api/v1/admin/stats` | access token |
+| GET | `/api/v1/theme` | — (the public site reads this) |
+| PUT | `/api/v1/theme` | access token, `MAIN_ADMIN` only |
 
 `/admin/stats` currently returns zeroed tiles and empty arrays. That is
 deliberate — the panel renders real empty states rather than invented numbers,

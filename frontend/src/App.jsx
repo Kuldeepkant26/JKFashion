@@ -9,6 +9,7 @@ import Residentials from './pages/Residentials';
 import About from './pages/About';
 
 import SessionBootstrap from './admin/components/SessionBootstrap.jsx';
+import ThemeBootstrap from './theme/ThemeBootstrap.jsx';
 import Spinner from './admin/components/Spinner.jsx';
 import { ProtectedRoute, PublicOnlyRoute } from './routes/guards.jsx';
 
@@ -23,6 +24,7 @@ const AdminLayout = lazy(() => import('./admin/layouts/AdminLayout'));
 const AdminLogin = lazy(() => import('./admin/pages/AdminLogin'));
 const AdminDashboard = lazy(() => import('./admin/pages/AdminDashboard'));
 const AdminPlaceholder = lazy(() => import('./admin/pages/AdminPlaceholder'));
+const AdminSettings = lazy(() => import('./admin/pages/AdminSettings'));
 
 const AdminFallback = () => (
   <div className="grid min-h-screen place-items-center bg-admin-cream">
@@ -46,6 +48,7 @@ function App() {
     <Router>
       <ScrollToTop />
       <SessionBootstrap />
+      <ThemeBootstrap />
       <Routes>
         {/* ---------------------------------------------------- admin */}
         <Route
@@ -74,7 +77,7 @@ function App() {
           <Route path="products" element={<AdminPlaceholder title="Products" />} />
           <Route path="enquiries" element={<AdminPlaceholder title="Enquiries" />} />
           <Route path="content" element={<AdminPlaceholder title="Content" />} />
-          <Route path="settings" element={<AdminPlaceholder title="Settings" />} />
+          <Route path="settings" element={<AdminSettings />} />
           <Route path="*" element={<Navigate to={ROUTES.ADMIN_DASHBOARD} replace />} />
         </Route>
 
