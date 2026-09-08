@@ -4,7 +4,7 @@ import { garments } from '../data/garments';
 import '../css/RackGallery.css';
 
 const ZOOM = 2;
-const LENS = 190;
+const LENS = 132;   // must match .rack-gallery__lens in the CSS
 
 /** Media query as a live boolean. Used for the lens and reduced-motion gates. */
 const useMediaQuery = (query) => {
@@ -194,16 +194,20 @@ export default function RackGallery() {
               const offset = index - activeIndex;
               const isActive = index === activeIndex;
               /*
-               * Rank is what positions the card on the rail: the selected one
-               * takes the front slot and the rest keep their running order
-               * behind it. It has to be unique per card — deriving the slot
-               * from |offset| alone put the cards either side of the active
-               * one in the SAME place, so the front card covered them and
-               * swallowed their clicks.
+               * Rank is the card's slot on the rail: the selected one takes
+               * the front, the rest queue behind it in their original order.
+               *
+               * It MUST be a permutation of 0..n-1. An earlier version used
+               * `index < active ? index + 1 : index - active`, which repeats a
+               * value for any middle selection (active=1 gives 1,0,1,2) — two
+               * cards landed in the same slot and one vanished behind the
+               * other, which is why the rack sometimes showed three cards.
                */
-              const rank = index < activeIndex
-                ? index + 1
-                : index - activeIndex;
+              const rank = index === activeIndex
+                ? 0
+                : index < activeIndex
+                  ? index + 1
+                  : index;
 
               return (
                 <button
