@@ -1,0 +1,510 @@
+/* Rack Gallery — a rail of garment photographs beside a magnifiable frame.
+   Colours come from the theme tokens in index.css so the section follows the
+   preset chosen in the admin panel. No hardcoded colours, no raw rgba(). */
+
+.rack-gallery {
+    --rg-pitch: 92px;      /* horizontal step between hanging cards */
+    --rg-card-w: 250px;
+    --rg-card-h: 380px;
+    --rg-count: 4;
+    --rg-dur: 900ms;
+    --rg-ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+    width: 100%;
+    padding: 110px 5% 120px;
+    background: var(--surface-primary);
+    position: relative;
+    overflow: hidden;
+}
+
+/* ------------------------------------------------------------------ header */
+
+.rack-gallery__header {
+    max-width: 760px;
+    margin: 0 auto 72px;
+    text-align: center;
+}
+
+.rack-gallery__label {
+    display: inline-block;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--brand-primary-text);
+    margin-bottom: 18px;
+}
+
+.rack-gallery__title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(38px, 4.6vw, 62px);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin: 0 0 20px;
+    color: var(--text-primary);
+}
+
+.rack-gallery__intro {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 15px;
+    line-height: 1.9;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+/* ------------------------------------------------------------------ layout */
+
+.rack-gallery__inner {
+    display: grid;
+    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1fr);
+    gap: 64px;
+    align-items: start;
+    max-width: 1280px;
+    margin: 0 auto;
+}
+
+/* -------------------------------------------------------------------- rack */
+
+.rack-gallery__rack {
+    position: relative;
+    padding-top: 26px;
+}
+
+/* The photographs each contain their own wooden rail at a different angle, so
+   those are cropped out and one shared bar is drawn instead — it is what makes
+   four separate images read as a single rack. */
+.rack-gallery__rail {
+    /* Only as wide as the cards actually hang across, plus a little overhang —
+       a bar running past the last hanger reads as a stray line. */
+    width: calc(var(--rg-card-w) + (var(--rg-count) - 1) * var(--rg-pitch) + 44px);
+    max-width: 100%;
+    height: 3px;
+    border-radius: 2px;
+    margin-bottom: 20px;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        color-mix(in oklab, var(--brand-ink) 28%, transparent) 7%,
+        color-mix(in oklab, var(--brand-ink) 36%, transparent) 93%,
+        transparent 100%
+    );
+}
+
+.rack-gallery__items {
+    position: relative;
+    height: calc(var(--rg-card-h) + 86px);
+    perspective: 1500px;
+    perspective-origin: 32% 38%;
+    transform-style: preserve-3d;
+}
+
+/* Cards sit on a left-anchored ladder rather than fanning out from the centre:
+   .home-section clips overflow-x, and a rotateY card that crosses the section
+   edge gets sliced off with a hard vertical line. */
+.rack-gallery__item {
+    position: absolute;
+    top: 0;
+    /* Placed by distance from the active card, not by index — that keeps the
+       front of the rail a fixed spot and guarantees every other card still has
+       its own slot rather than hiding behind the selected one. */
+    left: calc(var(--abs) * var(--rg-pitch));
+    width: var(--rg-card-w);
+
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+
+    transform-origin: 50% 0%;   /* pivots at the hook, the way clothing hangs */
+    transform:
+        translate3d(0, calc(var(--abs) * 6px), calc(var(--abs) * -90px))
+        rotateY(calc(var(--abs) * -13deg))
+        rotateZ(calc(var(--abs) * 1.1deg))
+        scale(calc(1 - var(--abs) * 0.045));
+    z-index: calc(100 - var(--abs));
+    filter: brightness(calc(1 - var(--abs) * 0.1)) saturate(calc(1 - var(--abs) * 0.07));
+    transition:
+        transform var(--rg-dur) var(--rg-ease),
+        filter var(--rg-dur) var(--rg-ease);
+}
+
+.rack-gallery__item--active {
+    /* Lifted off the bar and pulled toward the viewer — the "bring it
+       forward" gesture, matching the front garment in the reference photo.
+       The negative --i term slides it back to the head of the rail, so "the
+       front" is a fixed position rather than wherever the card happened to
+       hang. */
+    transform: translate3d(0, -16px, 150px) rotateY(-4deg) rotateZ(0deg) scale(1.04);
+    z-index: 200;
+    filter: none;
+    cursor: default;
+    will-change: transform;   /* only the active card, to limit layer count */
+}
+
+.rack-gallery__item:focus-visible {
+    outline: 3px solid color-mix(in oklab, var(--brand-primary) 50%, transparent);
+    outline-offset: 6px;
+    border-radius: 4px;
+}
+
+/* wire hook — kept outside the card so it does not inherit the rotateY */
+.rack-gallery__hanger {
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    width: 16px;
+    height: 22px;
+    transform: translateX(-50%);
+}
+
+.rack-gallery__hanger::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 13px;
+    height: 13px;
+    transform: translateX(-50%) rotate(22deg);
+    border: 2px solid color-mix(in oklab, var(--brand-ink) 42%, transparent);
+    border-bottom-color: transparent;
+    border-radius: 50%;
+}
+
+.rack-gallery__hanger::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 2px;
+    height: 11px;
+    transform: translateX(-50%);
+    background: color-mix(in oklab, var(--brand-ink) 34%, transparent);
+}
+
+/* A visible frame is deliberate: these are photographs of a scene, not cut-out
+   garments, and presenting them as prints on the rail is honest and reads as
+   intentional. When true cut-outs arrive, --cutout drops the frame. */
+.rack-gallery__card {
+    position: relative;
+    display: block;
+    height: var(--rg-card-h);
+    overflow: hidden;
+    border-radius: 3px;
+    background: var(--surface-card);
+    padding: 8px;
+    box-shadow:
+        calc(var(--abs) * 5px) 16px 34px
+            color-mix(in oklab, var(--brand-ink) calc(15% - var(--abs) * 2%), transparent);
+    transition: box-shadow var(--rg-dur) var(--rg-ease);
+}
+
+.rack-gallery__photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;   /* object-position comes from each garment's crop */
+    display: block;
+    border-radius: 1px;
+}
+
+/* faint sheen so a flat photo still catches light as it swings forward */
+.rack-gallery__sheen {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+        105deg,
+        transparent 42%,
+        color-mix(in oklab, var(--surface-primary) 26%, transparent) 50%,
+        transparent 58%
+    );
+    opacity: 0;
+    transition: opacity var(--rg-dur) var(--rg-ease);
+}
+
+.rack-gallery__item--active .rack-gallery__sheen {
+    opacity: 1;
+}
+
+.rack-gallery__caption {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-top: 14px;
+    opacity: 0;
+    transition: opacity 400ms var(--rg-ease);
+}
+
+.rack-gallery__item--active .rack-gallery__caption {
+    opacity: 1;
+}
+
+.rack-gallery__swatch {
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--brand-ink) 16%, transparent);
+}
+
+.rack-gallery__caption-text {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+/* ------------------------------------------------------------------ viewer */
+
+.rack-gallery__frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    border-radius: 4px;
+    background: var(--surface-muted);
+    box-shadow: 0 22px 60px color-mix(in oklab, var(--brand-ink) 14%, transparent);
+    touch-action: none;   /* the lens drag must not fight page scroll */
+}
+
+.rack-gallery__frame-photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transform: scale(1.06);
+    transition:
+        opacity 900ms var(--rg-ease),
+        transform 1200ms var(--rg-ease);
+}
+
+.rack-gallery__frame-photo--active {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.rack-gallery__lens {
+    position: absolute;
+    width: 190px;
+    height: 190px;
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 220ms ease;
+    background-repeat: no-repeat;
+    border: 2px solid color-mix(in oklab, var(--surface-primary) 80%, transparent);
+    box-shadow:
+        0 10px 30px color-mix(in oklab, var(--brand-ink) 30%, transparent),
+        inset 0 0 0 1px color-mix(in oklab, var(--brand-ink) 10%, transparent);
+    z-index: 5;
+}
+
+.rack-gallery__detail-btn {
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    z-index: 5;
+    padding: 12px 22px;
+    border: 0;
+    border-radius: 999px;
+    cursor: pointer;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: var(--brand-primary);
+    color: var(--on-primary);
+    box-shadow: 0 8px 22px color-mix(in oklab, var(--brand-ink) 22%, transparent);
+}
+
+.rack-gallery__detail-btn:focus-visible {
+    outline: 3px solid color-mix(in oklab, var(--brand-primary) 50%, transparent);
+    outline-offset: 3px;
+}
+
+.rack-gallery__meta {
+    padding-top: 34px;
+}
+
+.rack-gallery__category {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--brand-primary-text);
+}
+
+.rack-gallery__name {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(28px, 3vw, 40px);
+    font-weight: 700;
+    line-height: 1.15;
+    margin: 12px 0 8px;
+    color: var(--text-primary);
+}
+
+.rack-gallery__subtitle {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 17px;
+    color: var(--text-secondary);
+    margin: 0 0 18px;
+}
+
+.rack-gallery__description {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 15px;
+    line-height: 1.95;
+    color: var(--text-secondary);
+    margin: 0;
+    max-width: 54ch;
+}
+
+/* ----------------------------------------------------------------- overlay */
+
+.rack-gallery__overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;   /* above the navbar */
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: color-mix(in oklab, var(--brand-ink) 88%, transparent);
+}
+
+.rack-gallery__overlay img {
+    max-width: 100%;
+    max-height: 92vh;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
+.rack-gallery__overlay-close {
+    position: absolute;
+    top: 18px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 26px;
+    line-height: 1;
+    background: var(--surface-primary);
+    color: var(--text-primary);
+}
+
+.rack-gallery__overlay-close:focus-visible {
+    outline: 3px solid color-mix(in oklab, var(--brand-primary) 60%, transparent);
+    outline-offset: 3px;
+}
+
+/* Visually hidden, still announced. */
+.rack-gallery__sr-status {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ------------------------------------------------------------- responsive */
+
+@media screen and (max-width: 1199px) {
+    .rack-gallery {
+        --rg-pitch: 74px;
+        --rg-card-w: 210px;
+        --rg-card-h: 320px;
+    }
+
+    .rack-gallery__inner { gap: 44px; }
+}
+
+@media screen and (max-width: 1023px) {
+    .rack-gallery__inner {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 56px;
+    }
+
+    /* Viewer first: it is the point of the section, the rack is the control. */
+    .rack-gallery__viewer { order: 1; }
+    .rack-gallery__rack { order: 2; }
+
+    .rack-gallery__frame { max-width: 560px; margin: 0 auto; }
+    .rack-gallery__meta { max-width: 560px; margin: 0 auto; }
+    .rack-gallery__items { perspective: 1000px; }
+}
+
+@media screen and (max-width: 767px) {
+    .rack-gallery {
+        --rg-pitch: 58px;
+        --rg-card-w: 165px;
+        --rg-card-h: 250px;
+        padding: 70px 5% 80px;
+    }
+
+    /* Below ~360px the far card would cross the section edge and get clipped
+       by the ancestor's overflow-x. Scale the ladder to the viewport instead
+       of holding fixed pixel steps. */
+    @media screen and (max-width: 400px) {
+        .rack-gallery {
+            --rg-pitch: 13vw;
+            --rg-card-w: 44vw;
+            --rg-card-h: 66vw;
+        }
+    }
+
+    .rack-gallery__header { margin-bottom: 48px; }
+
+    /* Flatten: 3D depth on a narrow screen reads as distortion, not depth. */
+    .rack-gallery__item {
+        transform:
+            translate3d(0, 0, 0)
+            rotateY(calc(var(--offset) * -6deg))
+            scale(calc(1 - var(--abs) * 0.04));
+    }
+
+    .rack-gallery__item--active {
+        transform: translate3d(0, -8px, 0) rotateY(0deg) scale(1.03);
+    }
+
+    .rack-gallery__items { height: calc(var(--rg-card-h) + 74px); }
+}
+
+/* Honour the OS setting: land on the finished state rather than animating to
+   it, following the SplashScreen precedent. */
+@media (prefers-reduced-motion: reduce) {
+    .rack-gallery__item,
+    .rack-gallery__card,
+    .rack-gallery__caption,
+    .rack-gallery__sheen,
+    .rack-gallery__frame-photo {
+        transition-duration: 0.01ms !important;
+    }
+
+    .rack-gallery__item {
+        transform: translate3d(0, 0, 0) scale(1);
+        filter: none;
+    }
+
+    .rack-gallery__item--active {
+        transform: translate3d(0, -8px, 0) scale(1.02);
+    }
+
+    .rack-gallery__frame-photo { transform: none; }
+    .rack-gallery__lens { display: none; }
+}

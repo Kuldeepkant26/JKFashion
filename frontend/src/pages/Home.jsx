@@ -13,6 +13,7 @@ import FAQ from '../components/FAQ';
 import HeroStats from '../components/HeroStats';
 import Sustainability from '../components/Sustainability';
 import PrestigeGallery from '../components/PrestigeGallery';
+import RackGallery from '../components/RackGallery';
 import AestheticModal from '../components/AestheticModal';
 import { FaTwitter, FaFacebookF, FaInstagram } from 'react-icons/fa';
 import { hero, gallery, products } from '../data/images';
@@ -638,6 +639,9 @@ const Home = () => {
 
                     {/* Prestige Gallery - Stunning Visual Experience */}
                     <PrestigeGallery />
+
+                    {/* Rack Gallery - pick a piece, magnify the embroidery */}
+                    <RackGallery />
 
                     {/* Philosophy Section */}
                     {/* <section className="home-philosophy">
