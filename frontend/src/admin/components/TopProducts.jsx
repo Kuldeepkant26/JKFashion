@@ -1,5 +1,6 @@
 import Avatar from './Avatar.jsx';
 import EmptyState from './EmptyState.jsx';
+import { FiPackage } from 'react-icons/fi';
 
 /** The "top performers" panel — which products are drawing the most interest. */
 export default function TopProducts({ items = [] }) {
@@ -26,7 +27,7 @@ export default function TopProducts({ items = [] }) {
       ) : (
         <EmptyState
           className="mt-5"
-          icon="🧵"
+          icon={FiPackage}
           title="No product data yet"
           hint="Rankings appear once products are tracked."
         />

@@ -1,9 +1,18 @@
 import mongoose, { Schema, type Document, type Model, type Types } from "mongoose";
-import { DEFAULT_THEME_ID } from "../config/themes.js";
+import {
+  DEFAULT_THEME_ID,
+  DEFAULT_FONT_ID,
+  DEFAULT_NAVBAR_ID,
+  DEFAULT_HERO_ID,
+} from "../config/themes.js";
 
 export interface IThemeSetting extends Document {
   key: string;
   themeId: string;
+  fontId: string;
+  navbarId: string;
+  heroId: string;
+  hiddenThemeIds: string[];
   updatedBy?: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -28,6 +37,33 @@ const themeSettingSchema = new Schema<IThemeSetting>(
      * editing a preset is a code change rather than silent database drift.
      */
     themeId: { type: String, required: true, default: DEFAULT_THEME_ID },
+
+    /**
+     * The typography pairing, stored by id for exactly the same reason as
+     * themeId: the font stacks live in the frontend, so a compromised session
+     * cannot push an arbitrary font-family — or a `url()` behind it — into
+     * every visitor's page.
+     */
+    fontId: { type: String, required: true, default: DEFAULT_FONT_ID },
+
+    /**
+     * Which navbar and hero layout the public site renders. Stored by id for
+     * the same reason as the palette and typography — the id selects a
+     * component that lives in the frontend, so nothing arbitrary can be
+     * injected into a visitor's page.
+     */
+    navbarId: { type: String, required: true, default: DEFAULT_NAVBAR_ID },
+    heroId: { type: String, required: true, default: DEFAULT_HERO_ID },
+
+    /**
+     * Presets the owner has hidden from the picker.
+     *
+     * Hidden, not deleted: the presets are generated code, so removing one is
+     * a code change. Storing the exclusions instead keeps the decision
+     * reversible and means a hidden preset that is still the ACTIVE theme
+     * keeps working rather than leaving the site unstyled.
+     */
+    hiddenThemeIds: { type: [String], default: [] },
 
     updatedBy: { type: Schema.Types.ObjectId, ref: "AdminUser" },
   },

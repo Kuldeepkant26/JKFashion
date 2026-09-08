@@ -27,3 +27,16 @@ export const authLimiter = build({
   max: 20,
   message: "Too many attempts, please try again in a few minutes",
 });
+
+/**
+ * The public enquiry form — the only unauthenticated write on the site.
+ *
+ * Generous enough that a buyer who mistypes their email and resubmits a few
+ * times is never blocked, tight enough that the form cannot be used to flood
+ * the admin list or to relay spam through it.
+ */
+export const enquiryLimiter = build({
+  windowMs: 60 * 60 * 1000,
+  max: 8,
+  message: "You have sent several enquiries recently — please try again later",
+});

@@ -1,5 +1,4 @@
 /* Interior Showcase Section - Matching Hero Theme */
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Montserrat:wght@300;400;500;600;700&display=swap');
 
 .showcase-section {
   position: relative;
@@ -86,7 +85,7 @@
 
 /* Label/Tag */
 .showcase-section .showcase-label {
-  font-family: 'Montserrat', sans-serif;
+  font-family: var(--brand-font-body);
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 2px;
@@ -97,7 +96,7 @@
 
 /* Title */
 .showcase-section .showcase-title {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--brand-font-display);
   font-size: clamp(2.5rem, 5vw, 4rem);
   font-weight: 800;
   background: var(--gradient-heading);
@@ -118,7 +117,7 @@
 
 /* Description */
 .showcase-section .showcase-description {
-  font-family: 'Montserrat', sans-serif;
+  font-family: var(--brand-font-body);
   font-size: 1rem;
   line-height: 1.8;
   color: var(--text-secondary);
@@ -128,7 +127,7 @@
 
 /* CTA Button */
 .showcase-section .showcase-cta {
-  font-family: 'Montserrat', sans-serif;
+  font-family: var(--brand-font-body);
   display: inline-block;
   padding: 1.1rem 3rem;
   background: var(--brand-primary);

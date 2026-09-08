@@ -9,6 +9,7 @@ import {
 } from 'recharts';
 import EmptyState from './EmptyState.jsx';
 import { useResolvedPalette } from '../../theme/useResolvedPalette.js';
+import { FiTrendingUp } from 'react-icons/fi';
 
 const RANGES = [
   { value: '7d', label: 'Last 7 days' },
@@ -124,7 +125,7 @@ export default function ActivityChart({ points = [], range = '7d', onRangeChange
       ) : (
         <EmptyState
           className="h-64"
-          icon="📈"
+          icon={FiTrendingUp}
           title="No activity recorded yet"
           hint="Traffic will appear here once analytics are connected."
         />

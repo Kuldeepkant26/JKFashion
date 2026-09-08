@@ -217,9 +217,29 @@
   --color-on-primary: var(--on-primary);
 }
 
-@theme {
-  --font-display: 'Playfair Display', Georgia, serif;
-  --font-body: 'Montserrat', system-ui, sans-serif;
+/* --------------------------------------------------------------------------
+   TYPOGRAPHY — the same three-layer trick the palette uses.
+
+   Layer 1 is the pair of families below, rewritten on <html> by applyFont().
+   Layer 2 is `@theme inline`, which is what makes the switch work at runtime:
+   a plain `@theme { --font-body: 'Montserrat' }` would BAKE that stack into
+   every `font-body` utility at build time, so no runtime change could move it.
+   `inline` substitutes the declaration instead, emitting
+   `.font-body { font-family: var(--font-body) }` — the live variable.
+
+   Changing these two therefore repaints every Tailwind font utility, all 104
+   stylesheet `font-family` references, AND the admin panel at once, with no
+   rebuild. The families are loaded by a <link> applyFont.js owns, rather than
+   the seven duplicated @import rules the stylesheets used to each carry.
+   -------------------------------------------------------------------------- */
+:root {
+  --brand-font-display: 'Playfair Display', Georgia, serif;
+  --brand-font-body: 'Montserrat', system-ui, sans-serif;
+}
+
+@theme inline {
+  --font-display: var(--brand-font-display);
+  --font-body: var(--brand-font-body);
 }
 
 /* Prevent horizontal scroll & Mobile scroll fixes */
@@ -230,7 +250,7 @@ html, body {
   overflow-x: hidden;
   background: var(--surface-primary);
   color: var(--text-primary);
-  font-family: 'Montserrat', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--brand-font-body);
   -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
   scroll-behavior: smooth;
 }

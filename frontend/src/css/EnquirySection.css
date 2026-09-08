@@ -1,0 +1,302 @@
+/* ==========================================================================
+   Enquiry section — the last block on the home page.
+
+   Every colour and face comes from the theme tokens, so this follows the
+   palette and the typography pairing chosen in the admin panel without
+   needing its own variants.
+   ========================================================================== */
+
+.enquiry {
+    /* Clears the fixed navbar when the Enquire button jumps here: without it
+       the heading lands underneath the bar. */
+    scroll-margin-top: 96px;
+
+    padding: 6rem 1.5rem 7rem;
+    background: var(--surface-secondary);
+    border-top: 1px solid var(--border-subtle);
+}
+
+.enquiry__inner {
+    max-width: 1180px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    gap: 4rem;
+    align-items: start;
+}
+
+/* ---------------------------------------------------------------- intro */
+
+.enquiry__label {
+    display: block;
+    font-family: var(--brand-font-body);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--brand-primary);
+}
+
+.enquiry__title {
+    margin: 1rem 0 0;
+    font-family: var(--brand-font-display);
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+}
+
+.enquiry__lead {
+    margin: 1.25rem 0 0;
+    max-width: 34ch;
+    font-family: var(--brand-font-body);
+    font-size: 15px;
+    line-height: 1.75;
+    color: var(--text-secondary);
+}
+
+.enquiry__details {
+    margin: 2.5rem 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.enquiry__details dt {
+    font-family: var(--brand-font-body);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    opacity: 0.75;
+}
+
+.enquiry__details dd {
+    margin: 0.35rem 0 0;
+    font-family: var(--brand-font-body);
+    font-size: 15px;
+    color: var(--text-primary);
+}
+
+.enquiry__details a {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px solid color-mix(in oklab, var(--brand-primary) 45%, transparent);
+    transition: border-color 0.2s ease;
+}
+
+.enquiry__details a:hover {
+    border-bottom-color: var(--brand-primary);
+}
+
+/* ----------------------------------------------------------------- form */
+
+.enquiry__form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 2.25rem;
+    border-radius: 20px;
+    background: var(--surface-card);
+    border: 1px solid var(--border-subtle);
+    box-shadow: 0 18px 50px color-mix(in oklab, var(--brand-ink) 7%, transparent);
+}
+
+/* Collapses to nothing when empty, so the form does not carry a permanent gap. */
+.enquiry__status:empty {
+    display: none;
+}
+
+.enquiry__status:focus {
+    outline: none;
+}
+
+.enquiry__sent,
+.enquiry__error {
+    margin: 0 0 0.25rem;
+    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    font-family: var(--brand-font-body);
+    font-size: 14px;
+    line-height: 1.55;
+}
+
+.enquiry__sent {
+    background: color-mix(in oklab, #16a34a 12%, transparent);
+    color: #15803d;
+    border: 1px solid color-mix(in oklab, #16a34a 30%, transparent);
+}
+
+.enquiry__error {
+    background: color-mix(in oklab, #dc2626 10%, transparent);
+    color: #b91c1c;
+    border: 1px solid color-mix(in oklab, #dc2626 28%, transparent);
+}
+
+.enquiry__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+}
+
+.enquiry__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    min-width: 0;
+}
+
+.enquiry__field-label {
+    font-family: var(--brand-font-body);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.enquiry__field input,
+.enquiry__field textarea {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--control-border);
+    background: var(--control-surface);
+    color: var(--text-primary);
+    font-family: var(--brand-font-body);
+    font-size: 15px;
+    line-height: 1.5;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.enquiry__field textarea {
+    resize: vertical;
+    min-height: 130px;
+}
+
+.enquiry__field input::placeholder,
+.enquiry__field textarea::placeholder {
+    color: color-mix(in oklab, var(--text-secondary) 65%, transparent);
+}
+
+.enquiry__field input:focus,
+.enquiry__field textarea:focus {
+    outline: none;
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--brand-primary) 18%, transparent);
+}
+
+.enquiry__field input.is-invalid,
+.enquiry__field textarea.is-invalid {
+    border-color: #dc2626;
+}
+
+.enquiry__field-error {
+    font-family: var(--brand-font-body);
+    font-size: 12.5px;
+    color: #b91c1c;
+}
+
+/* Honeypot: off-screen rather than display:none, which some bots skip. */
+.enquiry__hp {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+.enquiry__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.25rem;
+}
+
+.enquiry__submit {
+    padding: 0.95rem 2.25rem;
+    border: none;
+    border-radius: 999px;
+    background: var(--gradient-brand);
+    color: var(--on-primary);
+    font-family: var(--brand-font-body);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.enquiry__submit:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px color-mix(in oklab, var(--brand-primary) 32%, transparent);
+}
+
+.enquiry__submit:focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 3px;
+}
+
+.enquiry__submit:disabled {
+    opacity: 0.6;
+    cursor: progress;
+}
+
+.enquiry__previously {
+    margin: 0;
+    font-family: var(--brand-font-body);
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+/* ---------------------------------------------------------- responsive */
+
+@media screen and (max-width: 900px) {
+    .enquiry__inner {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 2.5rem;
+    }
+
+    .enquiry__lead {
+        max-width: none;
+    }
+
+    /* The contact list becomes a row so it does not push the form down a
+       screen's worth on a phone. */
+    .enquiry__details {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 1.5rem 2.5rem;
+        margin-top: 1.75rem;
+    }
+}
+
+@media screen and (max-width: 620px) {
+    .enquiry {
+        padding: 4rem 1.25rem 5rem;
+    }
+
+    .enquiry__form {
+        padding: 1.5rem;
+        border-radius: 16px;
+    }
+
+    .enquiry__row {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
+
+    .enquiry__submit {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .enquiry__submit:hover:not(:disabled) {
+        transform: none;
+    }
+}

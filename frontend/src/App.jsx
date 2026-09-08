@@ -24,7 +24,12 @@ const AdminLayout = lazy(() => import('./admin/layouts/AdminLayout'));
 const AdminLogin = lazy(() => import('./admin/pages/AdminLogin'));
 const AdminDashboard = lazy(() => import('./admin/pages/AdminDashboard'));
 const AdminPlaceholder = lazy(() => import('./admin/pages/AdminPlaceholder'));
-const AdminSettings = lazy(() => import('./admin/pages/AdminSettings'));
+const AdminEnquiries = lazy(() => import('./admin/pages/AdminEnquiries.jsx'));
+const SettingsLayout = lazy(() => import('./admin/pages/settings/SettingsLayout.jsx'));
+const ThemeTab = lazy(() => import('./admin/pages/settings/ThemeTab.jsx'));
+const FontTab = lazy(() => import('./admin/pages/settings/FontTab.jsx'));
+const LayoutTab = lazy(() => import('./admin/pages/settings/LayoutTab.jsx'));
+const GalleryTab = lazy(() => import('./admin/pages/settings/GalleryTab.jsx'));
 
 const AdminFallback = () => (
   <div className="grid min-h-screen place-items-center bg-admin-cream">
@@ -39,9 +44,8 @@ const AdminFallback = () => (
  * inside it, so an unknown /admin path lands on the dashboard rather than
  * being swallowed by the public catch-all and bounced to the marketing home.
  *
- * The marketing chrome (splash, navbar, WhatsApp button) lives inside
- * PublicLayout — that is what structurally guarantees the panel never
- * inherits it.
+ * The marketing chrome (splash, navbar) lives inside PublicLayout — that is
+ * what structurally guarantees the panel never inherits it.
  */
 function App() {
   return (
@@ -75,9 +79,17 @@ function App() {
           <Route index element={<Navigate to={ROUTES.ADMIN_DASHBOARD} replace />} />
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="products" element={<AdminPlaceholder title="Products" />} />
-          <Route path="enquiries" element={<AdminPlaceholder title="Enquiries" />} />
+          <Route path="enquiries" element={<AdminEnquiries />} />
           <Route path="content" element={<AdminPlaceholder title="Content" />} />
-          <Route path="settings" element={<AdminSettings />} />
+          {/* Settings is a section with its own tabs; the bare path lands on
+              the first one so /admin/settings is never a blank screen. */}
+          <Route path="settings" element={<SettingsLayout />}>
+            <Route index element={<Navigate to={ROUTES.ADMIN_SETTINGS_APPEARANCE} replace />} />
+            <Route path="appearance" element={<ThemeTab />} />
+            <Route path="typography" element={<FontTab />} />
+            <Route path="layout" element={<LayoutTab />} />
+            <Route path="gallery" element={<GalleryTab />} />
+          </Route>
           <Route path="*" element={<Navigate to={ROUTES.ADMIN_DASHBOARD} replace />} />
         </Route>
 

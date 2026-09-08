@@ -156,7 +156,7 @@
     font-weight: 800;
     line-height: 1.2;
     margin: 0;
-    font-family: 'Playfair Display', serif;
+    font-family: var(--brand-font-display);
     color: var(--color-navy-blue);
 }
 
@@ -178,7 +178,7 @@
     line-height: 1.8;
     max-width: 580px;
     color: var(--text-secondary);
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--brand-font-body);
 }
 
 /* ========================================

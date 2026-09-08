@@ -90,7 +90,7 @@
     color: var(--color-navy-blue);
     padding: 0.75rem 1.5rem;
     border-radius: 50px;
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--brand-font-body);
     font-size: 0.875rem;
     font-weight: 700;
     letter-spacing: 0.05em;
@@ -114,7 +114,7 @@
 
 .modal-category {
     display: inline-block;
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--brand-font-body);
     font-size: 0.875rem;
     font-weight: 600;
     letter-spacing: 0.1em;
@@ -124,7 +124,7 @@
 }
 
 .modal-title {
-    font-family: 'Playfair Display', serif;
+    font-family: var(--brand-font-display);
     font-size: 2.5rem;
     font-weight: 700;
     color: var(--text-primary);
@@ -133,7 +133,7 @@
 }
 
 .modal-subtitle {
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--brand-font-body);
     font-size: 1.125rem;
     color: var(--text-secondary);
     margin: 0;
@@ -141,7 +141,7 @@
 }
 
 .modal-description {
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--brand-font-body);
     font-size: 1rem;
     line-height: 1.8;
     color: var(--text-secondary);
@@ -190,7 +190,7 @@
 }
 
 .stat-label {
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--brand-font-body);
     font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -199,7 +199,7 @@
 }
 
 .stat-value {
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--brand-font-body);
     font-size: 1rem;
     font-weight: 700;
     color: var(--text-primary);
@@ -207,7 +207,7 @@
 
 /* Features */
 .modal-features h3 {
-    font-family: 'Playfair Display', serif;
+    font-family: var(--brand-font-display);
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--text-primary);
@@ -224,7 +224,7 @@
 }
 
 .features-list li {
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--brand-font-body);
     font-size: 0.95rem;
     color: var(--text-secondary);
     display: flex;
@@ -252,7 +252,7 @@
 .modal-btn-primary,
 .modal-btn-secondary {
     flex: 1;
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--brand-font-body);
     padding: 1rem 2rem;
     border-radius: 12px;
     font-size: 1rem;

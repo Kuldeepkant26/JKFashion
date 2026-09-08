@@ -1,4 +1,5 @@
 import EmptyState from '../components/EmptyState.jsx';
+import { FiTool } from 'react-icons/fi';
 
 /**
  * Stands in for the sections that are navigable but not yet built, so the
@@ -13,7 +14,7 @@ export default function AdminPlaceholder({ title }) {
 
       <EmptyState
         className="min-h-[50vh] bg-surface-card"
-        icon="🚧"
+        icon={FiTool}
         title={`${title} is not built yet`}
         hint="This section is planned for a later pass."
       />

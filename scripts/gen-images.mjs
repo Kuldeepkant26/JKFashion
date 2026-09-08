@@ -32,7 +32,7 @@ const VARIANTS = [
 const kb = (bytes) => `${Math.round(bytes / 1024)}KB`;
 
 const sources = readdirSync(PUBLIC_DIR).filter(
-  (f) => /\.png$/i.test(f) && !SKIP.test(f)
+  (f) => /\.(png|jpe?g)$/i.test(f) && !SKIP.test(f)
 );
 
 if (!sources.length) {

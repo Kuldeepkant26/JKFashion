@@ -20,25 +20,48 @@ const u = (id, w = 1200) =>
  * The four client photographs, served from `public/` and referenced by URL
  * path (Vite copies public/ through to the build unchanged).
  *
+ * These point at the `-full.jpg` variants from scripts/gen-images.mjs, NOT the
+ * originals: the source PNGs are ~2.5MB each and nothing on the site displays
+ * them larger than the 1400px variant. The .png originals stay in public/ as
+ * the masters the variants are regenerated from.
+ *
  * `loom` and `threads` are kept because AboutUs and InteriorShowcase still
  * reference them; they now point at client photography rather than stock.
  */
 export const hero = {
-  womensWear:  '/jk_fashion_img1.png', // model, white eyelet dress
-  mensWear:    '/jk_fashion2.png',     // model, embroidered kurta
-  mensRange:   '/Men_Febric.png',      // kurta rack, full colour range
-  womensRange: '/Women_febric.png',    // dress rack, full colour range
+  /*
+   * The hero cut-outs, in slide order.
+   *
+   * Each is the client's HeroSection<n>.png with its checkerboard keyed out.
+   * That checkerboard was painted into the pixels rather than being real
+   * transparency (the sources are RGB, no alpha channel), so it would have
+   * rendered as a grey grid on the page. `scripts/keyout.py` removes it and
+   * quantises the result to 256 colours: ~2.5MB each -> ~350-430KB, with the
+   * alpha the layout needs. Re-run it when new artwork lands.
+   */
+  showcase: [
+    '/HeroSection1-cutout.png',
+    '/HeroSection2-cutout.png',
+    '/HeroSection3-cutout.png',
+    '/HeroSection4-cutout.png',
+  ],
+
+  // Still used by the rack, About and the interior sections.
+  womensWear:  '/jk_fashion_img1-full.jpg', // model, white eyelet dress
+  mensWear:    '/jk_fashion2-full.jpg',     // model, embroidered kurta
+  mensRange:   '/Men_Febric-full.jpg',      // kurta rack, full colour range
+  womensRange: '/Women_febric-full.jpg',    // dress rack, full colour range
 
   // Aliases used elsewhere on the site.
-  loom:    '/Men_Febric.png',
-  threads: '/Women_febric.png',
+  loom:    '/Men_Febric-full.jpg',
+  threads: '/Women_febric-full.jpg',
 };
 
 // ------------------------------------------------------------- products
 export const products = {
   // Client photograph. Served from `public/`, so it is referenced by URL path
   // rather than imported — Vite copies public/ through to the build as-is.
-  schiffliFabric: '/jk_fashion_img1.png',
+  schiffliFabric: '/jk_fashion_img1-full.jpg',
   cottonLace:     u('1605518216938-7c31b7b14ad0'),
   crochetLace:    u('1618354691373-d851c5c3a990'),
   gpoLace:        u('1544441893-675973e31985'),

@@ -6,7 +6,7 @@
     --rg-pitch: 92px;      /* horizontal step between hanging cards */
     --rg-card-w: 250px;
     --rg-card-h: 380px;
-    --rg-count: 4;
+    --rg-count: 4;    /* fallback only — RackGallery.jsx sets this from the data */
     --rg-dur: 900ms;
     --rg-ease: cubic-bezier(0.16, 1, 0.3, 1);
 
@@ -27,7 +27,7 @@
 
 .rack-gallery__label {
     display: inline-block;
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--brand-font-body);
     font-size: 13px;
     font-weight: 500;
     letter-spacing: 0.3em;
@@ -37,7 +37,7 @@
 }
 
 .rack-gallery__title {
-    font-family: 'Playfair Display', serif;
+    font-family: var(--brand-font-display);
     font-size: clamp(38px, 4.6vw, 62px);
     font-weight: 800;
     line-height: 1.05;
@@ -47,7 +47,7 @@
 }
 
 .rack-gallery__intro {
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--brand-font-body);
     font-size: 15px;
     line-height: 1.9;
     color: var(--text-secondary);
@@ -266,7 +266,7 @@
 }
 
 .rack-gallery__caption-text {
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--brand-font-body);
     font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.14em;
@@ -332,7 +332,7 @@
     border: 0;
     border-radius: 999px;
     cursor: pointer;
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--brand-font-body);
     font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.12em;
@@ -353,7 +353,7 @@
 }
 
 .rack-gallery__category {
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--brand-font-body);
     font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.22em;
@@ -362,7 +362,7 @@
 }
 
 .rack-gallery__name {
-    font-family: 'Playfair Display', serif;
+    font-family: var(--brand-font-display);
     font-size: clamp(28px, 3vw, 40px);
     font-weight: 700;
     line-height: 1.15;
@@ -371,7 +371,7 @@
 }
 
 .rack-gallery__subtitle {
-    font-family: 'Playfair Display', serif;
+    font-family: var(--brand-font-display);
     font-style: italic;
     font-size: 17px;
     color: var(--text-secondary);
@@ -379,7 +379,7 @@
 }
 
 .rack-gallery__description {
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--brand-font-body);
     font-size: 15px;
     line-height: 1.95;
     color: var(--text-secondary);

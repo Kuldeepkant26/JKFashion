@@ -1,5 +1,4 @@
 /* About Us Section - Matching Hero Theme */
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Montserrat:wght@300;400;500;600;700&display=swap');
 
 .aboutus-section {
   min-height: 100vh;
@@ -95,7 +94,7 @@
 }
 
 .aboutus-section .aboutus-right .aboutus-title {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--brand-font-display);
   font-size: clamp(42px, 5vw, 64px);
   font-weight: 700;
   line-height: 1.2;
@@ -122,7 +121,7 @@
 }
 
 .aboutus-section .aboutus-right .aboutus-paragraph {
-  font-family: 'Montserrat', sans-serif;
+  font-family: var(--brand-font-body);
   font-size: 15px;
   font-weight: 400;
   line-height: 2;

@@ -1,4 +1,5 @@
 import EmptyState from './EmptyState.jsx';
+import { FiPieChart } from 'react-icons/fi';
 
 /** The bottom panel — per-channel performance, in a tinted well of white cards. */
 export default function ChannelsPanel({ items = [] }) {
@@ -43,7 +44,7 @@ export default function ChannelsPanel({ items = [] }) {
             </div>
           ) : (
             <EmptyState
-              icon="📊"
+              icon={FiPieChart}
               title="No channel data yet"
               hint="Enquiry sources appear here once tracking is connected."
             />

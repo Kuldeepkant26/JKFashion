@@ -70,7 +70,7 @@
 
 .immersive-vision .immersive-vision__label {
     display: inline-block;
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--brand-font-body);
     font-size: 0.85rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -83,7 +83,7 @@
 }
 
 .immersive-vision .immersive-vision__title {
-    font-family: 'Playfair Display', serif;
+    font-family: var(--brand-font-display);
     font-size: clamp(2.5rem, 5vw, 4rem);
     font-weight: 700;
     line-height: 1.2;
@@ -102,7 +102,7 @@
 }
 
 .immersive-vision .immersive-vision__subtitle {
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--brand-font-body);
     font-size: 1.1rem;
     max-width: 600px;
     margin: 0 auto;
@@ -178,7 +178,7 @@
 
 /* Card Title */
 .immersive-vision .immersive-vision__card-title {
-    font-family: 'Playfair Display', serif;
+    font-family: var(--brand-font-display);
     font-size: 1.4rem;
     font-weight: 600;
     margin-bottom: 14px;
@@ -190,7 +190,7 @@
 
 /* Card Description */
 .immersive-vision .immersive-vision__card-desc {
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--brand-font-body);
     font-size: 0.95rem;
     line-height: 1.7;
     margin-bottom: 20px;
@@ -245,7 +245,7 @@
 }
 
 .immersive-vision .immersive-vision__quote-text {
-    font-family: 'Playfair Display', serif;
+    font-family: var(--brand-font-display);
     font-size: clamp(1.2rem, 2.5vw, 1.6rem);
     font-style: italic;
     line-height: 1.8;
@@ -257,7 +257,7 @@
 }
 
 .immersive-vision .immersive-vision__quote-author {
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--brand-font-body);
     font-size: 1rem;
     font-weight: 600;
     color: var(--color-yellow-gold);
@@ -293,7 +293,7 @@
 
 .immersive-vision .immersive-vision__stat-number {
     display: block;
-    font-family: 'Playfair Display', serif;
+    font-family: var(--brand-font-display);
     font-size: clamp(2rem, 4vw, 3rem);
     font-weight: 700;
     background: var(--gradient-brand);
@@ -304,7 +304,7 @@
 }
 
 .immersive-vision .immersive-vision__stat-label {
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--brand-font-body);
     font-size: 0.9rem;
     font-weight: 500;
 }

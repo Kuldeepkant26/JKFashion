@@ -26,6 +26,9 @@ export default function AdminLayout() {
 
   const user = useAppStore((s) => s.user);
   const logout = useAppStore((s) => s.logout);
+  // Persisted in the store, so a collapsed rail stays collapsed across reloads.
+  const collapsed = useAppStore((s) => s.sidebarCollapsed);
+  const toggleCollapse = useAppStore((s) => s.toggleSidebar);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -99,21 +102,28 @@ export default function AdminLayout() {
       {/* ---------------------------------------- sidebar */}
       <aside
         className={`fixed inset-y-0 left-0 z-40 w-72 overflow-y-auto shadow-xl
-                    transition-transform duration-300 ease-out
-                    lg:translate-x-0 lg:shadow-none ${
-                      drawerOpen ? 'translate-x-0' : '-translate-x-full'
-                    }`}
+                    transition-[transform,width] duration-300 ease-out
+                    lg:translate-x-0 lg:shadow-none
+                    ${drawerOpen ? 'translate-x-0' : '-translate-x-full'}
+                    ${collapsed ? 'lg:w-[76px]' : 'lg:w-72'}`}
       >
         <Sidebar
           user={user}
           onNavigate={() => setDrawerOpen(false)}
           onSignOut={handleSignOut}
           signingOut={signingOut}
+          /* The drawer is always full width, so the rail only applies once the
+             sidebar is pinned. */
+          collapsed={collapsed}
+          onToggleCollapse={toggleCollapse}
         />
       </aside>
 
       {/* ---------------------------------------- page */}
-      <main className="px-4 py-6 sm:px-6 lg:pl-76 lg:pr-8 lg:py-8">
+      <main
+        className={`px-4 py-6 transition-[padding] duration-300 ease-out sm:px-6 lg:py-8
+                    lg:pr-8 ${collapsed ? 'lg:pl-[108px]' : 'lg:pl-76'}`}
+      >
         {/* Child routes are lazy too, so they need a boundary of their own —
             the one wrapping this layout has already resolved by now. */}
         <Suspense

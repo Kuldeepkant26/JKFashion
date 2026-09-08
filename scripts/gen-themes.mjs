@@ -6,6 +6,10 @@
  * keep gradients from collapsing into a flat smear and text readable.
  */
 import { writeFileSync } from 'node:fs';
+import { FONT_IDS, DEFAULT_FONT_ID } from '../frontend/src/theme/fonts.js';
+import {
+  NAVBAR_IDS, DEFAULT_NAVBAR_ID, HERO_IDS, DEFAULT_HERO_ID,
+} from '../frontend/src/theme/layouts.js';
 
 /* ---------- colour math ---------- */
 
@@ -244,6 +248,37 @@ export const DEFAULT_THEME_ID = "signature-pink";
 
 export const THEME_IDS: string[] = [
 ${THEMES.map((t) => `  "${t.id}",`).join('\n')}
+];
+
+/**
+ * Typography pairing ids the API will accept.
+ *
+ * Same rule as the palette: only the id is stored and validated here, while
+ * the actual font stacks live in frontend/src/theme/fonts.js — which this
+ * generator imports, so the allowlist cannot drift from the real pairings.
+ */
+export const DEFAULT_FONT_ID = "${DEFAULT_FONT_ID}";
+
+export const FONT_IDS: string[] = [
+${FONT_IDS.map((id) => `  "${id}",`).join('\n')}
+];
+
+/**
+ * Navbar and hero layout ids the API will accept.
+ *
+ * Same rule again: the id selects a React component that lives in the
+ * frontend, so only a value from this list can ever reach a visitor's page.
+ */
+export const DEFAULT_NAVBAR_ID = "${DEFAULT_NAVBAR_ID}";
+
+export const NAVBAR_IDS: string[] = [
+${NAVBAR_IDS.map((id) => `  "${id}",`).join('\n')}
+];
+
+export const DEFAULT_HERO_ID = "${DEFAULT_HERO_ID}";
+
+export const HERO_IDS: string[] = [
+${HERO_IDS.map((id) => `  "${id}",`).join('\n')}
 ];
 `;
 

@@ -55,7 +55,7 @@
     font-weight: 700;
     margin-bottom: 24px;
     line-height: 1.2;
-    font-family: 'Playfair Display', serif;
+    font-family: var(--brand-font-display);
 }
 
 /* Light Theme Title */
@@ -151,14 +151,14 @@
     font-weight: 700;
     margin-bottom: 12px;
     color: var(--text-primary);
-    font-family: 'Playfair Display', serif;
+    font-family: var(--brand-font-display);
 }
 
 .ventures-showcase__card-text {
     font-size: 1rem;
     line-height: 1.7;
     color: var(--text-secondary);
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--brand-font-body);
 }
 
 .ventures-showcase__stats {

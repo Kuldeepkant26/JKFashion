@@ -79,17 +79,9 @@ const Footer = () => {
                                 <li>
                                     <button 
                                         className="footer-link-btn"
-                                        onClick={() => scrollToSection('/', 'faq-section')}
+                                        onClick={() => scrollToSection('/', 'enquiry')}
                                     >
-                                        FAQ
-                                    </button>
-                                </li>
-                                <li>
-                                    <button 
-                                        className="footer-link-btn"
-                                        onClick={() => scrollToSection('/', 'testimonials-section')}
-                                    >
-                                        Testimonials
+                                        Send an Enquiry
                                     </button>
                                 </li>
                                 <li>

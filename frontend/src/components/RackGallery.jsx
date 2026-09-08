@@ -3,7 +3,12 @@ import { useInView } from 'react-intersection-observer';
 import { garments } from '../data/garments';
 import '../css/RackGallery.css';
 
-const ZOOM = 2;
+/*
+ * Magnification inside the lens. The source is the 1400px `-full.jpg`, and the
+ * frame renders it at roughly 460px, so the file already holds ~3x more detail
+ * than the frame shows — 3.2x spends that headroom without resampling past it.
+ */
+const ZOOM = 3.2;
 const LENS = 132;   // must match .rack-gallery__lens in the CSS
 
 /** Media query as a live boolean. Used for the lens and reduced-motion gates. */
@@ -166,7 +171,14 @@ export default function RackGallery() {
   }, [detailOpen]);
 
   return (
-    <section className="rack-gallery" ref={sectionRef} aria-labelledby="rack-gallery-title">
+    <section
+      className="rack-gallery"
+      ref={sectionRef}
+      aria-labelledby="rack-gallery-title"
+      /* The rail's length is derived from the number of cards, so the array
+         can grow or shrink without the CSS falling out of step. */
+      style={{ '--rg-count': garments.length }}
+    >
       <div className="rack-gallery__header">
         <span className="rack-gallery__label">The Range</span>
         <h2 className="rack-gallery__title" id="rack-gallery-title">

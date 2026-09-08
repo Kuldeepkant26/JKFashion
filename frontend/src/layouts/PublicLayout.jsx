@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import Navbar from '../components/Navbar';
+import SiteNavbar from '../components/navbars/index.jsx';
 import SplashScreen from '../components/SplashScreen';
-import WhatsAppFab from '../components/WhatsAppFab';
 
 /**
- * Chrome for the public marketing site: splash screen, navbar and the WhatsApp
- * button.
+ * Chrome for the public marketing site: splash screen and navbar.
+ *
+ * The navbar is chosen by the owner in the admin panel; SiteNavbar resolves
+ * that id to a component, so this layout never needs to know which one.
  *
  * These used to live in App.jsx and therefore rendered on every route. Moving
  * them here makes the admin panel's isolation structural — /admin sits outside
@@ -33,9 +34,8 @@ export default function PublicLayout() {
     <>
       {showSplash && <SplashScreen exiting={exitingSplash} />}
       <div className={`app-shell ${showSplash && !exitingSplash ? 'app-shell--masked' : 'app-shell--ready'}`}>
-        <Navbar />
+        <SiteNavbar />
         <Outlet />
-        {!showSplash && <WhatsAppFab />}
       </div>
     </>
   );

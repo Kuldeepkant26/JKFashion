@@ -16,4 +16,14 @@ export const ROUTES = {
   ADMIN_ENQUIRIES: '/admin/enquiries',
   ADMIN_CONTENT: '/admin/content',
   ADMIN_SETTINGS: '/admin/settings',
+
+  /**
+   * Settings is a section, not a page: each concern gets its own tab so the
+   * area can grow without any one screen becoming a scroll of unrelated
+   * controls. /admin/settings itself redirects to the first tab.
+   */
+  ADMIN_SETTINGS_APPEARANCE: '/admin/settings/appearance',
+  ADMIN_SETTINGS_TYPOGRAPHY: '/admin/settings/typography',
+  ADMIN_SETTINGS_LAYOUT: '/admin/settings/layout',
+  ADMIN_SETTINGS_GALLERY: '/admin/settings/gallery',
 };

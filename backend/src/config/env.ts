@@ -31,6 +31,18 @@ export const env = {
     refreshMaxAgeMs: toInt(process.env.JWT_REFRESH_MAX_AGE_DAYS, 30) * 24 * 60 * 60 * 1000,
   },
 
+  /**
+   * Cloudinary. Optional at boot — the site runs fine without it, and only the
+   * gallery-upload endpoint refuses to work. That keeps a missing credential
+   * from taking the whole API down, and it is why these are NOT in REQUIRED.
+   */
+  cloudinary: {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    apiKey: process.env.CLOUDINARY_API_KEY,
+    apiSecret: process.env.CLOUDINARY_API_SECRET,
+    folder: process.env.CLOUDINARY_FOLDER ?? "jk-fashion/gallery",
+  },
+
   seed: {
     adminName: process.env.SEED_ADMIN_NAME ?? "JK Fashion Admin",
     adminEmail: process.env.SEED_ADMIN_EMAIL ?? "admin@jkfashion.com",
@@ -39,6 +51,10 @@ export const env = {
 } as const;
 
 export const isProduction = env.nodeEnv === "production";
+
+/** True once all three Cloudinary values are present. */
+export const isCloudinaryConfigured = (): boolean =>
+  Boolean(env.cloudinary.cloudName && env.cloudinary.apiKey && env.cloudinary.apiSecret);
 
 const REQUIRED: Array<[string, string | undefined]> = [
   ["MONGO_URI", env.mongoUri],

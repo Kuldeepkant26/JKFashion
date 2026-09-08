@@ -156,7 +156,7 @@
 .signature-projects__count {
     font-size: 5rem;
     font-weight: 900;
-    font-family: 'Playfair Display', serif;
+    font-family: var(--brand-font-display);
     background: var(--gradient-heading);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -207,7 +207,7 @@
     display: block;
     font-size: clamp(2.5rem, 6vw, 4.5rem);
     font-weight: 800;
-    font-family: 'Playfair Display', serif;
+    font-family: var(--brand-font-display);
     color: var(--text-primary);
     opacity: 0;
     transform: translateX(-50px);
@@ -308,7 +308,7 @@
 .signature-projects__card-number {
     font-size: 2rem;
     font-weight: 900;
-    font-family: 'Playfair Display', serif;
+    font-family: var(--brand-font-display);
     color: var(--border-subtle);
     transition: all 0.4s ease;
 }
@@ -337,7 +337,7 @@
     font-weight: 700;
     color: var(--text-primary);
     margin: 0;
-    font-family: 'Playfair Display', serif;
+    font-family: var(--brand-font-display);
 }
 
 .signature-projects__card-location {
@@ -518,7 +518,7 @@
 .signature-projects__featured-stat-value {
     font-size: 1.25rem;
     font-weight: 800;
-    font-family: 'Playfair Display', serif;
+    font-family: var(--brand-font-display);
     color: var(--color-yellow-gold);
 }
 
@@ -587,7 +587,7 @@
     font-size: 1.1rem;
     font-weight: 700;
     color: white;
-    font-family: 'Playfair Display', serif;
+    font-family: var(--brand-font-display);
     margin-bottom: 4px;
 }
 
