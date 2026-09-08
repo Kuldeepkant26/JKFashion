@@ -16,13 +16,22 @@ const u = (id, w = 1200) =>
   `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=80`;
 
 // ---------------------------------------------------------------- hero
+/**
+ * The four client photographs, served from `public/` and referenced by URL
+ * path (Vite copies public/ through to the build unchanged).
+ *
+ * `loom` and `threads` are kept because AboutUs and InteriorShowcase still
+ * reference them; they now point at client photography rather than stock.
+ */
 export const hero = {
-  loom:        u('1489987707025-afc232f7ea0f', 1920), // textile machinery
-  threads:     u('1591195853828-11db59a44f6b', 1920), // spools of thread
-  lace:        u('1605518216938-7c31b7b14ad0', 1920), // fine lace detail
-  fabricRolls: u('1524578271613-d550eacf6090', 1920), // rolls of fabric
-  stitching:   u('1528938102132-4a9276b8e320', 1920), // stitching close-up
-  atelier:     u('1567401893414-76b7b1e5a7a5', 1920), // workshop / atelier
+  womensWear:  '/jk_fashion_img1.png', // model, white eyelet dress
+  mensWear:    '/jk_fashion2.png',     // model, embroidered kurta
+  mensRange:   '/Men_Febric.png',      // kurta rack, full colour range
+  womensRange: '/Women_febric.png',    // dress rack, full colour range
+
+  // Aliases used elsewhere on the site.
+  loom:    '/Men_Febric.png',
+  threads: '/Women_febric.png',
 };
 
 // ------------------------------------------------------------- products

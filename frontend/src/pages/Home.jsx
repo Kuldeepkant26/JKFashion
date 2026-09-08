@@ -27,36 +27,28 @@ const Home = () => {
     const philosophyImages = [gallery[0], gallery[1], gallery[2]];
 
     // Hero carousel data
+    // Four client photographs. The copy is matched to what each frame actually
+    // shows, so the headline and the image are never describing different things.
     const heroCarouselData = [
         {
-            image: hero.loom,
-            title: "SCHIFFLI EMBROIDERY",
-            description: "Continuous-width embroidery on Lässer schiffli machines, engineered for the repeat accuracy and yardage consistency that garment exporters build their collections on."
+            image: hero.womensWear,
+            title: "WOMEN'S WEAR",
+            description: "Schiffli-embroidered cotton and eyelet, cut into the dresses and separates our buyers build their season around — sampled to your reference and produced to the metre."
         },
         {
-            image: hero.lace,
-            title: "FINE LACES",
-            description: "Cotton, crochet and GPO laces developed in-house — from delicate edgings to statement borders, punched and sampled to your reference or ours."
+            image: hero.mensWear,
+            title: "MEN'S WEAR",
+            description: "Tonal thread-work on breathable cotton, engineered for kurtas and shirting that hold their finish through a full production run."
         },
         {
-            image: hero.threads,
+            image: hero.womensRange,
             title: "COLOUR & YARN",
-            description: "Viscose, cotton and metallic yarns matched to your shade card, with in-house processing that keeps colour consistent from first sample to final bulk."
+            description: "Every base matched to your shade card — viscose, cotton and metallic yarns processed in-house so colour stays consistent from first sample to final bulk."
         },
         {
-            image: hero.stitching,
-            title: "PRECISION AT SPEED",
-            description: "Over two million stitches a day across our floor, with every metre passing through mending and inspection before it is cleared for finishing."
-        },
-        {
-            image: hero.fabricRolls,
+            image: hero.mensRange,
             title: "BULK CAPACITY",
-            description: "Sampling through to full production runs under one roof — predictable lead times, honest updates, and goods that ship when we say they will."
-        },
-        {
-            image: hero.atelier,
-            title: "DESIGN STUDIO",
-            description: "An in-house design team building original artwork and adapting buyer references, turning a concept into a punched, production-ready file."
+            description: "Sampling through to full production under one roof, across the whole colour range — predictable lead times and goods that ship when we say they will."
         }
     ];
 
