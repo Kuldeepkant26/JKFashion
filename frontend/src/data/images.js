@@ -27,7 +27,9 @@ export const hero = {
 
 // ------------------------------------------------------------- products
 export const products = {
-  schiffliFabric: u('1620799140408-edc6dcb6d633'),
+  // Client photograph. Served from `public/`, so it is referenced by URL path
+  // rather than imported — Vite copies public/ through to the build as-is.
+  schiffliFabric: '/jk_fashion_img1.png',
   cottonLace:     u('1605518216938-7c31b7b14ad0'),
   crochetLace:    u('1618354691373-d851c5c3a990'),
   gpoLace:        u('1544441893-675973e31985'),
