@@ -462,6 +462,9 @@ const Home = () => {
             <div className="home-section home-section-2" style={{ zIndex: 2 }}>
                 <div className={`home-container ${isLoaded ? 'loaded' : ''}`}>
                     <MobileDev></MobileDev>
+
+                    {/* Rack Gallery - pick a piece, magnify the embroidery */}
+                    <RackGallery />
                     <AboutUs></AboutUs>
                     <WebSaaSDev></WebSaaSDev>
                     <InteriorShowcase></InteriorShowcase>
@@ -640,8 +643,6 @@ const Home = () => {
                     {/* Prestige Gallery - Stunning Visual Experience */}
                     <PrestigeGallery />
 
-                    {/* Rack Gallery - pick a piece, magnify the embroidery */}
-                    <RackGallery />
 
                     {/* Philosophy Section */}
                     {/* <section className="home-philosophy">

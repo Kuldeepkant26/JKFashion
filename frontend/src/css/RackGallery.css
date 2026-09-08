@@ -97,7 +97,6 @@
     height: calc(var(--rg-card-h) + 86px);
     perspective: 1500px;
     perspective-origin: 32% 38%;
-    transform-style: preserve-3d;
 }
 
 /* Cards sit on a left-anchored ladder rather than fanning out from the centre:
@@ -106,10 +105,11 @@
 .rack-gallery__item {
     position: absolute;
     top: 0;
-    /* Placed by distance from the active card, not by index — that keeps the
-       front of the rail a fixed spot and guarantees every other card still has
-       its own slot rather than hiding behind the selected one. */
-    left: calc(var(--abs) * var(--rg-pitch));
+    /* Positioned by --rank, which is unique per card: the active one sits at
+       the head of the rail and the rest queue behind it in order. Using
+       |offset| here collapsed the two neighbours of the active card into one
+       slot, leaving the hidden one unclickable. */
+    left: calc(var(--rank) * var(--rg-pitch));
     width: var(--rg-card-w);
 
     padding: 0;
@@ -121,13 +121,20 @@
     color: inherit;
 
     transform-origin: 50% 0%;   /* pivots at the hook, the way clothing hangs */
+    /*
+     * Depth comes from scale, rotation and shadow — NOT from a negative Z
+     * translate. Chrome will not hit-test an element pushed back in Z inside a
+     * preserve-3d parent: the back cards rendered correctly but owned zero
+     * clickable pixels, so every click landed on the front card. Verified by
+     * grid-sampling elementFromPoint across the rack.
+     */
     transform:
-        translate3d(0, calc(var(--abs) * 6px), calc(var(--abs) * -90px))
-        rotateY(calc(var(--abs) * -13deg))
-        rotateZ(calc(var(--abs) * 1.1deg))
-        scale(calc(1 - var(--abs) * 0.045));
-    z-index: calc(100 - var(--abs));
-    filter: brightness(calc(1 - var(--abs) * 0.1)) saturate(calc(1 - var(--abs) * 0.07));
+        translate3d(0, calc(var(--rank) * 7px), 0)
+        rotateY(calc(var(--rank) * -13deg))
+        rotateZ(calc(var(--rank) * 1.1deg))
+        scale(calc(1 - var(--rank) * 0.075));
+    z-index: calc(100 - var(--rank));
+    filter: brightness(calc(1 - var(--rank) * 0.1)) saturate(calc(1 - var(--rank) * 0.07));
     transition:
         transform var(--rg-dur) var(--rg-ease),
         filter var(--rg-dur) var(--rg-ease);
@@ -139,7 +146,7 @@
        The negative --i term slides it back to the head of the rail, so "the
        front" is a fixed position rather than wherever the card happened to
        hang. */
-    transform: translate3d(0, -16px, 150px) rotateY(-4deg) rotateZ(0deg) scale(1.04);
+    transform: translate3d(0, -16px, 0) rotateY(-4deg) rotateZ(0deg) scale(1.04);
     z-index: 200;
     filter: none;
     cursor: default;
@@ -198,8 +205,8 @@
     background: var(--surface-card);
     padding: 8px;
     box-shadow:
-        calc(var(--abs) * 5px) 16px 34px
-            color-mix(in oklab, var(--brand-ink) calc(15% - var(--abs) * 2%), transparent);
+        calc(var(--rank) * 5px) 16px 34px
+            color-mix(in oklab, var(--brand-ink) calc(15% - var(--rank) * 2%), transparent);
     transition: box-shadow var(--rg-dur) var(--rg-ease);
 }
 
@@ -474,8 +481,8 @@
     .rack-gallery__item {
         transform:
             translate3d(0, 0, 0)
-            rotateY(calc(var(--offset) * -6deg))
-            scale(calc(1 - var(--abs) * 0.04));
+            rotateY(calc(var(--rank) * -6deg))
+            scale(calc(1 - var(--rank) * 0.04));
     }
 
     .rack-gallery__item--active {

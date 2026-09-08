@@ -193,6 +193,17 @@ export default function RackGallery() {
             {garments.map((garment, index) => {
               const offset = index - activeIndex;
               const isActive = index === activeIndex;
+              /*
+               * Rank is what positions the card on the rail: the selected one
+               * takes the front slot and the rest keep their running order
+               * behind it. It has to be unique per card — deriving the slot
+               * from |offset| alone put the cards either side of the active
+               * one in the SAME place, so the front card covered them and
+               * swallowed their clicks.
+               */
+              const rank = index < activeIndex
+                ? index + 1
+                : index - activeIndex;
 
               return (
                 <button
@@ -205,7 +216,7 @@ export default function RackGallery() {
                   aria-controls="rack-gallery-panel"
                   tabIndex={isActive ? 0 : -1}
                   className={`rack-gallery__item ${isActive ? 'rack-gallery__item--active' : ''}`}
-                  style={{ '--offset': offset, '--abs': Math.abs(offset), '--i': index }}
+                  style={{ '--offset': offset, '--abs': Math.abs(offset), '--i': index, '--rank': rank }}
                   onClick={() => select(index)}
                 >
                   <span className="rack-gallery__hanger" aria-hidden="true" />
