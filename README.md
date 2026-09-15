@@ -14,6 +14,28 @@ The root `package.json` is **not** a third application. Its only dependency is
 together instead of needing two terminals. Delete it and the two apps still
 work; you would just run each one yourself.
 
+## Branching — work on `main` only
+
+**Do not create branches for new work.** Commit directly to `main`.
+
+This is a single-developer project with one deployment. Feature branches were
+adding a merge step and a chance for `main` to drift out of date without
+buying any of the isolation they exist to provide — at one point `main` was
+13 commits behind the branch the live server was actually running, which made
+`main` the least trustworthy copy of the code rather than the canonical one.
+
+So: `main` is the only branch. It is what the EC2 server deploys from, and it
+should always be the newest, working code.
+
+```bash
+git add -A
+git commit -m "..."
+git push
+```
+
+If something genuinely risky needs isolating, stash it or keep it uncommitted
+rather than branching.
+
 ## Running it
 
 From this directory, once:
@@ -61,6 +83,26 @@ refresh token live in a first-party httpOnly cookie with no CORS involved. The
 same build works unchanged in production when the API is served from the site's
 own domain. Set `VITE_API_BASE_URL` only if the API ends up on a different host.
 
+## Enquiry notification emails
+
+When a visitor submits the enquiry form, the configured addresses get an email.
+Recipients are managed in the panel — **Enquiries → Email notifications** — so
+changing who is notified is not a deploy.
+
+Sending needs SMTP credentials in `backend/.env` (see `.env.example`). For
+Gmail, `SMTP_PASSWORD` must be a 16-character **App Password**, not the account
+password — Google rejects the latter outright. App passwords live at
+<https://myaccount.google.com/apppasswords> and require 2-Step Verification.
+
+Without credentials the feature degrades rather than breaks: enquiries are still
+saved and shown in the panel, the API still returns 201, and the settings screen
+shows a warning that nothing will be delivered. The send is fire-and-forget, so
+an unreachable mail host can never turn a successful submission into an error
+for the visitor.
+
+`Reply-To` is the enquirer, so replying from the inbox reaches the buyer rather
+than the site's own mailbox.
+
 ## Deploying
 
 The panel is a client-side route, so a static host must rewrite unknown paths to
@@ -79,6 +121,11 @@ one origin avoids all of that and is the recommended setup.
 The MongoDB credential currently in `backend/.env` was shared in plain text and
 **must be rotated**. See `backend/README.md` for the full checklist.
 
-`.env` is gitignored at the root. There is no git repository in this directory
-yet; if you run `git init`, confirm `git status` does not list `backend/.env`
-before the first commit.
+`backend/.env` is gitignored and confirmed absent from `git status` — it holds
+the Mongo URI and the SMTP app password, neither of which belongs in the repo.
+
+The Gmail app password currently in `backend/.env` was shared in plain text over
+chat and **should be revoked and reissued** at
+<https://myaccount.google.com/apppasswords>. An app password only sends mail —
+it cannot read the inbox or sign into the account — so this is housekeeping
+rather than an emergency, but it is still a credential in a transcript.
