@@ -142,6 +142,12 @@ const buildMail = (enquiry: IEnquiry) => {
 };
 
 /**
+ * Exported for the notification preview/test tooling only — production code
+ * should call notifyNewEnquiry, which applies the settings and the kill switch.
+ */
+export const buildEnquiryMail = buildMail;
+
+/**
  * Notify the configured recipients about a new enquiry.
  *
  * Deliberately never throws. It is called after the enquiry has already been
