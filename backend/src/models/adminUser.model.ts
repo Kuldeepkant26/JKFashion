@@ -1,12 +1,20 @@
 import mongoose, { Schema, type Document, type Model } from "mongoose";
 import bcrypt from "bcryptjs";
-import { ROLES, ROLE_VALUES, type Role } from "../config/constants.js";
+import {
+  ROLES,
+  ROLE_VALUES,
+  PERMISSION_VALUES,
+  DEFAULT_PERMISSIONS,
+  type Role,
+  type Permission,
+} from "../config/constants.js";
 
 export interface SafeAdminUser {
   id: string;
   name: string;
   email: string;
   role: Role;
+  permissions: Permission[];
   isActive: boolean;
   isProtected: boolean;
   lastLoginAt?: Date;
@@ -17,6 +25,7 @@ export interface IAdminUser extends Document {
   email: string;
   passwordHash: string;
   role: Role;
+  permissions: Permission[];
   refreshTokens: string[];
   isActive: boolean;
   isProtected: boolean;
@@ -37,6 +46,16 @@ const adminUserSchema = new Schema<IAdminUser>(
     passwordHash: { type: String, required: true, select: false },
 
     role: { type: String, enum: ROLE_VALUES, default: ROLES.MAIN_ADMIN, index: true },
+
+    /**
+     * Which panel sections an EDITOR may open. Ignored for MAIN_ADMIN, who
+     * reaches everything by role — see `effectivePermissions`, which is what
+     * every caller should read rather than this field directly.
+     */
+    permissions: {
+      type: [{ type: String, enum: PERMISSION_VALUES }],
+      default: DEFAULT_PERMISSIONS,
+    },
 
     /**
      * SHA-256 hashes of the refresh tokens currently valid for this account —
@@ -77,6 +96,19 @@ adminUserSchema.methods.comparePassword = function comparePassword(
   return bcrypt.compare(candidate, this.passwordHash);
 };
 
+/**
+ * What this account can actually reach.
+ *
+ * The owner gets everything by virtue of being the owner, rather than by
+ * carrying a stored list that could drift out of step with PERMISSIONS as
+ * sections are added. Only an editor's access is data.
+ */
+export const effectivePermissions = (user: {
+  role: Role;
+  permissions?: Permission[];
+}): Permission[] =>
+  user.role === ROLES.MAIN_ADMIN ? [...PERMISSION_VALUES] : user.permissions ?? [];
+
 /** The only shape that should ever reach a response body. */
 adminUserSchema.methods.toSafeObject = function toSafeObject(): SafeAdminUser {
   return {
@@ -84,6 +116,9 @@ adminUserSchema.methods.toSafeObject = function toSafeObject(): SafeAdminUser {
     name: this.name,
     email: this.email,
     role: this.role,
+    // Resolved, not raw: the client should never have to know that an owner's
+    // stored list is meaningless.
+    permissions: effectivePermissions({ role: this.role, permissions: this.permissions }),
     isActive: this.isActive,
     isProtected: this.isProtected,
     lastLoginAt: this.lastLoginAt,

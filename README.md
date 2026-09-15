@@ -83,6 +83,22 @@ refresh token live in a first-party httpOnly cookie with no CORS involved. The
 same build works unchanged in production when the API is served from the site's
 own domain. Set `VITE_API_BASE_URL` only if the API ends up on a different host.
 
+## Staff accounts and access
+
+The owner grants each staff account the sections it may open, in **Staff →
+Access**: Inventory, Enquiries, Content, Settings and Dashboard. Managing
+accounts is never grantable — it would let a staff member create accounts and
+set passwords, which is the ability to make themselves an owner.
+
+The sidebar hides what an account cannot reach, but that is only an
+affordance. The API's `requirePermission` is the real boundary and refuses the
+request regardless of what the browser sends.
+
+**Passwords cannot be read back.** They are stored as bcrypt hashes, so not
+even the server can recover one. To give someone their password, set a new one
+(**Password**, leave the prompt blank to generate a strong one) — it is shown
+once, with a copy button, and never again.
+
 ## Enquiry notification emails
 
 When a visitor submits the enquiry form, the configured addresses get an email.

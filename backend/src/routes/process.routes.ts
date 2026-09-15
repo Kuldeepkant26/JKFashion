@@ -1,6 +1,14 @@
 import { Router } from "express";
 import * as processController from "../controllers/process.controller.js";
-import { protect } from "../middlewares/auth.middleware.js";
+import { protect, requirePermission } from "../middlewares/auth.middleware.js";
+import { PERMISSIONS } from "../config/constants.js";
+
+/**
+ * Every admin route in this file edits what the public site displays, so they
+ * all sit behind the same SETTINGS grant. Aliased so the guard reads as one
+ * unit at each call site rather than two arguments to remember to pair.
+ */
+const canEditContent = [protect, requirePermission(PERMISSIONS.SETTINGS)] as const;
 import { validate } from "../middlewares/validate.middleware.js";
 import {
   uploadSingleImage,
@@ -23,9 +31,9 @@ const router = Router();
 router.get("/", processController.getPublic);
 
 // Everything below is the admin's view of the same resource.
-router.get("/admin", protect, processController.getAdmin);
+router.get("/admin", ...canEditContent, processController.getAdmin);
 
-router.patch("/", protect, updateSectionRules, validate, processController.updateSection);
+router.patch("/", ...canEditContent, updateSectionRules, validate, processController.updateSection);
 
 /* ------------------------------------------------------------------ steps */
 
@@ -33,27 +41,27 @@ router.patch("/", protect, updateSectionRules, validate, processController.updat
  * Literal paths are declared above the parameterised ones throughout, so a
  * future "/:id" route cannot quietly swallow "/reorder" or "/video".
  */
-router.put("/steps/reorder", protect, reorderRules, validate, processController.reorderSteps);
+router.put("/steps/reorder", ...canEditContent, reorderRules, validate, processController.reorderSteps);
 
-router.post("/steps", protect, addStepRules, validate, processController.addStep);
+router.post("/steps", ...canEditContent, addStepRules, validate, processController.addStep);
 
-router.patch("/steps/:stepId", protect, updateStepRules, validate, processController.updateStep);
+router.patch("/steps/:stepId", ...canEditContent, updateStepRules, validate, processController.updateStep);
 
-router.delete("/steps/:stepId", protect, stepIdRules, validate, processController.deleteStep);
+router.delete("/steps/:stepId", ...canEditContent, stepIdRules, validate, processController.deleteStep);
 
 /* ------------------------------------------------------------------ video */
 
-router.put("/video", protect, uploadSingleVideo, processController.setVideo);
+router.put("/video", ...canEditContent, uploadSingleVideo, processController.setVideo);
 
-router.delete("/video", protect, processController.clearVideo);
+router.delete("/video", ...canEditContent, processController.clearVideo);
 
-router.put("/video/poster", protect, uploadSingleImage, processController.setVideoPoster);
+router.put("/video/poster", ...canEditContent, uploadSingleImage, processController.setVideoPoster);
 
 /* --------------------------------------------------------------- facility */
 
 router.put(
   "/facility/reorder",
-  protect,
+  ...canEditContent,
   reorderRules,
   validate,
   processController.reorderFacilityPhotos
@@ -61,7 +69,7 @@ router.put(
 
 router.post(
   "/facility",
-  protect,
+  ...canEditContent,
   uploadSingleImage,
   facilityPhotoRules,
   validate,
@@ -70,7 +78,7 @@ router.post(
 
 router.patch(
   "/facility/:photoId",
-  protect,
+  ...canEditContent,
   updateFacilityPhotoRules,
   validate,
   processController.updateFacilityPhoto
@@ -78,7 +86,7 @@ router.patch(
 
 router.delete(
   "/facility/:photoId",
-  protect,
+  ...canEditContent,
   photoIdRules,
   validate,
   processController.deleteFacilityPhoto

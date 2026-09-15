@@ -1,9 +1,9 @@
 import { Router } from "express";
 import * as themeController from "../controllers/theme.controller.js";
-import { protect, restrictTo } from "../middlewares/auth.middleware.js";
+import { protect, requirePermission } from "../middlewares/auth.middleware.js";
 import { validate } from "../middlewares/validate.middleware.js";
 import { updateThemeRules } from "../validators/theme.validator.js";
-import { ROLES } from "../config/constants.js";
+import { PERMISSIONS } from "../config/constants.js";
 
 const router = Router();
 
@@ -15,13 +15,13 @@ const router = Router();
 router.get("/", themeController.getTheme);
 
 /**
- * Owner-only. MAIN_ADMIN is the existing "super admin" — the seeded, protected
- * account — so this reuses that role rather than introducing a parallel one.
+ * Gated on the SETTINGS permission, which the owner always holds and an editor
+ * holds only if granted. Previously owner-only by role.
  */
 router.put(
   "/",
   protect,
-  restrictTo(ROLES.MAIN_ADMIN),
+  requirePermission(PERMISSIONS.SETTINGS),
   updateThemeRules,
   validate,
   themeController.updateTheme

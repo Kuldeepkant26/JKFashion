@@ -19,6 +19,13 @@ export const ROUTES = {
   ADMIN_SETTINGS: '/admin/settings',
 
   /**
+   * Where an account with no granted sections lands. A real route rather than
+   * a redirect target, so such an account gets an explanation instead of
+   * bouncing between guards forever.
+   */
+  ADMIN_NO_ACCESS: '/admin/no-access',
+
+  /**
    * Settings is a section, not a page: each concern gets its own tab so the
    * area can grow without any one screen becoming a scroll of unrelated
    * controls. /admin/settings itself redirects to the first tab.

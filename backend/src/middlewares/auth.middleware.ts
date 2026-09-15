@@ -2,8 +2,12 @@ import type { NextFunction, Request, Response } from "express";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { verifyAccessToken } from "../utils/token.util.js";
-import { AdminUser, type IAdminUser } from "../models/adminUser.model.js";
-import type { Role } from "../config/constants.js";
+import {
+  AdminUser,
+  effectivePermissions,
+  type IAdminUser,
+} from "../models/adminUser.model.js";
+import type { Role, Permission } from "../config/constants.js";
 
 /** Express's Request with the authenticated account attached. */
 export interface AuthedRequest extends Request {
@@ -43,6 +47,27 @@ export const restrictTo =
   (req: AuthedRequest, _res: Response, next: NextFunction): void => {
     if (!req.user || !roles.includes(req.user.role)) {
       next(new ApiError(403, "You do not have permission to perform this action"));
+      return;
+    }
+    next();
+  };
+
+/**
+ * Requires one of the given section permissions.
+ *
+ * The owner passes by role — `effectivePermissions` resolves that — so this
+ * never has to special-case them. Mounted after `protect`, like restrictTo.
+ *
+ * This is the real boundary. The sidebar hiding a link is only an affordance:
+ * an editor who types the URL, or calls the API directly, is stopped here.
+ */
+export const requirePermission =
+  (...allowed: Permission[]) =>
+  (req: AuthedRequest, _res: Response, next: NextFunction): void => {
+    const granted = req.user ? effectivePermissions(req.user) : [];
+
+    if (!allowed.some((p) => granted.includes(p))) {
+      next(new ApiError(403, "You do not have access to this section"));
       return;
     }
     next();

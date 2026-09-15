@@ -1,6 +1,14 @@
 import { Router } from "express";
 import * as galleryController from "../controllers/gallery.controller.js";
-import { protect } from "../middlewares/auth.middleware.js";
+import { protect, requirePermission } from "../middlewares/auth.middleware.js";
+import { PERMISSIONS } from "../config/constants.js";
+
+/**
+ * Every admin route in this file edits what the public site displays, so they
+ * all sit behind the same SETTINGS grant. Aliased so the guard reads as one
+ * unit at each call site rather than two arguments to remember to pair.
+ */
+const canEditContent = [protect, requirePermission(PERMISSIONS.SETTINGS)] as const;
 import { validate } from "../middlewares/validate.middleware.js";
 import { uploadSingleImage } from "../middlewares/upload.middleware.js";
 import {
@@ -16,7 +24,7 @@ const router = Router();
 router.get("/", galleryController.listPublic);
 
 // Everything below is the admin's view of the same resource.
-router.get("/all", protect, galleryController.listAll);
+router.get("/all", ...canEditContent, galleryController.listAll);
 
 /**
  * multer runs before the validators because it is what parses the multipart
@@ -24,7 +32,7 @@ router.get("/all", protect, galleryController.listAll);
  */
 router.post(
   "/",
-  protect,
+  ...canEditContent,
   uploadSingleImage,
   createImageRules,
   validate,
@@ -36,10 +44,10 @@ router.post(
  * PUT is a different method from PATCH and DELETE — but keeping literal paths
  * above parameterised ones means a future PUT "/:id" cannot quietly swallow it.
  */
-router.put("/reorder", protect, reorderRules, validate, galleryController.reorder);
+router.put("/reorder", ...canEditContent, reorderRules, validate, galleryController.reorder);
 
-router.patch("/:id", protect, updateImageRules, validate, galleryController.updateImage);
+router.patch("/:id", ...canEditContent, updateImageRules, validate, galleryController.updateImage);
 
-router.delete("/:id", protect, imageIdRules, validate, galleryController.deleteImage);
+router.delete("/:id", ...canEditContent, imageIdRules, validate, galleryController.deleteImage);
 
 export default router;

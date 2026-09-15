@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FiUsers, FiUserPlus, FiKey, FiTrash2, FiX } from 'react-icons/fi';
+import { FiUsers, FiUserPlus, FiKey, FiTrash2, FiX, FiSliders } from 'react-icons/fi';
 import * as staffApi from '../../api/staff.api.js';
 import { useAppStore } from '../../store/useAppStore.js';
 import EmptyState from '../components/EmptyState.jsx';
 import Spinner from '../components/Spinner.jsx';
+import PermissionPicker from '../components/PermissionPicker.jsx';
+import PasswordReveal from '../components/PasswordReveal.jsx';
+import { PERMISSIONS } from '../../constants/permissions.js';
 
 const formatDate = (iso) =>
   iso
@@ -24,6 +27,8 @@ const inputClass =
 /** Create an account. Collapsed until asked for, so the list leads the page. */
 function NewStaffForm({ onCreated, onCancel, busy, setBusy, setError }) {
   const [form, setForm] = useState({ name: '', email: '', password: '' });
+  // Inventory by default — the access staff had before this was configurable.
+  const [permissions, setPermissions] = useState(['INVENTORY']);
   const [fieldErrors, setFieldErrors] = useState({});
 
   const submit = async (e) => {
@@ -32,9 +37,17 @@ function NewStaffForm({ onCreated, onCancel, busy, setBusy, setError }) {
     setError('');
     setFieldErrors({});
     try {
-      await staffApi.create(form);
+      // An empty password field means "generate one" — the API returns it once
+      // and the parent shows it. Sending "" would fail the length rule instead.
+      const created = await staffApi.create({
+        name: form.name,
+        email: form.email,
+        ...(form.password ? { password: form.password } : {}),
+        permissions,
+      });
       setForm({ name: '', email: '', password: '' });
-      onCreated();
+      setPermissions(['INVENTORY']);
+      onCreated(created);
     } catch (err) {
       setError(err?.message ?? 'Could not create that account.');
       setFieldErrors(err.fieldErrors ?? {});
@@ -94,8 +107,7 @@ function NewStaffForm({ onCreated, onCancel, busy, setBusy, setError }) {
           </span>
           <input
             type="text"
-            required
-            placeholder="At least 8 characters"
+            placeholder="Leave blank to generate"
             autoComplete="new-password"
             {...field('password')}
           />
@@ -105,11 +117,17 @@ function NewStaffForm({ onCreated, onCancel, busy, setBusy, setError }) {
         </label>
       </div>
 
+      <div>
+        <p className="mb-2 font-body text-xs font-semibold uppercase tracking-[0.12em] text-brand-ink/60">
+          Sections they can open
+        </p>
+        <PermissionPicker value={permissions} onChange={setPermissions} disabled={busy} />
+      </div>
+
       {/* Shown, not masked: the owner has to read this out to the employee. */}
       <p className="font-body text-xs text-brand-ink/50">
-        Staff accounts can only use Inventory — they cannot reach Settings, the website
-        content, or these accounts. Write the password down before saving; it is not shown
-        again.
+        Leave the password blank and a strong one is generated for you — it is shown once
+        after saving so you can pass it on.
       </p>
 
       <div className="flex gap-2">
@@ -128,12 +146,30 @@ function NewStaffForm({ onCreated, onCancel, busy, setBusy, setError }) {
   );
 }
 
-function StaffRow({ member, isSelf, onToggleActive, onResetPassword, onDelete, busy }) {
+function StaffRow({
+  member,
+  isSelf,
+  onToggleActive,
+  onResetPassword,
+  onDelete,
+  onPermissions,
+  busy,
+}) {
   // The seeded owner is undeletable by design, so it gets no controls at all.
   const locked = member.isProtected;
+  const [editingAccess, setEditingAccess] = useState(false);
+  const [draft, setDraft] = useState(member.permissions ?? []);
+
+  const isOwner = member.role === 'MAIN_ADMIN';
+
+  const saveAccess = async () => {
+    await onPermissions(member, draft);
+    setEditingAccess(false);
+  };
 
   return (
-    <li className="flex flex-wrap items-center gap-4 rounded-2xl bg-surface-card p-4 shadow-sm ring-1 ring-black/5">
+    <li className="flex flex-col gap-3 rounded-2xl bg-surface-card p-4 shadow-sm ring-1 ring-black/5">
+      <div className="flex flex-wrap items-center gap-4">
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-center gap-2">
           <span className="font-body text-sm font-semibold text-brand-ink">{member.name}</span>
@@ -163,12 +199,39 @@ function StaffRow({ member, isSelf, onToggleActive, onResetPassword, onDelete, b
         <span className="mt-0.5 block font-body text-xs text-brand-ink/50">
           {member.email} · Last signed in {formatDate(member.lastLoginAt)}
         </span>
+
+        {/* What they can actually reach, spelled out rather than left to be
+            inferred from a checkbox panel that is collapsed by default. */}
+        <span className="mt-1 block font-body text-xs text-brand-ink/45">
+          {isOwner
+            ? 'Full access to everything'
+            : member.permissions?.length
+              ? `Can open: ${member.permissions
+                  .map((p) => PERMISSIONS.find((x) => x.id === p)?.label ?? p)
+                  .join(', ')}`
+              : 'No sections — they can sign in but see nothing'}
+        </span>
       </span>
 
       {locked ? (
         <span className="font-body text-xs text-brand-ink/40">Cannot be changed</span>
       ) : (
         <span className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setDraft(member.permissions ?? []);
+              setEditingAccess((v) => !v);
+            }}
+            disabled={busy}
+            aria-expanded={editingAccess}
+            className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 font-body text-xs
+                       font-semibold text-brand-ink/70 ring-1 ring-brand-ink/12
+                       transition-colors hover:bg-brand-ink/5 disabled:opacity-60"
+          >
+            <FiSliders aria-hidden /> Access
+          </button>
+
           <button
             type="button"
             onClick={() => onToggleActive(member)}
@@ -203,6 +266,36 @@ function StaffRow({ member, isSelf, onToggleActive, onResetPassword, onDelete, b
           </button>
         </span>
       )}
+      </div>
+
+      {editingAccess && !locked ? (
+        <div className="border-t border-black/5 pt-3">
+          <PermissionPicker value={draft} onChange={setDraft} disabled={busy} />
+
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={saveAccess}
+              disabled={busy}
+              className="rounded-xl bg-brand-pink px-4 py-2 font-body text-xs font-semibold
+                         text-on-primary transition-colors hover:bg-brand-pink-dark
+                         disabled:opacity-60"
+            >
+              Save access
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditingAccess(false)}
+              disabled={busy}
+              className="rounded-xl px-4 py-2 font-body text-xs font-semibold text-brand-ink/65
+                         ring-1 ring-brand-ink/12 transition-colors hover:bg-brand-ink/5
+                         disabled:opacity-60"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : null}
     </li>
   );
 }
@@ -216,6 +309,8 @@ export default function AdminStaff() {
   const [error, setError] = useState('');
   const [note, setNote] = useState('');
   const [adding, setAdding] = useState(false);
+  /** A just-set password, held only until the owner dismisses it. */
+  const [reveal, setReveal] = useState(null);
 
   const flash = (message) => {
     setNote(message);
@@ -270,19 +365,65 @@ export default function AdminStaff() {
     );
   };
 
-  const resetPassword = (member) => {
-    // A prompt rather than a bespoke dialog: it is one field on an owner-only
-    // screen, and the owner has to read the result out to the employee anyway.
-    const password = window.prompt(`New password for ${member.name} (at least 8 characters):`);
-    if (password === null) return;
-    if (password.trim().length < 8) {
+  /**
+   * Set a new password.
+   *
+   * Existing passwords cannot be shown — they are stored as bcrypt hashes, so
+   * the server cannot read one back either. Setting a fresh one and revealing
+   * it once is the only way to answer "what is their password", which is what
+   * this does: blank generates a strong one, and the result is displayed until
+   * the owner dismisses it.
+   */
+  const resetPassword = async (member) => {
+    const typed = window.prompt(
+      `New password for ${member.name}.\n\n` +
+        `Leave blank to generate a strong one, or type at least 8 characters.`
+    );
+    if (typed === null) return; // cancelled
+
+    const password = typed.trim();
+    if (password && password.length < 8) {
       setError('That password is too short — use at least 8 characters.');
       return;
     }
-    return run(
-      () => staffApi.setPassword(member._id ?? member.id, password.trim()),
-      'Password changed'
+
+    setBusy(true);
+    setError('');
+    try {
+      const result = await staffApi.setPassword(
+        member._id ?? member.id,
+        password || undefined
+      );
+      await load();
+
+      // Only a generated password comes back. One the owner typed is already
+      // known to them, and echoing it would put it on screen for no reason.
+      if (result?.generatedPassword) {
+        setReveal({ name: member.name, password: result.generatedPassword });
+      } else {
+        flash('Password changed');
+      }
+    } catch (err) {
+      setError(err?.message ?? 'Could not change that password.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const savePermissions = (member, permissions) =>
+    run(
+      () => staffApi.update(member._id ?? member.id, { permissions }),
+      `Access updated for ${member.name}`
     );
+
+  const handleCreated = (created) => {
+    setAdding(false);
+    load();
+    if (created?.generatedPassword) {
+      setReveal({ name: created.name, password: created.generatedPassword });
+    } else {
+      flash('Account created');
+    }
   };
 
   const remove = (member) => {
@@ -335,17 +476,23 @@ export default function AdminStaff() {
         </p>
       ) : null}
 
+      {/* Above the form and the list, and dismissed by hand — this is the only
+          time this value is ever visible. */}
+      {reveal ? (
+        <PasswordReveal
+          name={reveal.name}
+          password={reveal.password}
+          onDismiss={() => setReveal(null)}
+        />
+      ) : null}
+
       {adding ? (
         <NewStaffForm
           busy={busy}
           setBusy={setBusy}
           setError={setError}
           onCancel={() => setAdding(false)}
-          onCreated={() => {
-            setAdding(false);
-            load();
-            flash('Account created');
-          }}
+          onCreated={handleCreated}
         />
       ) : null}
 
@@ -364,6 +511,7 @@ export default function AdminStaff() {
               onToggleActive={toggleActive}
               onResetPassword={resetPassword}
               onDelete={remove}
+              onPermissions={savePermissions}
             />
           ))}
         </ul>

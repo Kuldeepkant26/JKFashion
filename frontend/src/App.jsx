@@ -9,15 +9,20 @@ import Home from './pages/Home';
 import SessionBootstrap from './admin/components/SessionBootstrap.jsx';
 import ThemeBootstrap from './theme/ThemeBootstrap.jsx';
 import Spinner from './admin/components/Spinner.jsx';
-import { ProtectedRoute, PublicOnlyRoute, OwnerRoute } from './routes/guards.jsx';
+import {
+  ProtectedRoute,
+  PublicOnlyRoute,
+  OwnerRoute,
+  PermissionRoute,
+} from './routes/guards.jsx';
+import { landingRouteFor } from './constants/permissions.js';
 import { useAppStore } from './store/useAppStore.js';
 
 /**
  * The admin panel is code-split.
  *
- * It pulls in recharts, which is ~450KB — loading that on the marketing site,
- * where nobody can even reach the panel without signing in, would nearly double
- * the bundle every visitor downloads.
+ * Nobody can reach the panel without signing in, so its screens have no
+ * business in the bundle every marketing visitor downloads.
  */
 const AdminLayout = lazy(() => import('./admin/layouts/AdminLayout'));
 const AdminLogin = lazy(() => import('./admin/pages/AdminLogin'));
@@ -25,6 +30,7 @@ const AdminDashboard = lazy(() => import('./admin/pages/AdminDashboard'));
 const AdminPlaceholder = lazy(() => import('./admin/pages/AdminPlaceholder'));
 const AdminEnquiries = lazy(() => import('./admin/pages/AdminEnquiries.jsx'));
 const AdminStaff = lazy(() => import('./admin/pages/AdminStaff.jsx'));
+const AdminNoAccess = lazy(() => import('./admin/pages/AdminNoAccess.jsx'));
 const InventoryLayout = lazy(() => import('./admin/pages/inventory/InventoryLayout.jsx'));
 const CompaniesTab = lazy(() => import('./admin/pages/inventory/CompaniesTab.jsx'));
 const OrdersTab = lazy(() => import('./admin/pages/inventory/OrdersTab.jsx'));
@@ -52,12 +58,9 @@ const AdminFallback = () => (
 const AdminHome = () => {
   const user = useAppStore((s) => s.user);
 
-  return (
-    <Navigate
-      to={user?.role === 'MAIN_ADMIN' ? ROUTES.ADMIN_DASHBOARD : ROUTES.ADMIN_INVENTORY}
-      replace
-    />
-  );
+  // Derived from what this account may actually open — a fixed Inventory
+  // fallback would bounce a staff member who was never granted it.
+  return <Navigate to={landingRouteFor(user)} replace />;
 };
 
 /**
@@ -105,14 +108,22 @@ function App() {
           <Route
             path="dashboard"
             element={
-              <OwnerRoute>
+              <PermissionRoute section="DASHBOARD">
                 <AdminDashboard />
-              </OwnerRoute>
+              </PermissionRoute>
             }
           />
+          <Route path="no-access" element={<AdminNoAccess />} />
           {/* Inventory is a section with its own tabs; the bare path lands on
               the first one so /admin/inventory is never a blank screen. */}
-          <Route path="inventory" element={<InventoryLayout />}>
+          <Route
+            path="inventory"
+            element={
+              <PermissionRoute section="INVENTORY">
+                <InventoryLayout />
+              </PermissionRoute>
+            }
+          >
             <Route index element={<Navigate to={ROUTES.ADMIN_INVENTORY_ORDERS} replace />} />
             <Route path="orders" element={<OrdersTab />} />
             <Route path="companies" element={<CompaniesTab />} />
@@ -128,17 +139,17 @@ function App() {
           <Route
             path="enquiries"
             element={
-              <OwnerRoute>
+              <PermissionRoute section="ENQUIRIES">
                 <AdminEnquiries />
-              </OwnerRoute>
+              </PermissionRoute>
             }
           />
           <Route
             path="content"
             element={
-              <OwnerRoute>
+              <PermissionRoute section="CONTENT">
                 <AdminPlaceholder title="Content" />
-              </OwnerRoute>
+              </PermissionRoute>
             }
           />
           {/* Settings is a section with its own tabs; the bare path lands on
@@ -146,9 +157,9 @@ function App() {
           <Route
             path="settings"
             element={
-              <OwnerRoute>
+              <PermissionRoute section="SETTINGS">
                 <SettingsLayout />
-              </OwnerRoute>
+              </PermissionRoute>
             }
           >
             <Route index element={<Navigate to={ROUTES.ADMIN_SETTINGS_APPEARANCE} replace />} />

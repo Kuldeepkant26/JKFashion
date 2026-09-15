@@ -11,25 +11,50 @@ export const listStaff = asyncHandler<AuthedRequest>(async (_req, res) => {
 });
 
 export const createStaff = asyncHandler<AuthedRequest>(async (req, res) => {
-  const { name, email, password } = req.body as {
+  const { name, email, password, permissions } = req.body as {
     name: string;
     email: string;
-    password: string;
+    password?: string;
+    permissions?: staffService.CreateStaffInput["permissions"];
   };
 
-  // Only the vetted fields. Notably NOT `role` — the service forces EDITOR.
-  const user = await staffService.createStaff({ name, email, password });
+  /*
+   * A generated password when none is given, so the owner is never forced to
+   * invent one — and what they invent is usually weaker than this.
+   */
+  const generated = password ? null : staffService.generatePassword();
 
-  res.status(201).json(new ApiResponse(201, user, "Account created"));
+  // Only the vetted fields. Notably NOT `role` — the service forces EDITOR.
+  const user = await staffService.createStaff({
+    name,
+    email,
+    password: password ?? (generated as string),
+    permissions,
+  });
+
+  /*
+   * The plaintext is returned exactly once, and only when WE generated it.
+   * It is never stored, so this response is the only chance to see it — the
+   * screen says as much. Echoing back a password the caller already typed
+   * would put it in a log or a proxy for no benefit.
+   */
+  res.status(201).json(
+    new ApiResponse(201, { ...user, generatedPassword: generated }, "Account created")
+  );
 });
 
 export const updateStaff = asyncHandler<AuthedRequest>(async (req, res) => {
-  const { name, isActive } = req.body as { name?: string; isActive?: boolean };
+  const { name, isActive, permissions } = req.body as {
+    name?: string;
+    isActive?: boolean;
+    permissions?: staffService.UpdateStaffInput["permissions"];
+  };
 
   // Only forward what was sent — undefined means "leave alone".
   const patch: staffService.UpdateStaffInput = {};
   if (name !== undefined) patch.name = name;
   if (isActive !== undefined) patch.isActive = isActive;
+  if (permissions !== undefined) patch.permissions = permissions;
 
   const user = await staffService.updateStaff(
     req.params.id as string,
@@ -41,11 +66,19 @@ export const updateStaff = asyncHandler<AuthedRequest>(async (req, res) => {
 });
 
 export const setPassword = asyncHandler<AuthedRequest>(async (req, res) => {
-  const { password } = req.body as { password: string };
+  const { password } = req.body as { password?: string };
 
-  const user = await staffService.setPassword(req.params.id as string, password);
+  // Generated when the owner does not supply one — same reasoning as create.
+  const generated = password ? null : staffService.generatePassword();
 
-  res.status(200).json(new ApiResponse(200, user, "Password changed"));
+  const user = await staffService.setPassword(
+    req.params.id as string,
+    password ?? (generated as string)
+  );
+
+  res.status(200).json(
+    new ApiResponse(200, { ...user, generatedPassword: generated }, "Password changed")
+  );
 });
 
 export const deleteStaff = asyncHandler<AuthedRequest>(async (req, res) => {

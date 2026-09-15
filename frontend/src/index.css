@@ -186,15 +186,23 @@
    derived, not fixed: they tint toward the active primary but keep their
    contrast relationship, and flip polarity under a dark preset.
    -------------------------------------------------------------------------- */
+/*
+ * The page ground sits a few percent DARKER than the sidebar, so the sidebar
+ * reads as a raised panel and cards on the page read as raised against it.
+ * Previously the two were #FDFBFA and #FFFFFF — close enough that on most
+ * screens the boundary was invisible and the panel looked like one flat sheet.
+ */
 :root {
   /* Warm neutral surfaces, tinted a few percent toward the active brand. */
-  --admin-cream: color-mix(in oklab, var(--brand-primary) 4%, #FDFBFA);
-  --admin-sidebar: color-mix(in oklab, var(--brand-primary) 7%, #FFFFFF);
+  --admin-cream: color-mix(in oklab, var(--brand-primary) 6%, #F4F1EF);
+  --admin-sidebar: color-mix(in oklab, var(--brand-primary) 4%, #FFFFFF);
 }
 
 :root[data-scheme="dark"] {
-  --admin-cream: color-mix(in oklab, var(--brand-primary) 8%, #0E0E12);
-  --admin-sidebar: color-mix(in oklab, var(--brand-primary) 12%, #16161C);
+  /* Polarity flips: under a dark preset the raised surface is the lighter one,
+     so the sidebar stays above the page rather than sinking into it. */
+  --admin-cream: color-mix(in oklab, var(--brand-primary) 6%, #0B0B0F);
+  --admin-sidebar: color-mix(in oklab, var(--brand-primary) 12%, #18181F);
 }
 
 @theme inline {

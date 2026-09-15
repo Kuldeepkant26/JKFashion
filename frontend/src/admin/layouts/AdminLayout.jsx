@@ -100,10 +100,18 @@ export default function AdminLayout() {
       ) : null}
 
       {/* ---------------------------------------- sidebar */}
+      {/*
+        The right border is what separates the sidebar from the page on
+        desktop. Previously `lg:shadow-none` removed the drawer's shadow once
+        pinned and nothing replaced it, so two near-identical surfaces met with
+        no edge at all. A hairline border plus a soft shadow reads as a panel
+        rather than a colour change.
+      */}
       <aside
         className={`fixed inset-y-0 left-0 z-40 w-72 overflow-y-auto shadow-xl
                     transition-[transform,width] duration-300 ease-out
-                    lg:translate-x-0 lg:shadow-none
+                    lg:translate-x-0 lg:border-r lg:border-brand-ink/10
+                    lg:shadow-[1px_0_3px_rgba(0,0,0,0.04)]
                     ${drawerOpen ? 'translate-x-0' : '-translate-x-full'}
                     ${collapsed ? 'lg:w-[76px]' : 'lg:w-72'}`}
       >

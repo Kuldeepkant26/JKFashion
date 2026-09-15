@@ -1,6 +1,6 @@
 import { Router } from "express";
 import * as enquiryController from "../controllers/enquiry.controller.js";
-import { protect, restrictTo } from "../middlewares/auth.middleware.js";
+import { protect, restrictTo, requirePermission } from "../middlewares/auth.middleware.js";
 import { validate } from "../middlewares/validate.middleware.js";
 import { enquiryLimiter } from "../middlewares/rateLimiter.middleware.js";
 import {
@@ -10,7 +10,7 @@ import {
   updateNotifyRules,
   enquiryIdRules,
 } from "../validators/enquiry.validator.js";
-import { ROLES } from "../config/constants.js";
+import { ROLES, PERMISSIONS } from "../config/constants.js";
 
 const router = Router();
 
@@ -23,8 +23,21 @@ const router = Router();
  */
 router.post("/", enquiryLimiter, createEnquiryRules, validate, enquiryController.createEnquiry);
 
-// Everything below is the admin's view of the same resource.
-router.get("/", protect, listEnquiryRules, validate, enquiryController.listEnquiries);
+/*
+ * Everything below is the admin's view of the same resource.
+ *
+ * Gated on the ENQUIRIES permission rather than the owner role, so an editor
+ * the owner has granted this section can read and triage. The notification
+ * settings further down stay owner-only regardless — see the note there.
+ */
+router.get(
+  "/",
+  protect,
+  requirePermission(PERMISSIONS.ENQUIRIES),
+  listEnquiryRules,
+  validate,
+  enquiryController.listEnquiries
+);
 
 /**
  * Notification settings — who gets emailed when an enquiry arrives.
@@ -63,6 +76,7 @@ router.post(
 router.patch(
   "/:id",
   protect,
+  requirePermission(PERMISSIONS.ENQUIRIES),
   updateEnquiryRules,
   validate,
   enquiryController.updateEnquiry

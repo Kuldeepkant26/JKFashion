@@ -1,6 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore.js';
 import { ROUTES } from '../constants/routePaths.js';
+import { hasPermission, landingRouteFor } from '../constants/permissions.js';
 import Spinner from '../admin/components/Spinner.jsx';
 
 const Bootstrapping = () => (
@@ -39,9 +40,30 @@ export const ProtectedRoute = ({ children }) => {
 export const OwnerRoute = ({ children }) => {
   const user = useAppStore((s) => s.user);
 
-  // Employees land on the one section they can use, not a page they cannot.
+  // Employees land on a section they can actually open, which is no longer
+  // always Inventory now that access is granted per account.
   if (user?.role !== 'MAIN_ADMIN') {
-    return <Navigate to={ROUTES.ADMIN_INVENTORY} replace />;
+    return <Navigate to={landingRouteFor(user)} replace />;
+  }
+
+  return children;
+};
+
+/**
+ * Requires a granted section. Assumes `ProtectedRoute` ran first.
+ *
+ * Redirects to whatever the account CAN open rather than to a fixed route —
+ * previously every staff redirect assumed Inventory, which is now just one
+ * grant among several and may not be theirs.
+ *
+ * A convenience, not the boundary: the API's `requirePermission` is what
+ * actually refuses the data.
+ */
+export const PermissionRoute = ({ section, children }) => {
+  const user = useAppStore((s) => s.user);
+
+  if (!hasPermission(user, section)) {
+    return <Navigate to={landingRouteFor(user)} replace />;
   }
 
   return children;

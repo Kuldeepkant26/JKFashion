@@ -1,10 +1,10 @@
 import { Router } from "express";
 import * as companyController from "../controllers/company.controller.js";
 import * as orderController from "../controllers/productionOrder.controller.js";
-import { protect, restrictTo } from "../middlewares/auth.middleware.js";
+import { protect, restrictTo, requirePermission } from "../middlewares/auth.middleware.js";
 import { validate } from "../middlewares/validate.middleware.js";
 import { uploadSingleImage } from "../middlewares/upload.middleware.js";
-import { ROLES } from "../config/constants.js";
+import { ROLES, PERMISSIONS } from "../config/constants.js";
 import {
   listCompanyRules,
   createCompanyRules,
@@ -32,6 +32,9 @@ const router = Router();
  * owner-only, routine ones are open to any signed-in admin.
  */
 router.use(protect);
+// Mounted once for the same reason as `protect`: a route added later must not
+// be able to ship without the section check.
+router.use(requirePermission(PERMISSIONS.INVENTORY));
 
 /* -------------------------------------------------------------- companies */
 

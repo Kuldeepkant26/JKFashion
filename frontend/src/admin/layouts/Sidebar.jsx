@@ -11,6 +11,7 @@ import {
   FiChevronsRight,
 } from 'react-icons/fi';
 import { ROUTES } from '../../constants/routePaths.js';
+import { hasPermission } from '../../constants/permissions.js';
 import Avatar from '../components/Avatar.jsx';
 import { company } from '../../data/site.js';
 import logo from '../../assets/jk-fashion-logo.png';
@@ -22,21 +23,23 @@ import logo from '../../assets/jk-fashion-logo.png';
  * it is day-to-day work, everything below configures the site and who can
  * reach it. A single flat list would not need dividing.
  *
- * `ownerOnly` hides an item from staff accounts. That is an affordance, not a
- * security boundary — the API's `restrictTo` and the routes' `OwnerRoute` are
- * what actually refuse access. Showing a floor employee five links that all
- * bounce them elsewhere would just be noise.
+ * `permission` hides an item the account has not been granted, and `ownerOnly`
+ * hides one that is the owner's alone regardless of grants. Both are
+ * affordances, not security boundaries — the API's `requirePermission` and
+ * `restrictTo` are what actually refuse access. Showing a floor employee five
+ * links that all bounce them elsewhere would just be noise.
  */
 const NAV_GROUPS = [
   [
-    { to: ROUTES.ADMIN_DASHBOARD, label: 'Dashboard', Icon: FiGrid, ownerOnly: true },
-    { to: ROUTES.ADMIN_INVENTORY, label: 'Inventory', Icon: FiClipboard },
-    { to: ROUTES.ADMIN_ENQUIRIES, label: 'Enquiries', Icon: FiMail, ownerOnly: true },
-    { to: ROUTES.ADMIN_CONTENT, label: 'Content', Icon: FiFileText, ownerOnly: true },
+    { to: ROUTES.ADMIN_DASHBOARD, label: 'Dashboard', Icon: FiGrid, permission: 'DASHBOARD' },
+    { to: ROUTES.ADMIN_INVENTORY, label: 'Inventory', Icon: FiClipboard, permission: 'INVENTORY' },
+    { to: ROUTES.ADMIN_ENQUIRIES, label: 'Enquiries', Icon: FiMail, permission: 'ENQUIRIES' },
+    { to: ROUTES.ADMIN_CONTENT, label: 'Content', Icon: FiFileText, permission: 'CONTENT' },
   ],
   [
+    /* Never grantable — managing accounts is the ability to mint an owner. */
     { to: ROUTES.ADMIN_STAFF, label: 'Staff', Icon: FiUsers, ownerOnly: true },
-    { to: ROUTES.ADMIN_SETTINGS, label: 'Settings', Icon: FiSettings, ownerOnly: true },
+    { to: ROUTES.ADMIN_SETTINGS, label: 'Settings', Icon: FiSettings, permission: 'SETTINGS' },
   ],
 ];
 
@@ -120,7 +123,11 @@ export default function Sidebar({
           nothing under it. `groupIndex` is taken after the filter for the same
           reason — it decides where the rule goes.
         */}
-        {NAV_GROUPS.map((group) => group.filter((item) => isOwner || !item.ownerOnly))
+        {NAV_GROUPS.map((group) =>
+          group.filter((item) =>
+            item.ownerOnly ? isOwner : hasPermission(user, item.permission)
+          )
+        )
           .filter((group) => group.length > 0)
           .map((group, groupIndex) => (
           <div key={group[0].to} className="flex flex-col gap-1">

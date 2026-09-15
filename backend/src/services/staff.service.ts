@@ -1,6 +1,7 @@
+import { randomInt } from "node:crypto";
 import type { Types } from "mongoose";
 import { AdminUser, type IAdminUser, type SafeAdminUser } from "../models/adminUser.model.js";
-import { ROLES } from "../config/constants.js";
+import { ROLES, DEFAULT_PERMISSIONS, type Permission } from "../config/constants.js";
 import { ApiError } from "../utils/ApiError.js";
 
 /**
@@ -28,7 +29,20 @@ export interface CreateStaffInput {
   name: string;
   email: string;
   password: string;
+  permissions?: Permission[];
 }
+
+/**
+ * A readable password for the owner to hand over.
+ *
+ * Ambiguous characters (0/O, 1/l/I) are excluded because this gets read off a
+ * screen and typed by someone else — and `randomInt` rather than Math.random,
+ * since this value briefly protects an account that can sign in.
+ */
+const PASSWORD_ALPHABET = "abcdefghijkmnpqrstuvwxyzACDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+export const generatePassword = (length = 14): string =>
+  Array.from({ length }, () => PASSWORD_ALPHABET[randomInt(PASSWORD_ALPHABET.length)]).join("");
 
 export const createStaff = async (input: CreateStaffInput): Promise<SafeAdminUser> => {
   const email = input.email.toLowerCase();
@@ -53,6 +67,9 @@ export const createStaff = async (input: CreateStaffInput): Promise<SafeAdminUse
     // Plaintext: the model's pre-save hook hashes it.
     passwordHash: input.password,
     role: ROLES.EDITOR,
+    permissions: input.permissions
+      ? [...new Set(input.permissions)]
+      : DEFAULT_PERMISSIONS,
     isProtected: false,
   });
 
@@ -62,6 +79,7 @@ export const createStaff = async (input: CreateStaffInput): Promise<SafeAdminUse
 export interface UpdateStaffInput {
   name?: string;
   isActive?: boolean;
+  permissions?: Permission[];
 }
 
 export const updateStaff = async (
@@ -72,6 +90,23 @@ export const updateStaff = async (
   const user = await findOr404(id);
 
   if (patch.name !== undefined) user.name = patch.name;
+
+  if (patch.permissions !== undefined) {
+    /*
+     * Refused rather than silently ignored for the owner.
+     *
+     * An owner's access comes from their role, so storing a list for them
+     * would be dead data that the next reader might mistake for the source of
+     * truth. Saying so is better than accepting a write that does nothing.
+     */
+    if (user.role === ROLES.MAIN_ADMIN) {
+      throw new ApiError(400, "The main administrator already has access to everything");
+    }
+
+    // De-duplicated: the same section twice is not an error worth rejecting,
+    // but it should not be stored either.
+    user.permissions = [...new Set(patch.permissions)];
+  }
 
   if (patch.isActive !== undefined && patch.isActive !== user.isActive) {
     if (user.isProtected && !patch.isActive) {
