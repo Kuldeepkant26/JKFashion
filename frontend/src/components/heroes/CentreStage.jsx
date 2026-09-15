@@ -1,5 +1,4 @@
-import { useHeroCarousel } from './useHeroCarousel.js';
-import HeroIndicators from './HeroIndicators.jsx';
+import { useHeroContent } from './useHeroContent.js';
 
 /**
  * Centred copy with the artwork beneath it.
@@ -9,7 +8,7 @@ import HeroIndicators from './HeroIndicators.jsx';
  * to be re-thought at the breakpoint, it simply gets narrower.
  */
 export default function CentreStage() {
-  const { images, index, setIndex, current, count } = useHeroCarousel();
+  const { eyebrow, title, description, ctaLabel, imageSrc, imageAlt } = useHeroContent();
 
   return (
     <section
@@ -32,24 +31,22 @@ export default function CentreStage() {
           className="font-body text-[11px] font-semibold uppercase tracking-[0.34em]"
           style={{ color: 'var(--brand-primary)' }}
         >
-          Time to meet your
+          {eyebrow}
         </p>
 
         <h1
-          key={index}
           className="mt-4 font-display text-[clamp(2.75rem,8vw,5.5rem)] font-bold leading-[0.95]
                      tracking-tight"
           style={{ color: 'var(--text-primary)', animation: 'heroTextFadeIn 0.8s both' }}
         >
-          {current.title}
+          {title}
         </h1>
 
         <p
-          key={`d-${index}`}
           className="mt-5 max-w-xl font-body text-[15px] leading-relaxed sm:text-base"
           style={{ color: 'var(--text-secondary)', animation: 'heroTextFadeIn 1s 0.15s both' }}
         >
-          {current.description}
+          {description}
         </p>
 
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -59,16 +56,9 @@ export default function CentreStage() {
                        tracking-[0.2em] transition-transform duration-200 hover:-translate-y-0.5"
             style={{ background: 'var(--gradient-brand)', color: 'var(--on-primary)' }}
           >
-            View Our Work
+            {ctaLabel}
           </button>
         </div>
-
-        <HeroIndicators
-          count={count}
-          index={index}
-          onSelect={setIndex}
-          className="mt-8 justify-center"
-        />
       </div>
 
       {/*
@@ -77,20 +67,12 @@ export default function CentreStage() {
         past the fold keeps them at a readable scale on a laptop.
       */}
       <div className="relative z-[5] mt-6 h-[46vh] w-full max-w-4xl sm:mt-8 sm:h-[52vh]">
-        {images.map((src, i) => (
-          <img
-            key={src}
-            src={src}
-            alt="Embroidered occasionwear from the JK Fashion range"
-            loading={i === 0 ? 'eager' : 'lazy'}
-            className="absolute inset-0 h-full w-full object-contain object-bottom
-                       transition-all duration-1000 ease-out"
-            style={{
-              opacity: i === index ? 1 : 0,
-              transform: i === index ? 'scale(1)' : 'scale(1.04)',
-            }}
-          />
-        ))}
+        <img
+          src={imageSrc}
+          alt={imageAlt}
+          loading="eager"
+          className="absolute inset-0 h-full w-full object-contain object-bottom"
+        />
       </div>
     </section>
   );

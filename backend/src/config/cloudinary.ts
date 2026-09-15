@@ -50,13 +50,22 @@ export interface UploadedImage {
  * The eager transform produces the display size the gallery actually renders,
  * so the browser is never handed a 4000px original to scale down.
  */
-export const uploadImage = (buffer: Buffer, filename: string): Promise<UploadedImage> => {
+/**
+ * `subfolder` groups a feature's uploads under the configured base folder —
+ * "inventory" for design images, and nothing for the gallery, which owns the
+ * base. Optional so existing call sites are unaffected.
+ */
+export const uploadImage = (
+  buffer: Buffer,
+  filename: string,
+  subfolder?: string
+): Promise<UploadedImage> => {
   ensureConfigured();
 
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
       {
-        folder: env.cloudinary.folder,
+        folder: subfolder ? `${env.cloudinary.folder}/${subfolder}` : env.cloudinary.folder,
         resource_type: "image",
         // Strips EXIF (including any GPS the client's camera wrote) and picks
         // the best format the requesting browser supports.
@@ -81,6 +90,65 @@ export const uploadImage = (buffer: Buffer, filename: string): Promise<UploadedI
 
     stream.end(buffer);
   });
+};
+
+/**
+ * Send a video buffer to Cloudinary.
+ *
+ * Separate from uploadImage because `resource_type` must be "video" for the
+ * transcoding pipeline to run at all, and because the eager transform differs:
+ * videos are capped to 1080p and handed to the browser as MP4/H.264, which is
+ * the one combination every target browser can play inline.
+ */
+export const uploadVideo = (buffer: Buffer, filename: string): Promise<UploadedImage> => {
+  ensureConfigured();
+
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: `${env.cloudinary.folder}/process`,
+        resource_type: "video",
+        transformation: [{ quality: "auto:good", width: 1920, crop: "limit" }],
+        context: { original_filename: filename },
+      },
+      (error, result) => {
+        if (error || !result) {
+          logger.error(`Cloudinary video upload failed: ${error?.message ?? "no result"}`);
+          reject(new ApiError(502, "Could not upload that video. Please try again."));
+          return;
+        }
+
+        resolve({
+          publicId: result.public_id,
+          url: result.secure_url,
+          width: result.width,
+          height: result.height,
+        });
+      }
+    );
+
+    stream.end(buffer);
+  });
+};
+
+/**
+ * Remove a video from Cloudinary.
+ *
+ * Cloudinary keys deletions by resource type, so a video cannot be removed by
+ * the image destroy call above — it would report success having deleted
+ * nothing. Never throws, for the same reason as destroyImage.
+ */
+export const destroyVideo = async (publicId: string): Promise<void> => {
+  try {
+    ensureConfigured();
+    await cloudinary.uploader.destroy(publicId, { resource_type: "video" });
+  } catch (error) {
+    logger.error(
+      `Cloudinary video delete failed for ${publicId}: ${
+        error instanceof Error ? error.message : "unknown"
+      }`
+    );
+  }
 };
 
 /**

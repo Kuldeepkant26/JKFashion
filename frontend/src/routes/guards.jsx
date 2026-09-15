@@ -26,6 +26,27 @@ export const ProtectedRoute = ({ children }) => {
   return children;
 };
 
+/**
+ * Owner-only pages. Assumes `ProtectedRoute` has already established a session.
+ *
+ * Redirects rather than showing a locked panel, because an employee has no
+ * business on these routes at all — unlike Settings, which shows an explanatory
+ * "owner access only" screen since its tab bar is visible to everyone.
+ *
+ * This is a convenience, not the security boundary: the API's own `restrictTo`
+ * is what actually refuses the request.
+ */
+export const OwnerRoute = ({ children }) => {
+  const user = useAppStore((s) => s.user);
+
+  // Employees land on the one section they can use, not a page they cannot.
+  if (user?.role !== 'MAIN_ADMIN') {
+    return <Navigate to={ROUTES.ADMIN_INVENTORY} replace />;
+  }
+
+  return children;
+};
+
 /** Keeps an already signed-in admin off the login screen. */
 export const PublicOnlyRoute = ({ children }) => {
   const isAuthenticated = useAppStore((s) => s.isAuthenticated);

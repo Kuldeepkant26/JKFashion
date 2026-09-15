@@ -1,4 +1,4 @@
-import { useHeroCarousel } from './useHeroCarousel.js';
+import { useHeroContent } from './useHeroContent.js';
 
 /**
  * The site's original hero: copy left, cut-out right.
@@ -9,58 +9,43 @@ import { useHeroCarousel } from './useHeroCarousel.js';
  * variant. Its styling still lives in css/Home.css.
  */
 export default function ClassicSplit() {
-  const { images, slides, index, setIndex, current } = useHeroCarousel();
+  const { eyebrow, title, description, ctaLabel, imageSrc, imageAlt } = useHeroContent();
 
   return (
     <section className="home-hero-screenshot">
       <div className="home-hero-screenshot-content">
         <div className="home-hero-screenshot-left">
           <div className="home-hero-screenshot-tagline-wrapper">
-            <p className="home-hero-screenshot-tagline">TIME TO MEET YOUR</p>
+            <p className="home-hero-screenshot-tagline">{eyebrow}</p>
             <div className="home-hero-screenshot-line" />
           </div>
 
           <h1 className="home-hero-screenshot-title" id="hero-title">
-            <span key={index} className="hero-title-text">
-              {current.title}
-            </span>
+            <span className="hero-title-text">{title}</span>
           </h1>
 
           <p className="home-hero-screenshot-description">
-            <span key={`desc-${index}`} className="hero-description-text">
-              {current.description}
-            </span>
+            <span className="hero-description-text">{description}</span>
           </p>
 
           <button className="home-hero-screenshot-btn" type="button">
-            View Our Work
+            {ctaLabel}
           </button>
         </div>
 
         <div className="home-hero-screenshot-right">
           <div className="home-hero-screenshot-image-wrapper">
-            {images.map((src, i) => (
-              <img
-                key={src}
-                src={src}
-                alt="Embroidered occasionwear from the JK Fashion range"
-                /* Only the first is eager: the rest are behind a cross-fade. */
-                loading={i === 0 ? 'eager' : 'lazy'}
-                className={`home-hero-screenshot-image ${i === index ? 'active' : ''}`}
-              />
-            ))}
-
-            <div className="hero-carousel-indicators">
-              {slides.map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  className={`carousel-indicator ${i === index ? 'active' : ''}`}
-                  onClick={() => setIndex(i)}
-                  aria-label={`Go to slide ${i + 1}`}
-                />
-              ))}
-            </div>
+            {/*
+              `active` is load-bearing, not left over from the carousel: the
+              base rule keeps these images at opacity 0 so they can cross-fade,
+              and only this class reveals one. Dropping it hides the artwork.
+            */}
+            <img
+              src={imageSrc}
+              alt={imageAlt}
+              loading="eager"
+              className="home-hero-screenshot-image active"
+            />
           </div>
         </div>
       </div>

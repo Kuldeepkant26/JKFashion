@@ -25,8 +25,9 @@ const u = (id, w = 1200) =>
  * them larger than the 1400px variant. The .png originals stay in public/ as
  * the masters the variants are regenerated from.
  *
- * `loom` and `threads` are kept because AboutUs and InteriorShowcase still
- * reference them; they now point at client photography rather than stock.
+ * `loom` and `threads` are kept for the retired AboutUs and InteriorShowcase
+ * components, which are no longer rendered on any page; they point at client
+ * photography rather than stock.
  */
 export const hero = {
   /*
@@ -41,7 +42,6 @@ export const hero = {
    */
   showcase: [
     '/HeroSection1-cutout.png',
-    '/HeroSection2-cutout.png',
     '/HeroSection3-cutout.png',
     '/HeroSection4-cutout.png',
   ],

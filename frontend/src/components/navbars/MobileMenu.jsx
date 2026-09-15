@@ -1,5 +1,5 @@
-import { NavLink } from 'react-router-dom';
 import { NAV_LINKS } from './useNavbar.js';
+import SectionLink from './SectionLink.jsx';
 import EnquireLink from './EnquireLink.jsx';
 import { company, contact } from '../../data/site.js';
 
@@ -56,10 +56,10 @@ export default function MobileMenu({ open, onClose }) {
 
       <nav className="flex flex-1 flex-col items-center justify-center gap-2 px-6">
         {NAV_LINKS.map((link, i) => (
-          <NavLink
-            key={link.to}
-            to={link.to}
-            onClick={onClose}
+          <SectionLink
+            key={link.label}
+            id={link.id}
+            onNavigate={onClose}
             /* Staggered only while opening — on the way out they should all
                leave together rather than trailing one after another. */
             style={{
@@ -80,7 +80,7 @@ export default function MobileMenu({ open, onClose }) {
                 />
               </span>
             )}
-          </NavLink>
+          </SectionLink>
         ))}
         {/* Same destination as the desktop button; closing the menu first is
             what lets the scroll actually happen behind it. */}

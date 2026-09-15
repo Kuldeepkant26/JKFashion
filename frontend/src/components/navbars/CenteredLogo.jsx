@@ -1,5 +1,6 @@
-import { Link, NavLink } from 'react-router-dom';
-import { NAV_LINKS, useNavScroll, useMobileMenu } from './useNavbar.js';
+import { Link } from 'react-router-dom';
+import { NAV_LINKS, useNavScroll, useMobileMenu, useActiveSection } from './useNavbar.js';
+import SectionLink from './SectionLink.jsx';
 import MobileMenu from './MobileMenu.jsx';
 import MenuButton from './MenuButton.jsx';
 import { company } from '../../data/site.js';
@@ -16,6 +17,7 @@ import logo from '../../assets/jk-fashion-logo.png';
  */
 export default function CenteredLogo() {
   const menu = useMobileMenu();
+  const activeId = useActiveSection();
   const { scrolled, hidden } = useNavScroll({ menuOpen: menu.open });
 
   const [first, ...rest] = NAV_LINKS;
@@ -56,14 +58,19 @@ export default function CenteredLogo() {
         <div className="mx-auto hidden max-w-[1400px] grid-cols-[1fr_auto_1fr] items-center
                         gap-8 px-10 py-4 lg:grid">
           <nav className="flex items-center justify-end gap-9">
-            <NavLink to={first.to} className={linkClass} style={linkStyle}>
+            <SectionLink
+              id={first.id}
+              isActive={activeId === first.id}
+              className={linkClass}
+              style={linkStyle}
+            >
               {({ isActive }) => (
                 <>
                   {first.label}
                   <Underline active={isActive} />
                 </>
               )}
-            </NavLink>
+            </SectionLink>
           </nav>
 
           <Link to="/" className="flex justify-center" aria-label={company.name}>
@@ -77,14 +84,20 @@ export default function CenteredLogo() {
 
           <nav className="flex items-center justify-start gap-9">
             {rest.map((link) => (
-              <NavLink key={link.to} to={link.to} className={linkClass} style={linkStyle}>
+              <SectionLink
+                key={link.label}
+                id={link.id}
+                isActive={activeId === link.id}
+                className={linkClass}
+                style={linkStyle}
+              >
                 {({ isActive }) => (
                   <>
                     {link.label}
                     <Underline active={isActive} />
                   </>
                 )}
-              </NavLink>
+              </SectionLink>
             ))}
           </nav>
         </div>

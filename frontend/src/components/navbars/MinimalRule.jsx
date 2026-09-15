@@ -1,5 +1,6 @@
-import { Link, NavLink } from 'react-router-dom';
-import { NAV_LINKS, useNavScroll, useMobileMenu } from './useNavbar.js';
+import { Link } from 'react-router-dom';
+import { NAV_LINKS, useNavScroll, useMobileMenu, useActiveSection } from './useNavbar.js';
+import SectionLink from './SectionLink.jsx';
 import MobileMenu from './MobileMenu.jsx';
 import MenuButton from './MenuButton.jsx';
 import EnquireLink from './EnquireLink.jsx';
@@ -15,6 +16,7 @@ import logo from '../../assets/jk-fashion-logo.png';
  */
 export default function MinimalRule() {
   const menu = useMobileMenu();
+  const activeId = useActiveSection();
   const { scrolled, hidden } = useNavScroll({ menuOpen: menu.open });
 
   return (
@@ -40,9 +42,10 @@ export default function MinimalRule() {
 
           <nav className="hidden items-center gap-10 lg:flex">
             {NAV_LINKS.map((link) => (
-              <NavLink
-                key={link.to}
-                to={link.to}
+              <SectionLink
+                key={link.label}
+                id={link.id}
+                isActive={activeId === link.id}
                 className="group relative py-1 font-body text-[12px] font-medium uppercase
                            tracking-[0.28em] transition-colors duration-200"
                 style={({ isActive }) => ({
@@ -62,7 +65,7 @@ export default function MinimalRule() {
                     />
                   </>
                 )}
-              </NavLink>
+              </SectionLink>
             ))}
           </nav>
 

@@ -1,6 +1,9 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 import '../css/Footer.css';
+import SectionLink from './navbars/SectionLink.jsx';
+import { NAV_LINKS } from './navbars/useNavbar.js';
+import { ENQUIRY_SECTION_ID } from './EnquirySection.jsx';
+import { GALLERY_SECTION_ID } from './RackGallery.jsx';
 import { 
     FaLinkedinIn, 
     FaInstagram, 
@@ -15,26 +18,6 @@ import logo from '../assets/jk-fashion-logo.png';
 
 const Footer = () => {
     const currentYear = new Date().getFullYear();
-    const navigate = useNavigate();
-
-    // Scroll to section handler
-    const scrollToSection = (path, sectionId) => {
-        if (window.location.pathname === path) {
-            const element = document.getElementById(sectionId);
-            if (element) {
-                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        } else {
-            navigate(path);
-            setTimeout(() => {
-                const element = document.getElementById(sectionId);
-                if (element) {
-                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            }, 100);
-        }
-    };
-
     return (
         <footer className="footer-section">
             <div className="footer-container">
@@ -67,9 +50,11 @@ const Footer = () => {
                         <div className="footer-column">
                             <h3 className="footer-heading">Pages</h3>
                             <ul className="footer-list">
-                                <li><Link to="/">Home</Link></li>
-                                <li><Link to="/about">About Us</Link></li>
-                                <li><Link to="/residential">Products</Link></li>
+                                {NAV_LINKS.map((link) => (
+                                    <li key={link.label}>
+                                        <SectionLink id={link.id}>{link.label}</SectionLink>
+                                    </li>
+                                ))}
                             </ul>
                         </div>
 
@@ -77,20 +62,20 @@ const Footer = () => {
                             <h3 className="footer-heading">Quick Links</h3>
                             <ul className="footer-list">
                                 <li>
-                                    <button 
+                                    <SectionLink
+                                        id={ENQUIRY_SECTION_ID}
                                         className="footer-link-btn"
-                                        onClick={() => scrollToSection('/', 'enquiry')}
                                     >
                                         Send an Enquiry
-                                    </button>
+                                    </SectionLink>
                                 </li>
                                 <li>
-                                    <button 
+                                    <SectionLink
+                                        id={GALLERY_SECTION_ID}
                                         className="footer-link-btn"
-                                        onClick={() => scrollToSection('/about', 'signature-projects-section')}
                                     >
-                                        Our Projects
-                                    </button>
+                                        Our Work
+                                    </SectionLink>
                                 </li>
                             </ul>
                         </div>
@@ -123,11 +108,6 @@ const Footer = () => {
                     <p className="footer-copyright">
                         © {currentYear} {company.name}. All rights reserved.
                     </p>
-                    <div className="footer-legal">
-                        <Link to="/about">Privacy Policy</Link>
-                        <span className="legal-divider">•</span>
-                        <Link to="/about">Terms of Service</Link>
-                    </div>
                 </div>
             </div>
 

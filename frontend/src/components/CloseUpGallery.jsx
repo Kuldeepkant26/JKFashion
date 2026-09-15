@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import * as galleryApi from '../api/gallery.api.js';
 import { useZoomLens } from './useZoomLens.js';
 import '../css/CloseUpGallery.css';
@@ -68,6 +68,66 @@ export default function CloseUpGallery() {
 
   const active = items[activeIndex];
 
+  /*
+   * The grid scrolls sideways past six images, so moving the selection with the
+   * arrow keys has to bring the new thumbnail into view — otherwise focus lands
+   * on a button the visitor cannot see.
+   */
+  const thumbRefs = useRef([]);
+  const gridRef = useRef(null);
+
+  /**
+   * Whether there is anything left to scroll to, in each direction.
+   *
+   * Drives the arrow's visibility rather than just its enabled state: an arrow
+   * that is always present but does nothing at the end of the row is worse
+   * than no arrow at all.
+   */
+  const [scroll, setScroll] = useState({ canPrev: false, canNext: false });
+
+  const measure = useCallback(() => {
+    const el = gridRef.current;
+    if (!el) return;
+
+    // 2px of slack: sub-pixel widths mean scrollLeft rarely reaches the exact
+    // maximum, which would leave the arrow showing with nowhere to go.
+    setScroll({
+      canPrev: el.scrollLeft > 2,
+      canNext: el.scrollLeft + el.clientWidth < el.scrollWidth - 2,
+    });
+  }, []);
+
+  // Re-measure whenever the content or the box changes: images arriving late
+  // and a window resize both alter whether there is an overflow.
+  useEffect(() => {
+    measure();
+    const el = gridRef.current;
+    if (!el) return undefined;
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    window.addEventListener('resize', measure);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [measure, items.length]);
+
+  /** Advance by one full column-set, so a click lands on a clean edge. */
+  const scrollByPage = (direction) => {
+    const el = gridRef.current;
+    if (!el) return;
+    el.scrollBy({ left: direction * el.clientWidth, behavior: 'smooth' });
+  };
+
+  const select = (index) => {
+    setActiveIndex(index);
+    const el = thumbRefs.current[index];
+    el?.focus();
+    el?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+  };
+
   const { frameProps, lensRef, onImageLoad } = useZoomLens({
     src: active?.url,
     size: LENS_SIZE,
@@ -91,44 +151,95 @@ export default function CloseUpGallery() {
     if (next === null) return;
 
     event.preventDefault();
-    setActiveIndex(Math.max(0, Math.min(last, next)));
+    select(Math.max(0, Math.min(last, next)));
   };
 
   return (
     <div className="closeup">
       <div className="closeup__inner">
         {/* ------------------------------------------------------- grid */}
-        <div
-          className="closeup__grid"
-          role="tablist"
-          aria-label="More from the range"
-          aria-orientation="horizontal"
-          onKeyDown={onGridKeyDown}
-        >
-          {items.map((item, index) => {
-            const isActive = index === activeIndex;
-            return (
-              <button
-                key={item._id ?? item.url}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                aria-controls="closeup-viewer"
-                tabIndex={isActive ? 0 : -1}
-                onClick={() => setActiveIndex(index)}
-                className={`closeup__thumb ${isActive ? 'closeup__thumb--active' : ''}`}
-              >
-                <img
-                  src={item.url}
-                  alt={item.title}
-                  loading="lazy"
-                  decoding="async"
-                  className="closeup__thumb-img"
+        <div className="closeup__grid-wrap">
+          <div
+            className="closeup__grid"
+            ref={gridRef}
+            onScroll={measure}
+            role="tablist"
+            aria-label="More from the range"
+            aria-orientation="horizontal"
+            onKeyDown={onGridKeyDown}
+          >
+            {items.map((item, index) => {
+              const isActive = index === activeIndex;
+              return (
+                <button
+                  key={item._id ?? item.url}
+                  ref={(el) => {
+                    thumbRefs.current[index] = el;
+                  }}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-controls="closeup-viewer"
+                  tabIndex={isActive ? 0 : -1}
+                  onClick={() => setActiveIndex(index)}
+                  className={`closeup__thumb ${isActive ? 'closeup__thumb--active' : ''}`}
+                >
+                  <img
+                    src={item.url}
+                    alt={item.title}
+                    loading="lazy"
+                    decoding="async"
+                    className="closeup__thumb-img"
+                  />
+                  <span className="closeup__thumb-veil" aria-hidden="true" />
+                </button>
+              );
+            })}
+          </div>
+
+          {/*
+            Only rendered when there is somewhere to go. The back arrow appears
+            once you have scrolled, so it never sits there disabled on load.
+          */}
+          {scroll.canPrev ? (
+            <button
+              type="button"
+              onClick={() => scrollByPage(-1)}
+              aria-label="Show previous images"
+              className="closeup__nav closeup__nav--prev"
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path
+                  d="M10 3 5 8l5 5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 />
-                <span className="closeup__thumb-veil" aria-hidden="true" />
-              </button>
-            );
-          })}
+              </svg>
+            </button>
+          ) : null}
+
+          {scroll.canNext ? (
+            <button
+              type="button"
+              onClick={() => scrollByPage(1)}
+              aria-label="Show more images"
+              className="closeup__nav closeup__nav--next"
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path
+                  d="M6 3l5 5-5 5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          ) : null}
         </div>
 
         {/* ----------------------------------------------------- viewer */}

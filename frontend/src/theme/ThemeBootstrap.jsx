@@ -1,9 +1,11 @@
 import { useEffect } from 'react';
 import * as themeApi from '../api/theme.api.js';
+import * as homeApi from '../api/home.api.js';
 import { useThemeStore } from './useThemeStore.js';
 import { useFontStore } from './useFontStore.js';
 import { useHiddenThemesStore } from './useHiddenThemesStore.js';
 import { useLayoutStore } from './useLayoutStore.js';
+import { useHomeContentStore } from './useHomeContentStore.js';
 
 /**
  * Reconciles the locally-remembered appearance with the server's.
@@ -21,9 +23,25 @@ export default function ThemeBootstrap() {
   const setHidden = useHiddenThemesStore((s) => s.set);
   const commitNavbar = useLayoutStore((s) => s.commitNavbar);
   const commitHero = useLayoutStore((s) => s.commitHero);
+  const commitHomeContent = useHomeContentStore((s) => s.commit);
 
   useEffect(() => {
     let cancelled = false;
+
+    /*
+     * A separate request from the theme's, not part of the same chain: the two
+     * are independent, and a theme failure must not suppress the navbar and
+     * hero copy (or the other way round).
+     */
+    homeApi
+      .get()
+      .then((data) => {
+        if (cancelled || !data) return;
+        commitHomeContent(data);
+      })
+      .catch(() => {
+        // Offline or API down — the cached (or built-in) content stands.
+      });
 
     themeApi
       .get()
@@ -44,7 +62,7 @@ export default function ThemeBootstrap() {
     return () => {
       cancelled = true;
     };
-  }, [commitTheme, commitFont, commitNavbar, commitHero, setHidden]);
+  }, [commitTheme, commitFont, commitNavbar, commitHero, setHidden, commitHomeContent]);
 
   return null;
 }

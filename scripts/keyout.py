@@ -1,5 +1,15 @@
 """Key the baked-in checkerboard out of a HeroSection*.png and emit a
-transparent, palette-quantised cut-out sized for the web."""
+transparent, palette-quantised cut-out sized for the web.
+
+NOTE on fine subjects (gypsophila, foliage): the border flood fill below cannot
+reach checkerboard sealed into thousands of tiny pockets between petals, which
+is how HeroSection4 ended up with a grey grid across its flowers. If a new image
+shows that, key on TONE instead of reachability — match the dark checker tile
+outright (it is a bluish grey no photograph contains), then take any cool, pale,
+neutral pixel within one grid pitch of a dark tile. Warm whites are left alone,
+which is what keeps the flowers. See the conversation history for the working
+version of that pass.
+"""
 import sys
 from collections import deque
 from PIL import Image

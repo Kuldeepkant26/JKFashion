@@ -25,3 +25,27 @@ export const uploadSingleImage = multer({
     cb(null, true);
   },
 }).single("image");
+
+/** Formats Cloudinary transcodes reliably and browsers can play inline. */
+const ALLOWED_VIDEO = ["video/mp4", "video/quicktime", "video/webm"];
+
+/**
+ * 100MB. Large enough for a couple of minutes of 1080p factory footage,
+ * small enough that holding it in memory stays safe on a modest dyno.
+ *
+ * A longer film belongs on a streaming host — this endpoint is for the short
+ * walkthrough the section is designed around.
+ */
+const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
+
+export const uploadSingleVideo = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_VIDEO_BYTES, files: 1 },
+  fileFilter: (_req, file, cb) => {
+    if (!ALLOWED_VIDEO.includes(file.mimetype)) {
+      cb(new ApiError(400, "Please upload an MP4, MOV or WebM video"));
+      return;
+    }
+    cb(null, true);
+  },
+}).single("video");

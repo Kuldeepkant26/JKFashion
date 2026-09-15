@@ -1,5 +1,4 @@
-import { useHeroCarousel } from './useHeroCarousel.js';
-import HeroIndicators from './HeroIndicators.jsx';
+import { useHeroContent } from './useHeroContent.js';
 
 /**
  * Artwork edge to edge, copy laid over a scrim.
@@ -17,7 +16,7 @@ import HeroIndicators from './HeroIndicators.jsx';
  * and it costs nothing: the scrim carries the contrast instead.
  */
 export default function FullBleed() {
-  const { images, index, setIndex, current, count } = useHeroCarousel();
+  const { eyebrow, title, description, ctaLabel, imageSrc, imageAlt } = useHeroContent();
 
   return (
     <section
@@ -29,20 +28,12 @@ export default function FullBleed() {
     >
       {/* artwork */}
       <div className="absolute inset-y-0 right-0 w-full sm:w-[72%] lg:w-[58%]">
-        {images.map((src, i) => (
-          <img
-            key={src}
-            src={src}
-            alt="Embroidered occasionwear from the JK Fashion range"
-            loading={i === 0 ? 'eager' : 'lazy'}
-            className="absolute inset-0 h-full w-full object-contain object-bottom
-                       transition-all duration-1000 ease-out"
-            style={{
-              opacity: i === index ? 1 : 0,
-              transform: i === index ? 'scale(1)' : 'scale(1.05)',
-            }}
-          />
-        ))}
+        <img
+          src={imageSrc}
+          alt={imageAlt}
+          loading="eager"
+          className="absolute inset-0 h-full w-full object-contain object-bottom"
+        />
       </div>
 
       {/* scrim — strongest at the left, clearing before the figure */}
@@ -61,27 +52,25 @@ export default function FullBleed() {
             className="font-body text-[11px] font-semibold uppercase tracking-[0.34em]"
             style={{ color: 'var(--brand-primary)' }}
           >
-            Time to meet your
+            {eyebrow}
           </p>
 
           <h1
-            key={index}
             className="mt-4 font-display text-[clamp(2.5rem,7vw,5rem)] font-bold leading-[0.95]
                        tracking-tight"
             style={{ color: 'var(--text-primary)', animation: 'heroTextFadeIn 0.8s both' }}
           >
-            {current.title}
+            {title}
           </h1>
 
           <p
-            key={`d-${index}`}
             className="mt-5 max-w-lg font-body text-[15px] leading-relaxed sm:text-base"
             style={{
               color: 'var(--text-secondary)',
               animation: 'heroTextFadeIn 1s 0.15s both',
             }}
           >
-            {current.description}
+            {description}
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-4">
@@ -91,10 +80,8 @@ export default function FullBleed() {
                          tracking-[0.2em] transition-transform duration-200 hover:-translate-y-0.5"
               style={{ background: 'var(--brand-primary)', color: 'var(--on-primary)' }}
             >
-              View Our Work
+              {ctaLabel}
             </button>
-
-            <HeroIndicators count={count} index={index} onSelect={setIndex} />
           </div>
         </div>
       </div>

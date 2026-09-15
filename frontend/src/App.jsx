@@ -5,13 +5,12 @@ import { ROUTES } from './constants/routePaths.js';
 
 import PublicLayout from './layouts/PublicLayout';
 import Home from './pages/Home';
-import Residentials from './pages/Residentials';
-import About from './pages/About';
 
 import SessionBootstrap from './admin/components/SessionBootstrap.jsx';
 import ThemeBootstrap from './theme/ThemeBootstrap.jsx';
 import Spinner from './admin/components/Spinner.jsx';
-import { ProtectedRoute, PublicOnlyRoute } from './routes/guards.jsx';
+import { ProtectedRoute, PublicOnlyRoute, OwnerRoute } from './routes/guards.jsx';
+import { useAppStore } from './store/useAppStore.js';
 
 /**
  * The admin panel is code-split.
@@ -25,17 +24,41 @@ const AdminLogin = lazy(() => import('./admin/pages/AdminLogin'));
 const AdminDashboard = lazy(() => import('./admin/pages/AdminDashboard'));
 const AdminPlaceholder = lazy(() => import('./admin/pages/AdminPlaceholder'));
 const AdminEnquiries = lazy(() => import('./admin/pages/AdminEnquiries.jsx'));
+const AdminStaff = lazy(() => import('./admin/pages/AdminStaff.jsx'));
+const InventoryLayout = lazy(() => import('./admin/pages/inventory/InventoryLayout.jsx'));
+const CompaniesTab = lazy(() => import('./admin/pages/inventory/CompaniesTab.jsx'));
+const OrdersTab = lazy(() => import('./admin/pages/inventory/OrdersTab.jsx'));
 const SettingsLayout = lazy(() => import('./admin/pages/settings/SettingsLayout.jsx'));
 const ThemeTab = lazy(() => import('./admin/pages/settings/ThemeTab.jsx'));
 const FontTab = lazy(() => import('./admin/pages/settings/FontTab.jsx'));
 const LayoutTab = lazy(() => import('./admin/pages/settings/LayoutTab.jsx'));
 const GalleryTab = lazy(() => import('./admin/pages/settings/GalleryTab.jsx'));
+const ProcessTab = lazy(() => import('./admin/pages/settings/ProcessTab.jsx'));
+const HomeContentTab = lazy(() => import('./admin/pages/settings/HomeContentTab.jsx'));
 
 const AdminFallback = () => (
   <div className="grid min-h-screen place-items-center bg-admin-cream">
     <Spinner label="Loading" />
   </div>
 );
+
+/**
+ * Where /admin lands, by role.
+ *
+ * The owner gets the dashboard; a staff account gets Inventory, which is the
+ * only section they can open. A fixed redirect to the dashboard would bounce
+ * every employee straight back out again.
+ */
+const AdminHome = () => {
+  const user = useAppStore((s) => s.user);
+
+  return (
+    <Navigate
+      to={user?.role === 'MAIN_ADMIN' ? ROUTES.ADMIN_DASHBOARD : ROUTES.ADMIN_INVENTORY}
+      replace
+    />
+  );
+};
 
 /**
  * Two route trees that share nothing.
@@ -76,29 +99,75 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to={ROUTES.ADMIN_DASHBOARD} replace />} />
-          <Route path="dashboard" element={<AdminDashboard />} />
-          <Route path="products" element={<AdminPlaceholder title="Products" />} />
-          <Route path="enquiries" element={<AdminEnquiries />} />
-          <Route path="content" element={<AdminPlaceholder title="Content" />} />
+          {/* Role-aware landing: an employee cannot see the dashboard, so
+              sending them there would be a redirect into a locked door. */}
+          <Route index element={<AdminHome />} />
+          <Route
+            path="dashboard"
+            element={
+              <OwnerRoute>
+                <AdminDashboard />
+              </OwnerRoute>
+            }
+          />
+          {/* Inventory is a section with its own tabs; the bare path lands on
+              the first one so /admin/inventory is never a blank screen. */}
+          <Route path="inventory" element={<InventoryLayout />}>
+            <Route index element={<Navigate to={ROUTES.ADMIN_INVENTORY_ORDERS} replace />} />
+            <Route path="orders" element={<OrdersTab />} />
+            <Route path="companies" element={<CompaniesTab />} />
+          </Route>
+          <Route
+            path="staff"
+            element={
+              <OwnerRoute>
+                <AdminStaff />
+              </OwnerRoute>
+            }
+          />
+          <Route
+            path="enquiries"
+            element={
+              <OwnerRoute>
+                <AdminEnquiries />
+              </OwnerRoute>
+            }
+          />
+          <Route
+            path="content"
+            element={
+              <OwnerRoute>
+                <AdminPlaceholder title="Content" />
+              </OwnerRoute>
+            }
+          />
           {/* Settings is a section with its own tabs; the bare path lands on
               the first one so /admin/settings is never a blank screen. */}
-          <Route path="settings" element={<SettingsLayout />}>
+          <Route
+            path="settings"
+            element={
+              <OwnerRoute>
+                <SettingsLayout />
+              </OwnerRoute>
+            }
+          >
             <Route index element={<Navigate to={ROUTES.ADMIN_SETTINGS_APPEARANCE} replace />} />
             <Route path="appearance" element={<ThemeTab />} />
             <Route path="typography" element={<FontTab />} />
             <Route path="layout" element={<LayoutTab />} />
             <Route path="gallery" element={<GalleryTab />} />
+            <Route path="how-we-work" element={<ProcessTab />} />
+            <Route path="hero-content" element={<HomeContentTab />} />
           </Route>
-          <Route path="*" element={<Navigate to={ROUTES.ADMIN_DASHBOARD} replace />} />
+          <Route path="*" element={<AdminHome />} />
         </Route>
 
         {/* ------------------------------------------- public website */}
         <Route element={<PublicLayout />}>
           <Route path={ROUTES.HOME} element={<Home />} />
-          <Route path={ROUTES.PRODUCTS} element={<Residentials />} />
-          <Route path={ROUTES.ABOUT} element={<About />} />
-          {/* Any unknown path (incl. the removed /commercial) falls back home */}
+          {/* The site is a single page: the old /about and /residential routes
+              are gone, and their content is reached by scrolling. Any unknown
+              path falls back home. */}
           <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
         </Route>
       </Routes>

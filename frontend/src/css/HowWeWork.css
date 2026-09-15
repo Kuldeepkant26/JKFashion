@@ -1,0 +1,770 @@
+/* ==========================================================================
+   How We Work — the floor, the stages, and the film.
+
+   One composed section rather than three stacked bands. The previous version
+   gave each part its own centred heading block, which meant the section
+   introduced itself twice before showing anything; here the masthead is the
+   only centred-weight moment, and the parts that follow carry their own
+   smaller labels in situ.
+
+   Conventions shared with the sibling sections: 1400px container, surface
+   background, theme tokens throughout, no hard-coded colour.
+   ========================================================================== */
+
+.hww-section {
+  /* Every rhythm value in the section derives from these two, so a change at a
+     breakpoint moves the whole composition together instead of leaving one
+     part behind. */
+  --hww-band: 6.5rem;
+  --hww-gap: 1.25rem;
+  --hww-radius: 14px;
+
+  position: relative;
+  width: 100%;
+  background: var(--surface-primary);
+  padding: 8rem 0;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* A soft brand field behind the masthead. Off-centre and blurred so it reads
+   as light in the room rather than as a shape someone drew. */
+.hww-section .hww-aura {
+  position: absolute;
+  top: -18%;
+  right: -12%;
+  width: min(760px, 70vw);
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: radial-gradient(
+    circle at 50% 50%,
+    color-mix(in oklab, var(--brand-primary) 16%, transparent) 0%,
+    color-mix(in oklab, var(--brand-accent) 8%, transparent) 45%,
+    transparent 70%
+  );
+  filter: blur(40px);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.hww-section .hww-container {
+  position: relative;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 4rem;
+}
+
+/* ------------------------------------------------------------- masthead */
+
+/* Asymmetric on purpose: title left, intro set against it on the right. A
+   centred stack is what made the old header and the old facility heading read
+   as the same kind of thing, and therefore as a duplicate. */
+.hww-section .hww-masthead {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 3rem 4rem;
+  align-items: end;
+  margin-bottom: 4.5rem;
+  padding-bottom: 2.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.hww-section .hww-label {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  font-family: var(--brand-font-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--brand-primary-text);
+  margin: 0 0 1.5rem;
+}
+
+.hww-section .hww-label-rule {
+  width: 40px;
+  height: 2px;
+  flex-shrink: 0;
+  border-radius: 2px;
+  background: var(--gradient-brand-90);
+}
+
+.hww-section .hww-title {
+  font-family: var(--brand-font-display);
+  font-size: clamp(2.25rem, 4.4vw, 4rem);
+  font-weight: 700;
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+  background: var(--gradient-heading);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0;
+  /* A clipped gradient crops descenders at tight line-heights. */
+  padding-bottom: 0.08em;
+}
+
+/* Grid children need an explicit min-width:0, or a long unbroken title keeps
+   the column from ever shrinking below its content and the intro beside it
+   gets squeezed to nothing. */
+.hww-section .hww-masthead-lead {
+  min-width: 0;
+}
+
+/* The intro is set as a pull-quote against the title rather than beneath it,
+   which is what lets the masthead stay one gesture instead of a stack. */
+.hww-section .hww-masthead-aside {
+  padding-left: 2rem;
+  border-left: 2px solid color-mix(in oklab, var(--brand-primary) 30%, transparent);
+}
+
+.hww-section .hww-intro {
+  font-family: var(--brand-font-body);
+  font-size: 1.0625rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  margin: 0;
+  max-width: 46ch;
+}
+
+/* ------------------------------------------------------- part one: floor */
+
+.hww-section .hww-floor {
+  margin-bottom: var(--hww-band);
+}
+
+/* Six columns so the copy panel (2) and the lead frame (2 wide × 2 tall) tile
+   cleanly against the standard cells, and so a row still resolves when the
+   admin adds a seventh or eighth photograph. */
+.hww-section .hww-mosaic {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-auto-rows: 190px;
+  gap: var(--hww-gap);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* --- the copy panel: this is where facilityHeading now lives ------------- */
+
+.hww-section .hww-mosaic-note {
+  grid-column: span 2;
+  grid-row: span 2;
+  display: flex;
+  border-radius: var(--hww-radius);
+  padding: 2rem;
+  background: var(--surface-muted);
+  border: 1px solid var(--border-subtle);
+}
+
+.hww-section .hww-note-inner {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.hww-section .hww-note-rule {
+  width: 32px;
+  height: 3px;
+  border-radius: 2px;
+  margin-bottom: 1.5rem;
+  background: var(--gradient-brand-90);
+}
+
+/* Deliberately smaller than .hww-title: it is a caption for the photographs,
+   not a second announcement of the section. */
+.hww-section .hww-note-heading {
+  font-family: var(--brand-font-display);
+  font-size: clamp(1.125rem, 1.6vw, 1.5rem);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  margin: 0 0 0.875rem;
+}
+
+.hww-section .hww-note-body {
+  font-family: var(--brand-font-body);
+  font-size: 0.875rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Pushed to the foot of the panel, so the panel has a bottom edge that agrees
+   with the photographs beside it whatever the copy length. */
+.hww-section .hww-note-count {
+  margin-top: auto;
+  padding-top: 1.5rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-family: var(--brand-font-display);
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1;
+  color: color-mix(in oklab, var(--brand-primary) 45%, transparent);
+}
+
+.hww-section .hww-note-count em {
+  font-family: var(--brand-font-body);
+  font-size: 0.6875rem;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+/* --- the photographs ----------------------------------------------------- */
+
+.hww-section .hww-frame {
+  position: relative;
+  grid-column: span 2;
+  border-radius: var(--hww-radius);
+  overflow: hidden;
+  background: var(--surface-muted);
+  box-shadow: 0 12px 32px color-mix(in oklab, var(--brand-ink) 10%, transparent);
+  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.hww-section .hww-frame-lead {
+  grid-row: span 2;
+}
+
+.hww-section .hww-frame-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.hww-section .hww-frame:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 24px 54px color-mix(in oklab, var(--brand-ink) 20%, transparent);
+}
+
+.hww-section .hww-frame:hover .hww-frame-img {
+  transform: scale(1.05);
+}
+
+/* On a scrim rather than the photograph itself — a caption laid directly over
+   a light patch of a photograph is unreadable. */
+.hww-section .hww-frame-caption {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 3rem 1.125rem 1rem;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in oklab, var(--brand-ink) 78%, transparent) 100%
+  );
+  pointer-events: none;
+}
+
+.hww-section .hww-frame-caption-text {
+  display: block;
+  font-family: var(--brand-font-body);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+  /* Always light: the scrim above is dark in both schemes. */
+  color: #fff;
+  transform: translateY(4px);
+  opacity: 0.9;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.45s ease;
+}
+
+.hww-section .hww-frame:hover .hww-frame-caption-text {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+/* ------------------------------------------------------ part two: stages */
+
+.hww-section .hww-stages {
+  margin-bottom: var(--hww-band);
+}
+
+.hww-section .hww-stages-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.hww-section .hww-stages-heading {
+  font-family: var(--brand-font-display);
+  font-size: clamp(1.375rem, 2.2vw, 1.875rem);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.hww-section .hww-stages-meta {
+  font-family: var(--brand-font-body);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.hww-section .hww-ledger {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/*
+ * One stage per row.
+ *
+ * A ledger rather than the old disc rail because a ledger scales: the admin
+ * can publish three stages or ten and the layout simply continues, where the
+ * rail needed its connecting line re-pinned by hand at every breakpoint and
+ * broke outright past five.
+ */
+.hww-section .hww-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 4.5rem 3.25rem minmax(0, 1fr) minmax(0, 1.15fr);
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.75rem 1.25rem;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background 0.4s ease;
+}
+
+/* The accent bar that grows down the row's left edge on hover — the whole
+   hover state, rather than a colour change on every element at once. */
+.hww-section .hww-row-glow {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--gradient-brand-180);
+  transform: scaleY(0);
+  transform-origin: center top;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+.hww-section .hww-row:hover {
+  background: color-mix(in oklab, var(--brand-primary) 4%, transparent);
+}
+
+.hww-section .hww-row:hover .hww-row-glow {
+  transform: scaleY(1);
+}
+
+/* Large, quiet, and set in the display face — a running index rather than a
+   badge competing with the stage title. */
+.hww-section .hww-row-index {
+  font-family: var(--brand-font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: color-mix(in oklab, var(--brand-ink) 16%, transparent);
+  transition: color 0.4s ease;
+}
+
+.hww-section .hww-row:hover .hww-row-index {
+  color: color-mix(in oklab, var(--brand-primary) 60%, transparent);
+}
+
+.hww-section .hww-row-icon {
+  display: grid;
+  place-items: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 12px;
+  font-size: 1.25rem;
+  color: var(--brand-primary-text);
+  background: var(--surface-muted);
+  border: 1px solid var(--border-subtle);
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.4s ease, background 0.4s ease;
+}
+
+.hww-section .hww-row:hover .hww-row-icon {
+  transform: translateY(-3px);
+  background: color-mix(in oklab, var(--brand-primary) 10%, var(--surface-muted));
+  border-color: color-mix(in oklab, var(--brand-primary) 40%, transparent);
+}
+
+.hww-section .hww-row-title {
+  font-family: var(--brand-font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  margin: 0;
+  transition: color 0.35s ease;
+}
+
+.hww-section .hww-row:hover .hww-row-title {
+  color: var(--brand-primary-text);
+}
+
+.hww-section .hww-row-summary {
+  font-family: var(--brand-font-body);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+  color: var(--brand-primary-text);
+  margin: 0.375rem 0 0;
+}
+
+.hww-section .hww-row-description {
+  font-family: var(--brand-font-body);
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* ------------------------------------------------------- part three: film */
+
+.hww-section .hww-film {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 3.5rem;
+  align-items: center;
+}
+
+.hww-section .hww-film-copy {
+  min-width: 0;
+}
+
+/* inline-FLEX rather than inline: an inline box ignores vertical margin, which
+   left the pill sitting flush against the heading below it. */
+.hww-section .hww-film-tag {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--brand-font-body);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--brand-primary-text);
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--brand-primary) 10%, transparent);
+  border: 1px solid color-mix(in oklab, var(--brand-primary) 24%, transparent);
+  margin-bottom: 1.25rem;
+}
+
+.hww-section .hww-film-heading {
+  font-family: var(--brand-font-display);
+  font-size: clamp(1.375rem, 2.2vw, 1.875rem);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  color: var(--text-primary);
+  margin: 0 0 1rem;
+}
+
+.hww-section .hww-film-body {
+  font-family: var(--brand-font-body);
+  font-size: 0.9375rem;
+  line-height: 1.8;
+  color: var(--text-secondary);
+  margin: 0;
+  max-width: 44ch;
+}
+
+.hww-section .hww-film-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--hww-radius);
+  overflow: hidden;
+  background: var(--brand-ink);
+  box-shadow:
+    0 30px 70px color-mix(in oklab, var(--brand-ink) 24%, transparent),
+    0 8px 20px color-mix(in oklab, var(--brand-ink) 12%, transparent);
+}
+
+.hww-section .hww-film-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Covers the frame so a click anywhere starts playback, not just on the disc. */
+.hww-section .hww-film-play {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--brand-ink) 12%, transparent) 0%,
+    color-mix(in oklab, var(--brand-ink) 50%, transparent) 100%
+  );
+  transition: background 0.4s ease;
+}
+
+.hww-section .hww-film-play:hover {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--brand-ink) 22%, transparent) 0%,
+    color-mix(in oklab, var(--brand-ink) 58%, transparent) 100%
+  );
+}
+
+.hww-section .hww-film-play:focus-visible {
+  outline: 3px solid var(--brand-primary);
+  outline-offset: -3px;
+}
+
+.hww-section .hww-film-play-icon {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  border-radius: 999px;
+  background: var(--gradient-button);
+  color: var(--on-primary);
+  font-size: 1.625rem;
+  /* Optical centring: a play triangle's visual mass sits left of its box. */
+  padding-left: 5px;
+  box-shadow: 0 12px 36px color-mix(in oklab, var(--brand-primary) 50%, transparent);
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.hww-section .hww-film-play:hover .hww-film-play-icon {
+  transform: scale(1.07);
+}
+
+.hww-section .hww-film-play-label {
+  font-family: var(--brand-font-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  /* Sits on the dark scrim in both schemes. */
+  color: #fff;
+  opacity: 0.85;
+}
+
+/* ------------------------------------------------------------- responsive */
+
+@media (max-width: 1200px) {
+  .hww-section {
+    --hww-band: 5.5rem;
+  }
+
+  .hww-section .hww-container {
+    padding: 0 2.5rem;
+  }
+
+  .hww-section .hww-mosaic {
+    grid-auto-rows: 165px;
+  }
+
+  .hww-section .hww-row {
+    grid-template-columns: 3.5rem 3rem minmax(0, 1fr) minmax(0, 1fr);
+    gap: 1.25rem;
+  }
+
+  .hww-section .hww-row-index {
+    font-size: 1.625rem;
+  }
+
+  .hww-section .hww-film {
+    gap: 2.5rem;
+  }
+}
+
+@media (max-width: 968px) {
+  .hww-section {
+    --hww-band: 4.5rem;
+    padding: 5.5rem 0;
+  }
+
+  /* The masthead stacks: the intro can no longer sit beside the title without
+     both becoming too narrow to read. */
+  .hww-section .hww-masthead {
+    grid-template-columns: 1fr;
+    gap: 1.75rem;
+    align-items: start;
+    margin-bottom: 3.5rem;
+  }
+
+  .hww-section .hww-masthead-aside {
+    padding-left: 1.5rem;
+  }
+
+  /* Four columns: copy panel full width at the top, photographs two-up under
+     it. Keeps the panel readable where a 2-of-6 column would not be. */
+  .hww-section .hww-mosaic {
+    grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: 200px;
+  }
+
+  .hww-section .hww-mosaic-note {
+    grid-column: 1 / -1;
+    grid-row: auto;
+    padding: 1.75rem;
+  }
+
+  .hww-section .hww-note-count {
+    padding-top: 1.25rem;
+  }
+
+  /* The description drops under the title rather than into its own column. */
+  .hww-section .hww-row {
+    grid-template-columns: 3rem 3rem minmax(0, 1fr);
+    align-items: start;
+    row-gap: 0.75rem;
+  }
+
+  .hww-section .hww-row-description {
+    grid-column: 3 / -1;
+  }
+
+  .hww-section .hww-film {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  /* Media first once stacked: it is the thing being introduced. */
+  .hww-section .hww-film-media {
+    order: -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .hww-section {
+    padding: 4.5rem 0;
+  }
+
+  .hww-section .hww-container {
+    padding: 0 1.5rem;
+  }
+
+  .hww-section .hww-masthead {
+    padding-bottom: 2rem;
+  }
+
+  .hww-section .hww-mosaic {
+    grid-template-columns: repeat(2, 1fr);
+    grid-auto-rows: 160px;
+    gap: 0.75rem;
+  }
+
+  /* At two columns "double-wide" is simply "full-width", and a tall lead frame
+     would push everything else off the first screen. */
+  .hww-section .hww-frame,
+  .hww-section .hww-frame-lead {
+    grid-column: span 1;
+    grid-row: span 1;
+  }
+
+  .hww-section .hww-frame-lead {
+    grid-column: 1 / -1;
+    grid-row: span 2;
+  }
+
+  .hww-section .hww-stages-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  /* Index and icon share the first row, copy runs full width beneath — the
+     four-column row cannot survive a phone. */
+  .hww-section .hww-row {
+    grid-template-columns: auto 1fr;
+    gap: 0.875rem 1rem;
+    padding: 1.5rem 1rem;
+  }
+
+  .hww-section .hww-row-index {
+    font-size: 1.375rem;
+    align-self: center;
+  }
+
+  .hww-section .hww-row-icon {
+    width: 2.75rem;
+    height: 2.75rem;
+    font-size: 1.125rem;
+  }
+
+  .hww-section .hww-row-copy,
+  .hww-section .hww-row-description {
+    grid-column: 1 / -1;
+  }
+
+  .hww-section .hww-row-description {
+    font-size: 0.875rem;
+  }
+
+  .hww-section .hww-film-play-icon {
+    width: 60px;
+    height: 60px;
+    font-size: 1.3125rem;
+  }
+
+  .hww-section .hww-film-play-label {
+    font-size: 0.6875rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .hww-section .hww-mosaic {
+    grid-template-columns: 1fr;
+    grid-auto-rows: 180px;
+  }
+
+  .hww-section .hww-frame-lead {
+    grid-row: span 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hww-section .hww-frame,
+  .hww-section .hww-frame-img,
+  .hww-section .hww-frame-caption-text,
+  .hww-section .hww-row-icon,
+  .hww-section .hww-row-glow,
+  .hww-section .hww-film-play-icon {
+    transition: none;
+  }
+
+  .hww-section .hww-frame:hover,
+  .hww-section .hww-frame:hover .hww-frame-img,
+  .hww-section .hww-row:hover .hww-row-icon,
+  .hww-section .hww-film-play:hover .hww-film-play-icon {
+    transform: none;
+  }
+
+  /* The accent bar still appears, it just does not draw itself. */
+  .hww-section .hww-row:hover .hww-row-glow {
+    transform: scaleY(1);
+  }
+}

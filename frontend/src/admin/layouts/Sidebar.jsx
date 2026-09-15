@@ -1,10 +1,11 @@
 import { NavLink } from 'react-router-dom';
 import {
   FiGrid,
-  FiPackage,
+  FiClipboard,
   FiMail,
   FiFileText,
   FiSettings,
+  FiUsers,
   FiLogOut,
   FiChevronsLeft,
   FiChevronsRight,
@@ -18,17 +19,25 @@ import logo from '../../assets/jk-fashion-logo.png';
  * Navigation, grouped.
  *
  * The groups exist so the rule between them means something: everything above
- * it is day-to-day work on content, everything below configures the site
- * itself. A single flat list of five would not need dividing.
+ * it is day-to-day work, everything below configures the site and who can
+ * reach it. A single flat list would not need dividing.
+ *
+ * `ownerOnly` hides an item from staff accounts. That is an affordance, not a
+ * security boundary — the API's `restrictTo` and the routes' `OwnerRoute` are
+ * what actually refuse access. Showing a floor employee five links that all
+ * bounce them elsewhere would just be noise.
  */
 const NAV_GROUPS = [
   [
-    { to: ROUTES.ADMIN_DASHBOARD, label: 'Dashboard', Icon: FiGrid },
-    { to: ROUTES.ADMIN_PRODUCTS, label: 'Products', Icon: FiPackage },
-    { to: ROUTES.ADMIN_ENQUIRIES, label: 'Enquiries', Icon: FiMail },
-    { to: ROUTES.ADMIN_CONTENT, label: 'Content', Icon: FiFileText },
+    { to: ROUTES.ADMIN_DASHBOARD, label: 'Dashboard', Icon: FiGrid, ownerOnly: true },
+    { to: ROUTES.ADMIN_INVENTORY, label: 'Inventory', Icon: FiClipboard },
+    { to: ROUTES.ADMIN_ENQUIRIES, label: 'Enquiries', Icon: FiMail, ownerOnly: true },
+    { to: ROUTES.ADMIN_CONTENT, label: 'Content', Icon: FiFileText, ownerOnly: true },
   ],
-  [{ to: ROUTES.ADMIN_SETTINGS, label: 'Settings', Icon: FiSettings }],
+  [
+    { to: ROUTES.ADMIN_STAFF, label: 'Staff', Icon: FiUsers, ownerOnly: true },
+    { to: ROUTES.ADMIN_SETTINGS, label: 'Settings', Icon: FiSettings, ownerOnly: true },
+  ],
 ];
 
 /**
@@ -47,6 +56,9 @@ export default function Sidebar({
   collapsed = false,
   onToggleCollapse,
 }) {
+  /** Mirrors ROLES.MAIN_ADMIN on the API — the seeded owner. */
+  const isOwner = user?.role === 'MAIN_ADMIN';
+
   return (
     <div
       className={`flex h-full flex-col bg-admin-sidebar py-5 transition-[padding] duration-200
@@ -102,8 +114,16 @@ export default function Sidebar({
 
       {/* ------------------------------------------------------- nav */}
       <nav className="flex flex-1 flex-col gap-1">
-        {NAV_GROUPS.map((group, groupIndex) => (
-          <div key={groupIndex} className="flex flex-col gap-1">
+        {/*
+          Filtered first, then emptied groups dropped: a staff account whose
+          whole second group is owner-only must not get a divider rule with
+          nothing under it. `groupIndex` is taken after the filter for the same
+          reason — it decides where the rule goes.
+        */}
+        {NAV_GROUPS.map((group) => group.filter((item) => isOwner || !item.ownerOnly))
+          .filter((group) => group.length > 0)
+          .map((group, groupIndex) => (
+          <div key={group[0].to} className="flex flex-col gap-1">
             {/* A rule between groups, never above the first or below the last. */}
             {groupIndex > 0 ? (
               <span className="my-3 block h-px bg-brand-ink/8" aria-hidden="true" />

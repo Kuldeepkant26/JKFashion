@@ -10,6 +10,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "seed": "tsx src/scripts/seedAdmin.ts",
+    "cleanup:step-images": "tsx src/scripts/cleanupStepImages.ts",
     "typecheck": "tsc --noEmit"
   },
   "//overrides": "Express 4 pins qs <=6.15.3, which carries GHSA-x5fp-wj9c-mxmx (array-limit bypass). 6.16.0 is the patched release and is API-compatible. Remove this once Express ships a version that depends on it directly.",

@@ -29,6 +29,9 @@ const useMediaQuery = (query) => {
   return matches;
 };
 
+/** The navbar scrolls here. Exported so the link and the target cannot drift. */
+export const GALLERY_SECTION_ID = 'gallery';
+
 export default function RackGallery() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -172,6 +175,7 @@ export default function RackGallery() {
 
   return (
     <section
+      id={GALLERY_SECTION_ID}
       className="rack-gallery"
       ref={sectionRef}
       aria-labelledby="rack-gallery-title"

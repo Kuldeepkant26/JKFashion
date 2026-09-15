@@ -7,6 +7,10 @@
    ========================================================================== */
 
 .closeup {
+    /* One value drives both the grid gap and the column width that is derived
+       from it, so the two can never fall out of step at a breakpoint. */
+    --cg-gap: 14px;
+
     padding: 0 24px 96px;
     background: var(--surface-primary);
 }
@@ -24,10 +28,123 @@
 
 /* ----------------------------------------------------------------- grid */
 
+/* Positioning context for the scroll arrows, which sit over the grid's edge. */
+.closeup__grid-wrap {
+    position: relative;
+}
+
+/*
+ * The scroll affordance.
+ *
+ * Small and low-contrast on purpose: it is a hint that the row continues, not
+ * a primary control — the row is also draggable, scrollable and keyboard
+ * navigable. It only renders when there is somewhere to go, so it never sits
+ * there inert.
+ */
+.closeup__nav {
+    position: absolute;
+    bottom: 10px;
+    z-index: 4;
+
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+
+    border: 1px solid var(--border-subtle);
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--surface-primary) 88%, transparent);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: var(--text-primary);
+    cursor: pointer;
+
+    box-shadow: 0 4px 14px color-mix(in oklab, var(--brand-ink) 14%, transparent);
+    transition: transform 200ms ease, background 200ms ease, opacity 200ms ease;
+    animation: closeupNavIn 260ms ease both;
+}
+
+.closeup__nav svg {
+    width: 15px;
+    height: 15px;
+}
+
+.closeup__nav:hover {
+    background: var(--surface-primary);
+    transform: scale(1.08);
+}
+
+.closeup__nav:focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 2px;
+}
+
+.closeup__nav--next { right: 10px; }
+.closeup__nav--prev { left: 10px; }
+
+@keyframes closeupNavIn {
+    from { opacity: 0; transform: scale(0.85); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .closeup__nav {
+        animation: none;
+        transition: background 200ms ease;
+    }
+
+    .closeup__nav:hover {
+        transform: none;
+    }
+}
+
+/*
+ * Two fixed rows that scroll sideways once they are full.
+ *
+ * `grid-auto-flow: column` fills top-to-bottom then starts a new column, so a
+ * seventh image extends the grid to the RIGHT instead of adding a third row.
+ * The block therefore keeps the height of six images no matter how many the
+ * admin uploads, which is what stops the page growing every time one is added.
+ *
+ * The column width is tied to the container rather than the image, so three
+ * columns always span exactly the visible width: any overflow then lines up on
+ * a clean column edge, which is the cue that there is more to scroll to.
+ */
 .closeup__grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 14px;
+    grid-template-rows: repeat(2, auto);
+    grid-auto-flow: column;
+    grid-auto-columns: calc((100% - 2 * var(--cg-gap)) / 3);
+    gap: var(--cg-gap);
+
+    overflow-x: auto;
+    overflow-y: hidden;
+    /* Room for the scrollbar so it cannot sit on top of the bottom row. */
+    padding-bottom: 6px;
+
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--brand-ink) 22%, transparent) transparent;
+}
+
+/* WebKit needs the parts styled individually; `scrollbar-width` is ignored. */
+.closeup__grid::-webkit-scrollbar {
+    height: 6px;
+}
+
+.closeup__grid::-webkit-scrollbar-track {
+    background: color-mix(in oklab, var(--brand-ink) 6%, transparent);
+    border-radius: 999px;
+}
+
+.closeup__grid::-webkit-scrollbar-thumb {
+    background: color-mix(in oklab, var(--brand-ink) 22%, transparent);
+    border-radius: 999px;
+}
+
+.closeup__grid::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in oklab, var(--brand-ink) 34%, transparent);
 }
 
 .closeup__thumb {
@@ -216,8 +333,10 @@
         margin-right: auto;
     }
 
+    /* Wider viewport for the grid once it is full width, so more fits before
+       the scroll begins. */
     .closeup__grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-auto-columns: calc((100% - 3 * var(--cg-gap)) / 4);
     }
 }
 
@@ -226,9 +345,12 @@
         padding: 0 16px 64px;
     }
 
+    .closeup {
+        --cg-gap: 10px;
+    }
+
     .closeup__grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 10px;
+        grid-auto-columns: calc((100% - 2 * var(--cg-gap)) / 3);
     }
 
     /* No lens on touch — there is no hover to drive it. */

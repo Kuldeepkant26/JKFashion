@@ -3,16 +3,17 @@
  * search across the codebase.
  */
 export const ROUTES = {
-  // public marketing site
+  // public marketing site — a single page; the nav scrolls to sections on it
   HOME: '/',
-  PRODUCTS: '/residential',
-  ABOUT: '/about',
 
   // admin panel
   ADMIN_LOGIN: '/admin/login',
   ADMIN: '/admin',
   ADMIN_DASHBOARD: '/admin/dashboard',
-  ADMIN_PRODUCTS: '/admin/products',
+  ADMIN_INVENTORY: '/admin/inventory',
+  ADMIN_INVENTORY_ORDERS: '/admin/inventory/orders',
+  ADMIN_INVENTORY_COMPANIES: '/admin/inventory/companies',
+  ADMIN_STAFF: '/admin/staff',
   ADMIN_ENQUIRIES: '/admin/enquiries',
   ADMIN_CONTENT: '/admin/content',
   ADMIN_SETTINGS: '/admin/settings',
@@ -26,4 +27,6 @@ export const ROUTES = {
   ADMIN_SETTINGS_TYPOGRAPHY: '/admin/settings/typography',
   ADMIN_SETTINGS_LAYOUT: '/admin/settings/layout',
   ADMIN_SETTINGS_GALLERY: '/admin/settings/gallery',
+  ADMIN_SETTINGS_PROCESS: '/admin/settings/how-we-work',
+  ADMIN_SETTINGS_HOME: '/admin/settings/hero-content',
 };

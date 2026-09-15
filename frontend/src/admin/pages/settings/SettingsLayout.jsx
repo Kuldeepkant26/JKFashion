@@ -17,6 +17,8 @@ const TABS = [
   { to: ROUTES.ADMIN_SETTINGS_TYPOGRAPHY, label: 'Font Style' },
   { to: ROUTES.ADMIN_SETTINGS_LAYOUT, label: 'Navbar & Hero' },
   { to: ROUTES.ADMIN_SETTINGS_GALLERY, label: 'Gallery' },
+  { to: ROUTES.ADMIN_SETTINGS_PROCESS, label: 'How We Work' },
+  { to: ROUTES.ADMIN_SETTINGS_HOME, label: 'Hero Content' },
 ];
 
 /**

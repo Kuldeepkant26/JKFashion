@@ -1,5 +1,4 @@
-import { useHeroCarousel } from './useHeroCarousel.js';
-import HeroIndicators from './HeroIndicators.jsx';
+import { useHeroContent } from './useHeroContent.js';
 import { company } from '../../data/site.js';
 
 /**
@@ -12,7 +11,7 @@ import { company } from '../../data/site.js';
  * across all four slides.
  */
 export default function Editorial() {
-  const { images, index, setIndex, current, count } = useHeroCarousel();
+  const { title, description, ctaLabel, imageSrc, imageAlt } = useHeroContent();
 
   return (
     <section
@@ -32,20 +31,12 @@ export default function Editorial() {
 
       {/* artwork, offset right and behind the type */}
       <div className="absolute inset-y-0 right-0 w-[86%] sm:w-[70%] lg:w-[52%]">
-        {images.map((src, i) => (
-          <img
-            key={src}
-            src={src}
-            alt="Embroidered occasionwear from the JK Fashion range"
-            loading={i === 0 ? 'eager' : 'lazy'}
-            className="absolute inset-0 h-full w-full object-contain object-bottom
-                       transition-all duration-[1200ms] ease-out"
-            style={{
-              opacity: i === index ? 1 : 0,
-              transform: i === index ? 'translateY(0)' : 'translateY(14px)',
-            }}
-          />
-        ))}
+        <img
+          src={imageSrc}
+          alt={imageAlt}
+          loading="eager"
+          className="absolute inset-0 h-full w-full object-contain object-bottom"
+        />
       </div>
 
       {/* Fades the artwork into the page on its left edge so the type has ground. */}
@@ -75,12 +66,11 @@ export default function Editorial() {
           </div>
 
           <h1
-            key={index}
             className="mt-6 font-display text-[clamp(3rem,10vw,7.5rem)] font-bold
                        leading-[0.86] tracking-[-0.02em]"
             style={{ color: 'var(--text-primary)', animation: 'heroTextFadeIn 0.9s both' }}
           >
-            {current.title}
+            {title}
           </h1>
 
           <div className="mt-8 flex max-w-md items-start gap-5">
@@ -90,11 +80,10 @@ export default function Editorial() {
               aria-hidden
             />
             <p
-              key={`d-${index}`}
               className="font-body text-[15px] leading-relaxed"
               style={{ color: 'var(--text-secondary)', animation: 'heroTextFadeIn 1s 0.2s both' }}
             >
-              {current.description}
+              {description}
             </p>
           </div>
 
@@ -105,7 +94,7 @@ export default function Editorial() {
                          uppercase tracking-[0.22em]"
               style={{ color: 'var(--text-primary)' }}
             >
-              View Our Work
+              {ctaLabel}
               <span
                 className="grid h-10 w-10 place-items-center rounded-full transition-transform
                            duration-300 group-hover:translate-x-1"
@@ -123,8 +112,6 @@ export default function Editorial() {
                 </svg>
               </span>
             </button>
-
-            <HeroIndicators count={count} index={index} onSelect={setIndex} />
           </div>
         </div>
       </div>

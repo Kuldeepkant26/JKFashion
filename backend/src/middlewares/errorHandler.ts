@@ -37,6 +37,23 @@ const normalize = (err: unknown): ApiError => {
     ]);
   }
 
+  /*
+   * multer rejects an oversized or unexpected file with its own error class,
+   * which carries no statusCode — without this it would normalise to a 500 and
+   * the uploader would show "Internal Server Error" for a file that is simply
+   * too big.
+   */
+  if ((err as { name?: string })?.name === "MulterError") {
+    const code = (err as { code?: string }).code;
+    if (code === "LIMIT_FILE_SIZE") {
+      return new ApiError(413, "That file is too large. Images are capped at 8MB and videos at 100MB.");
+    }
+    if (code === "LIMIT_FILE_COUNT" || code === "LIMIT_UNEXPECTED_FILE") {
+      return new ApiError(400, "Please upload one file at a time");
+    }
+    return new ApiError(400, (err as { message?: string }).message ?? "Upload failed");
+  }
+
   const name = (err as { name?: string })?.name;
   if (name === "TokenExpiredError") return new ApiError(401, "Session expired, please sign in again");
   if (name === "JsonWebTokenError") return new ApiError(401, "Invalid authentication token");

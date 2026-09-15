@@ -1,5 +1,6 @@
-import { Link, NavLink } from 'react-router-dom';
-import { NAV_LINKS, useNavScroll, useMobileMenu } from './useNavbar.js';
+import { Link } from 'react-router-dom';
+import { NAV_LINKS, useNavScroll, useMobileMenu, useActiveSection } from './useNavbar.js';
+import SectionLink from './SectionLink.jsx';
 import MobileMenu from './MobileMenu.jsx';
 import MenuButton from './MenuButton.jsx';
 import EnquireLink from './EnquireLink.jsx';
@@ -16,6 +17,7 @@ import logo from '../../assets/jk-fashion-logo.png';
  */
 export default function FloatingPill() {
   const menu = useMobileMenu();
+  const activeId = useActiveSection();
   const { scrolled, hidden } = useNavScroll({ menuOpen: menu.open });
 
   return (
@@ -42,9 +44,10 @@ export default function FloatingPill() {
 
           <nav className="hidden items-center gap-1 lg:flex">
             {NAV_LINKS.map((link) => (
-              <NavLink
-                key={link.to}
-                to={link.to}
+              <SectionLink
+                key={link.label}
+                id={link.id}
+                isActive={activeId === link.id}
                 className={({ isActive }) =>
                   `relative rounded-full px-4 py-2 font-body text-[13px] font-semibold
                    uppercase tracking-[0.14em] transition-colors duration-200
@@ -56,7 +59,7 @@ export default function FloatingPill() {
                 })}
               >
                 {link.label}
-              </NavLink>
+              </SectionLink>
             ))}
           </nav>
 
