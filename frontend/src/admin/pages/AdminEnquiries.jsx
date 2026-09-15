@@ -3,6 +3,7 @@ import * as enquiryApi from '../../api/enquiry.api.js';
 import { useAppStore } from '../../store/useAppStore.js';
 import EmptyState from '../components/EmptyState.jsx';
 import Spinner from '../components/Spinner.jsx';
+import EnquiryNotifySettings from '../components/EnquiryNotifySettings.jsx';
 import { FiInbox } from 'react-icons/fi';
 
 const MAIN_ADMIN = 'MAIN_ADMIN';
@@ -286,6 +287,11 @@ export default function AdminEnquiries() {
           {error}
         </p>
       ) : null}
+
+      {/* Owner-only, matching the API — the settings endpoints reject anyone
+          but MAIN_ADMIN, so rendering this for an editor would be a panel
+          whose every action 403s. */}
+      {isOwner ? <EnquiryNotifySettings /> : null}
 
       <div className="-mx-1 overflow-x-auto pb-1">
         <div className="flex min-w-max gap-1 rounded-2xl bg-brand-ink/[0.04] p-1">

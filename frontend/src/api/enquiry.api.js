@@ -15,3 +15,24 @@ export const updateStatus = (id, status) =>
 
 /** Owner-only; the API rejects anyone but MAIN_ADMIN. */
 export const remove = (id) => api.delete(`/enquiries/${id}`).then(unwrap);
+
+/**
+ * Owner-only. Who gets emailed when an enquiry arrives.
+ * Resolves to { notifyEnabled, recipients, smtpConfigured, updatedAt }.
+ */
+export const getNotifySettings = () =>
+  api.get('/enquiries/settings/notifications').then(unwrap);
+
+/**
+ * Owner-only. Takes a partial patch — `{ notifyEnabled }`, `{ recipients }` or
+ * both. Anything omitted is left as it is on the server.
+ */
+export const updateNotifySettings = (patch) =>
+  api.put('/enquiries/settings/notifications', patch).then(unwrap);
+
+/**
+ * Owner-only. Verifies the server's SMTP credentials without sending a real
+ * message. Resolves to { ok, message }.
+ */
+export const testNotifyTransport = () =>
+  api.post('/enquiries/settings/notifications/test').then(unwrap);

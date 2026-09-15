@@ -43,6 +43,39 @@ export const env = {
     folder: process.env.CLOUDINARY_FOLDER ?? "jk-fashion/gallery",
   },
 
+  /**
+   * SMTP, for the enquiry notification mail. Optional at boot for the same
+   * reason as Cloudinary: a site with no mail credentials should still accept
+   * enquiries and show them in the panel — the notification is an extra, not
+   * the record. `notifyEnquiries` is the kill switch for the whole feature.
+   */
+  smtp: {
+    host: process.env.SMTP_HOST,
+    port: toInt(process.env.SMTP_PORT, 587),
+    /**
+     * Implicit TLS (port 465) versus STARTTLS (587). Derived from the port
+     * rather than asked for separately, because getting the two out of step is
+     * the single most common way an otherwise-correct SMTP config fails to
+     * connect. An explicit SMTP_SECURE still wins if it is set.
+     */
+    secure: process.env.SMTP_SECURE
+      ? process.env.SMTP_SECURE === "true"
+      : toInt(process.env.SMTP_PORT, 587) === 465,
+    user: process.env.SMTP_USER,
+    password: process.env.SMTP_PASSWORD,
+
+    /**
+     * The envelope From. Must be an address the SMTP account is allowed to
+     * send as, or the provider will reject the message — which is why it
+     * defaults to the login user rather than to something branded.
+     */
+    from: process.env.SMTP_FROM ?? process.env.SMTP_USER,
+    fromName: process.env.SMTP_FROM_NAME ?? "JK Fashion Website",
+  },
+
+  /** Set false to keep SMTP configured but stop sending notifications. */
+  notifyEnquiries: process.env.NOTIFY_ENQUIRIES !== "false",
+
   seed: {
     adminName: process.env.SEED_ADMIN_NAME ?? "JK Fashion Admin",
     adminEmail: process.env.SEED_ADMIN_EMAIL ?? "admin@jkfashion.com",
@@ -55,6 +88,14 @@ export const isProduction = env.nodeEnv === "production";
 /** True once all three Cloudinary values are present. */
 export const isCloudinaryConfigured = (): boolean =>
   Boolean(env.cloudinary.cloudName && env.cloudinary.apiKey && env.cloudinary.apiSecret);
+
+/**
+ * True once SMTP can actually connect and send. The admin settings screen
+ * reports this, so an owner who saves a recipient list is told up front that
+ * nothing will be delivered until the server is given credentials.
+ */
+export const isSmtpConfigured = (): boolean =>
+  Boolean(env.smtp.host && env.smtp.user && env.smtp.password && env.smtp.from);
 
 const REQUIRED: Array<[string, string | undefined]> = [
   ["MONGO_URI", env.mongoUri],

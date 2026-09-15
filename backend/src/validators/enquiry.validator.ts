@@ -1,5 +1,6 @@
 import { body, query, param, type ValidationChain } from "express-validator";
 import { ENQUIRY_STATUSES } from "../models/enquiry.model.js";
+import { MAX_NOTIFY_RECIPIENTS } from "../models/enquirySetting.model.js";
 
 /**
  * The public submit endpoint.
@@ -71,4 +72,36 @@ export const updateEnquiryRules: ValidationChain[] = [
 
 export const enquiryIdRules: ValidationChain[] = [
   param("id").isMongoId().withMessage("Unknown enquiry"),
+];
+
+/**
+ * The notification settings.
+ *
+ * Both fields optional so the screen can flip the toggle without resending the
+ * address list. The cap on `recipients` is enforced here rather than in the
+ * schema so the limit can be reported as a readable message instead of a
+ * validation error from Mongoose.
+ */
+export const updateNotifyRules: ValidationChain[] = [
+  body("notifyEnabled").optional().isBoolean().withMessage("Unknown value").toBoolean(),
+
+  body("recipients")
+    .optional()
+    .isArray({ max: MAX_NOTIFY_RECIPIENTS })
+    .withMessage(`You can notify up to ${MAX_NOTIFY_RECIPIENTS} email addresses`),
+
+  /**
+   * Each entry checked individually — an array that passes `isArray` can still
+   * be full of anything, and these addresses are what the server will hand to
+   * its SMTP host.
+   */
+  body("recipients.*")
+    .isString()
+    .trim()
+    .isEmail()
+    .withMessage("Please enter valid email addresses")
+    .bail()
+    .normalizeEmail({ gmail_remove_dots: false })
+    .isLength({ max: 200 })
+    .withMessage("That email address is too long"),
 ];
