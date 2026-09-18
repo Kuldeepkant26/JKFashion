@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# The panel is behind a login; crawling it wastes budget and surfaces nothing.
+Disallow: /admin
+Disallow: /api/
+
+Sitemap: https://jkfashionembroidery.com/sitemap.xml
