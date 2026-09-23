@@ -6,7 +6,8 @@ import {
   type IProductionOrder,
   type OrderStatus,
 } from "../models/productionOrder.model.js";
-import { Company } from "../models/company.model.js";
+import { Company, type ICompany } from "../models/company.model.js";
+import { nextSeq, peekSeq } from "../models/counter.model.js";
 import { uploadImage, destroyImage } from "../config/cloudinary.js";
 import { ApiError } from "../utils/ApiError.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
@@ -14,6 +15,60 @@ import { startOfDayUTC, endOfDayUTC } from "../utils/productionDate.js";
 
 /** Where Cloudinary keeps design images, under the configured base folder. */
 const IMAGE_FOLDER = "inventory";
+
+/** The house mark that sits between the buyer and the sequence. */
+const ORDER_NUMBER_INFIX = "JK";
+
+/**
+ * The buyer's part of an order number: the first word of their name, letters
+ * and digits only.
+ *
+ * "Dexter Exports Pvt Ltd" → "Dexter". Punctuation and accents are stripped
+ * rather than transliterated, because this string goes on a printed docket and
+ * has to survive being read aloud, typed into a search box and written by hand.
+ * A name with no usable characters at all (only symbols) falls back to "ORD" so
+ * a number can always be issued.
+ */
+const companyPrefix = (name: string): string => {
+  const first = String(name ?? "").trim().split(/\s+/)[0] ?? "";
+  const cleaned = first.normalize("NFD").replace(/[^A-Za-z0-9]/g, "");
+
+  if (!cleaned) return "ORD";
+
+  const capped = cleaned.slice(0, 12);
+  return capped.charAt(0).toUpperCase() + capped.slice(1);
+};
+
+/** The counter key a buyer's sequence lives under. */
+const counterKey = (name: string): string => `order:${companyPrefix(name)}`;
+
+const formatOrderNumber = (name: string, seq: number): string =>
+  `${companyPrefix(name)}-${ORDER_NUMBER_INFIX}-${String(seq).padStart(5, "0")}`;
+
+/**
+ * Claim the next order number for a buyer, e.g. `Dexter-JK-00109`.
+ *
+ * Per-buyer rather than global: the number is read off a docket next to the
+ * buyer's name, and a shared sequence would make two adjacent jobs for the same
+ * buyer look unrelated. The counter is atomic, so this is safe to call from two
+ * requests at once.
+ */
+export const generateOrderNumber = async (companyName: string): Promise<string> =>
+  formatOrderNumber(companyName, await nextSeq(counterKey(companyName)));
+
+/**
+ * What the next number would be, without claiming it — for the form's preview.
+ *
+ * Advisory only: the stored number is whatever `generateOrderNumber` issues at
+ * save time, which is why the form labels this as generated on save rather than
+ * presenting it as final.
+ */
+export const previewOrderNumber = async (companyId: string): Promise<string> => {
+  const company = await Company.findById(companyId).select("name").lean<ICompany>().exec();
+  if (!company) throw new ApiError(404, "That company no longer exists");
+
+  return formatOrderNumber(company.name, await peekSeq(counterKey(company.name)));
+};
 
 /**
  * Is this order late?
@@ -58,6 +113,9 @@ export interface ListOptions {
   status?: OrderStatus | "OVERDUE";
   companyId?: string;
   search?: string;
+  /** Inclusive bounds on when the order was RAISED, not on its deadline. */
+  from?: string;
+  to?: string;
   page?: number;
   limit?: number;
 }
@@ -82,6 +140,8 @@ export const listOrders = async ({
   status,
   companyId,
   search,
+  from,
+  to,
   page = 1,
   limit = 20,
 }: ListOptions = {}): Promise<ListResult> => {
@@ -91,6 +151,20 @@ export const listOrders = async ({
   else if (status) filter.status = status;
 
   if (companyId) filter.company = companyId as unknown as Types.ObjectId;
+
+  /*
+   * The date range is on `createdAt` — when the order was taken in — because
+   * that is the question being asked ("what did we take last month"), not when
+   * it is due. Both ends are inclusive of their whole day, using the same UTC
+   * normalisation the log entries are written with, so a range of one day
+   * matches the orders raised on that day rather than none of them.
+   */
+  if (from || to) {
+    filter.createdAt = {
+      ...(from ? { $gte: startOfDayUTC(from) } : {}),
+      ...(to ? { $lt: endOfDayUTC(to) } : {}),
+    };
+  }
 
   if (search) {
     const rx = new RegExp(escapeRegex(search), "i");
@@ -151,7 +225,6 @@ export const getOrder = async (id: string): Promise<OrderView> => {
 
 export interface OrderInput {
   companyId: string;
-  orderNumber: string;
   designNumber: string;
   status?: OrderStatus;
   orderedMetres: number;
@@ -185,8 +258,17 @@ export const createOrder = async (
   const uploaded = image ? await uploadImage(image.buffer, image.filename, IMAGE_FOLDER) : null;
 
   try {
+    /*
+     * Claimed here rather than in the controller, and after the upload, so a
+     * failed image does not burn a number and leave a gap in the buyer's
+     * sequence. A gap is not a correctness problem, but a sequence the office
+     * can read straight down is worth the ordering.
+     */
+    const orderNumber = await generateOrderNumber(company.name);
+
     const order = await ProductionOrder.create({
       ...input,
+      orderNumber,
       company: company._id,
       companyName: company.name,
       // Never from the client: the log is the only thing that moves this.
@@ -314,12 +396,15 @@ export const logProduction = async (
     createdAt: new Date(),
   };
 
-  // Work having started is what PENDING → RUNNING means, so the first entry
-  // moves it rather than making someone remember to.
-  const status =
-    order.status === ORDER_STATUS.PENDING && input.metres > 0
-      ? ORDER_STATUS.RUNNING
-      : order.status;
+  /*
+   * Work having started is what RUNNING means, so the first positive entry
+   * moves it rather than making someone remember to. This fires from SAMPLING
+   * as well as PENDING: metres against a sampling order mean the sample is
+   * approved and the run is under way, whether or not anyone changed the pill.
+   */
+  const started =
+    order.status === ORDER_STATUS.SAMPLING || order.status === ORDER_STATUS.PENDING;
+  const status = started && input.metres > 0 ? ORDER_STATUS.RUNNING : order.status;
 
   const updated = await ProductionOrder.findByIdAndUpdate(
     id,

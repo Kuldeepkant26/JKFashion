@@ -9,6 +9,7 @@ import processRoutes from "./process.routes.js";
 import homeRoutes from "./home.routes.js";
 import staffRoutes from "./staff.routes.js";
 import inventoryRoutes from "./inventory.routes.js";
+import stockRoutes from "./stock.routes.js";
 
 const router = Router();
 
@@ -19,7 +20,10 @@ router.use("/admin", adminRoutes);
 router.use("/staff", staffRoutes);
 // Fully private: production data has no public face, so the whole router is
 // behind `protect` rather than mounted top-level for a public GET.
+/* Production orders and buyers; presented in the panel as "Orders". */
 router.use("/inventory", inventoryRoutes);
+/* The daily materials ledger; presented as "Inventory". */
+router.use("/stock", stockRoutes);
 // Top-level, not under /admin: the GET must stay unauthenticated for the site.
 router.use("/theme", themeRoutes);
 // Top-level too: the POST must stay unauthenticated for the public form.

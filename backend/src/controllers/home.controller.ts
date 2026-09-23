@@ -23,6 +23,9 @@ export const getPublic = asyncHandler<Request>(async (_req, res) => {
  */
 const HERO_FIELDS = ["eyebrow", "title", "description", "ctaLabel", "imageAlt"] as const;
 
+/** The business details, writable from the same tab. */
+const CONTACT_FIELDS = ["phone", "address", "email"] as const;
+
 export const updateSection = asyncHandler<AuthedRequest>(async (req, res) => {
   // Only forward what was sent — undefined means "leave alone".
   const patch: homeService.SectionPatch = {};
@@ -31,6 +34,13 @@ export const updateSection = asyncHandler<AuthedRequest>(async (req, res) => {
   for (const field of HERO_FIELDS) {
     if (hero[field] !== undefined) {
       patch.hero = { ...patch.hero, [field]: hero[field] };
+    }
+  }
+
+  const contact = (req.body.contact ?? {}) as Record<string, unknown>;
+  for (const field of CONTACT_FIELDS) {
+    if (contact[field] !== undefined) {
+      patch.contact = { ...patch.contact, [field]: contact[field] };
     }
   }
 

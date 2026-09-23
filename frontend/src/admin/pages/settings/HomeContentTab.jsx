@@ -42,10 +42,52 @@ const FIELDS = [
   },
 ];
 
+/**
+ * The business details, in the order they read in the footer.
+ *
+ * These show in four places at once — the footer, the navbar strip, the mobile
+ * menu and the enquiry block — so the hints say so: an owner changing a phone
+ * number should know it is not just one line on one page.
+ *
+ * Leaving one blank is a supported choice, not an incomplete form: the site
+ * omits the line entirely rather than printing an empty one. That is how the
+ * email stays hidden until there is an address to publish.
+ */
+const CONTACT_FIELDS = [
+  {
+    name: 'phone',
+    label: 'Phone number',
+    placeholder: '9810014413',
+    hint: 'Shown in the footer, the menu and the enquiry section. Type it the way you want visitors to read it.',
+  },
+  {
+    name: 'address',
+    label: 'Address',
+    placeholder: 'Faridabad, Haryana India',
+    hint: 'Shown under the phone number in the footer.',
+  },
+  {
+    name: 'email',
+    label: 'Email address',
+    placeholder: 'Leave blank to hide it',
+    hint: 'Optional. While this is empty, no email is shown anywhere on the site.',
+    type: 'email',
+  },
+];
+
 const inputClass =
   'w-full rounded-xl bg-surface-card px-3.5 py-2.5 font-body text-sm text-brand-ink ' +
   'ring-1 ring-brand-ink/12 transition-shadow placeholder:text-brand-ink/35 ' +
   'focus:outline-none focus:ring-2 focus:ring-brand-pink';
+
+/*
+ * Both groups in one state object, shaped exactly like the API's own body.
+ *
+ * The alternative — a `hero` state and a `contact` state — would need the
+ * dirty check, the save and the discard each written twice, and the second
+ * copy is where the bug lives.
+ */
+const pick = (data) => ({ hero: data.hero, contact: data.contact ?? {} });
 
 export default function HomeContentTab() {
   /** What the server has. */
@@ -70,8 +112,8 @@ export default function HomeContentTab() {
     setLoading(true);
     try {
       const data = await homeApi.get();
-      setSaved(data.hero);
-      setDraft(data.hero);
+      setSaved(pick(data));
+      setDraft(pick(data));
       setError('');
     } catch (err) {
       setError(err?.message ?? 'Could not load the hero content.');
@@ -90,22 +132,42 @@ export default function HomeContentTab() {
    * exception — an upload is a deliberate act with an obvious result, and
    * holding the file until Save would mean either a blob preview or a picture
    * that does not match the fields around it.
+   *
+   * `changed` is only ever called behind the null guard in `dirty`.
    */
+  const changed = (group, fields) =>
+    fields.some((f) => (draft[group]?.[f.name] ?? '') !== (saved[group]?.[f.name] ?? ''));
+
   const dirty =
     !!draft &&
     !!saved &&
-    FIELDS.some((f) => (draft[f.name] ?? '') !== (saved[f.name] ?? ''));
+    (changed('hero', FIELDS) || changed('contact', CONTACT_FIELDS));
 
-  const setField = (name, value) => setDraft((d) => ({ ...d, [name]: value }));
+  const setField = (group, name, value) =>
+    setDraft((d) => ({ ...d, [group]: { ...d[group], [name]: value } }));
 
   const save = async () => {
     setSaving(true);
     setError('');
     try {
-      const patch = Object.fromEntries(FIELDS.map((f) => [f.name, draft[f.name] ?? '']));
-      const data = await homeApi.updateSection({ hero: patch });
-      setSaved(data.hero);
-      setDraft(data.hero);
+      /*
+       * Both groups every time, including untouched ones. The API treats a
+       * missing field as "leave alone", so sending the whole form is harmless
+       * and means one Save button covers the whole tab.
+       *
+       * `?? ''` rather than a skip: an emptied field has to be sent as "" to
+       * actually clear it server-side.
+       */
+      const group = (fields, from) =>
+        Object.fromEntries(fields.map((f) => [f.name, from?.[f.name] ?? '']));
+
+      const data = await homeApi.updateSection({
+        hero: group(FIELDS, draft.hero),
+        contact: group(CONTACT_FIELDS, draft.contact),
+      });
+
+      setSaved(pick(data));
+      setDraft(pick(data));
       flash('Saved');
     } catch (err) {
       setError(err?.message ?? 'That did not save. Please try again.');
@@ -125,9 +187,9 @@ export default function HomeContentTab() {
     setError('');
     try {
       const data = await homeApi.setHeroImage(file);
-      setSaved(data.hero);
+      setSaved(pick(data));
       // Keep whatever the owner is part-way through typing; take only the image.
-      setDraft((d) => ({ ...d, image: data.hero.image }));
+      setDraft((d) => ({ ...d, hero: { ...d.hero, image: data.hero.image } }));
       flash('Image updated');
     } catch (err) {
       setError(err?.message ?? 'That image did not upload. Please try again.');
@@ -143,8 +205,8 @@ export default function HomeContentTab() {
     setError('');
     try {
       const data = await homeApi.clearHeroImage();
-      setSaved(data.hero);
-      setDraft((d) => ({ ...d, image: data.hero.image }));
+      setSaved(pick(data));
+      setDraft((d) => ({ ...d, hero: { ...d.hero, image: data.hero.image } }));
       flash('Image removed');
     } catch (err) {
       setError(err?.message ?? 'That did not save. Please try again.');
@@ -161,8 +223,8 @@ export default function HomeContentTab() {
     );
   }
 
-  const imageSrc = draft.image?.url || heroImages.showcase[2];
-  const hasOwnImage = Boolean(draft.image?.url);
+  const imageSrc = draft.hero.image?.url || heroImages.showcase[2];
+  const hasOwnImage = Boolean(draft.hero.image?.url);
 
   return (
     <div className="flex flex-col gap-6">
@@ -188,17 +250,17 @@ export default function HomeContentTab() {
                 <textarea
                   rows={4}
                   className={`${inputClass} resize-y leading-relaxed`}
-                  value={draft[field.name] ?? ''}
+                  value={draft.hero[field.name] ?? ''}
                   placeholder={field.placeholder}
-                  onChange={(e) => setField(field.name, e.target.value)}
+                  onChange={(e) => setField('hero', field.name, e.target.value)}
                 />
               ) : (
                 <input
                   type="text"
                   className={inputClass}
-                  value={draft[field.name] ?? ''}
+                  value={draft.hero[field.name] ?? ''}
                   placeholder={field.placeholder}
-                  onChange={(e) => setField(field.name, e.target.value)}
+                  onChange={(e) => setField('hero', field.name, e.target.value)}
                 />
               )}
             </label>
@@ -229,7 +291,7 @@ export default function HomeContentTab() {
           >
             <img
               src={imageSrc}
-              alt={draft.imageAlt || 'Hero image'}
+              alt={draft.hero.imageAlt || 'Hero image'}
               className="h-full w-full object-contain p-3"
             />
 
@@ -282,9 +344,43 @@ export default function HomeContentTab() {
         </div>
       </div>
 
+      {/* --------------------------------------------------------- contact */}
+      {/* Its own block below the grid rather than a third column: these
+          details belong to the whole site, not to the hero, and sitting them
+          beside the hero fields would imply otherwise. */}
+      <div className="border-t border-brand-ink/10 pt-6">
+        <h2 className="font-display text-lg font-bold text-brand-ink">Contact details</h2>
+        <p className="mt-0.5 font-body text-sm text-brand-ink/55">
+          Shown in the footer, the menu and the enquiry section. Leave a field empty to hide
+          it from the site.
+        </p>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {CONTACT_FIELDS.map((field) => (
+            <label key={field.name} className="flex flex-col gap-1.5">
+              <span className="font-body text-xs font-semibold uppercase tracking-[0.12em] text-brand-ink/60">
+                {field.label}
+              </span>
+
+              <input
+                type={field.type ?? 'text'}
+                className={inputClass}
+                value={draft.contact[field.name] ?? ''}
+                placeholder={field.placeholder}
+                onChange={(e) => setField('contact', field.name, e.target.value)}
+              />
+
+              <span className="font-body text-xs leading-relaxed text-brand-ink/50">
+                {field.hint}
+              </span>
+            </label>
+          ))}
+        </div>
+      </div>
+
       {dirty ? (
         <SaveBar
-          summary="You have unsaved changes to the hero text."
+          summary="You have unsaved changes on this page."
           saving={saving}
           onDiscard={() => setDraft(saved)}
           onSave={save}

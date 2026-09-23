@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { FiX, FiEdit2, FiTrash2, FiPlus, FiImage } from 'react-icons/fi';
 import * as inventoryApi from '../../../api/inventory.api.js';
 import Spinner from '../../components/Spinner.jsx';
+import ConfirmDialog from '../../components/ConfirmDialog.jsx';
 import {
   ORDER_STATUSES,
   STATUS_LABELS,
@@ -130,8 +131,15 @@ export default function OrderDetail({
   setError,
 }) {
   const [logging, setLogging] = useState(false);
+  const [confirmingEntry, setConfirmingEntry] = useState(null);
 
-  if (loading || !order) {
+  /*
+   * Only a genuinely absent order falls back to the spinner. `loading` here
+   * means the full record — the one carrying the production log — is still on
+   * its way, while the card's own copy is already being shown; swapping that
+   * for a spinner would blank a panel that has something to display.
+   */
+  if (!order) {
     return (
       <div className="grid min-h-[30vh] place-items-center rounded-2xl bg-surface-card shadow-sm ring-1 ring-black/5">
         <Spinner label="Loading order" />
@@ -154,18 +162,34 @@ export default function OrderDetail({
     }
   };
 
-  const removeEntry = async (entry) => {
-    if (!window.confirm(`Remove this entry of ${formatMetres(entry.metres)}m?`)) return;
+  const removeEntry = async () => {
     setError('');
     try {
-      onChanged(await inventoryApi.deleteLogEntry(order._id, entry._id));
+      onChanged(await inventoryApi.deleteLogEntry(order._id, confirmingEntry._id));
+      setConfirmingEntry(null);
     } catch (err) {
       setError(err?.message ?? 'Could not remove that entry.');
+      setConfirmingEntry(null);
     }
   };
 
   return (
     <div className="flex flex-col gap-5 rounded-2xl bg-surface-card p-5 shadow-sm ring-1 ring-black/5">
+      <ConfirmDialog
+        open={Boolean(confirmingEntry)}
+        title="Remove this log entry?"
+        message={
+          confirmingEntry
+            ? `${formatMetres(confirmingEntry.metres)}m logged on ${formatDate(
+                confirmingEntry.date
+              )} will be removed and the order's total adjusted. To correct a figure instead, log a negative entry with a note — that keeps the history.`
+            : ''
+        }
+        confirmLabel="Remove entry"
+        onConfirm={removeEntry}
+        onCancel={() => setConfirmingEntry(null)}
+      />
+
       <div className="flex items-start gap-3">
         {order.designImage?.url ? (
           <img
@@ -186,6 +210,9 @@ export default function OrderDetail({
           <h2 className="font-display text-lg font-bold text-brand-ink">{order.companyName}</h2>
           <p className="font-body text-xs text-brand-ink/50">
             Order {order.orderNumber} · Design {order.designNumber}
+            {/* The record is on screen either way; this only says the log is
+                still arriving, rather than replacing the panel with a spinner. */}
+            {loading ? <span className="ml-2 text-brand-ink/40">refreshing…</span> : null}
           </p>
         </div>
 
@@ -337,7 +364,7 @@ export default function OrderDetail({
                   {isOwner ? (
                     <button
                       type="button"
-                      onClick={() => removeEntry(entry)}
+                      onClick={() => setConfirmingEntry(entry)}
                       aria-label="Remove entry"
                       className="grid h-7 w-7 place-items-center rounded-full text-brand-ink/35
                                  transition-colors hover:bg-rose-50 hover:text-rose-600"

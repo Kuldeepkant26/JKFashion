@@ -8,8 +8,19 @@ export const listOrderRules: ValidationChain[] = [
   query("status").optional().isIn(LIST_STATUSES).withMessage("Unknown status"),
   query("companyId").optional().isMongoId().withMessage("Unknown company"),
   query("search").optional().isString().trim().isLength({ max: 100 }),
+  /*
+   * The range filters on when the order was raised. Left as strings rather
+   * than `.toDate()`: the service normalises them to UTC day bounds itself, so
+   * that both ends mean whole days regardless of the server's timezone.
+   */
+  query("from").optional({ checkFalsy: true }).isISO8601().withMessage("Invalid from date"),
+  query("to").optional({ checkFalsy: true }).isISO8601().withMessage("Invalid to date"),
   query("page").optional().isInt({ min: 1 }).toInt(),
   query("limit").optional().isInt({ min: 1, max: 100 }).toInt(),
+];
+
+export const previewOrderNumberRules: ValidationChain[] = [
+  query("companyId").isMongoId().withMessage("Choose a company"),
 ];
 
 /*
@@ -41,13 +52,13 @@ const orderFields = (optional: boolean): ValidationChain[] => {
   ];
 };
 
+/*
+ * `orderNumber` is absent from both rule sets on purpose: the server generates
+ * it, the controller never reads it off the body, and requiring it here would
+ * make the form send a value that is then discarded.
+ */
 export const createOrderRules: ValidationChain[] = [
   body("companyId").isMongoId().withMessage("Choose a company"),
-  body("orderNumber")
-    .isString()
-    .trim()
-    .isLength({ min: 1, max: 60 })
-    .withMessage("Give the order a number"),
   body("designNumber")
     .isString()
     .trim()
@@ -63,7 +74,6 @@ export const createOrderRules: ValidationChain[] = [
 export const updateOrderRules: ValidationChain[] = [
   param("id").isMongoId().withMessage("Unknown order"),
   body("companyId").optional().isMongoId().withMessage("Unknown company"),
-  body("orderNumber").optional().isString().trim().isLength({ min: 1, max: 60 }),
   body("designNumber").optional().isString().trim().isLength({ min: 1, max: 60 }),
   body("orderedMetres").optional().isFloat({ min: 0.1, max: 10_000_000 }).toFloat(),
   ...orderFields(true),

@@ -12,9 +12,19 @@ import { ROUTES } from './routePaths.js';
  */
 export const PERMISSIONS = [
   {
+    /**
+     * Still `INVENTORY` after the section was renamed to Orders. The id is
+     * stored on every staff account and constrained by the API's enum, so
+     * renaming it would mean migrating those accounts to rename a label.
+     */
     id: 'INVENTORY',
-    label: 'Inventory',
+    label: 'Orders',
     hint: 'Production orders and buyer companies',
+  },
+  {
+    id: 'STOCK',
+    label: 'Inventory Management',
+    hint: 'Daily stock of yarn, fabric and supplies, and expenses',
   },
   {
     id: 'ENQUIRIES',
@@ -58,7 +68,8 @@ export const landingRouteFor = (user) => {
   if (user?.role === 'MAIN_ADMIN') return ROUTES.ADMIN_DASHBOARD;
 
   const firstAllowed = [
-    ['INVENTORY', ROUTES.ADMIN_INVENTORY],
+    ['INVENTORY', ROUTES.ADMIN_ORDERS],
+    ['STOCK', ROUTES.ADMIN_INVENTORY],
     ['DASHBOARD', ROUTES.ADMIN_DASHBOARD],
     ['ENQUIRIES', ROUTES.ADMIN_ENQUIRIES],
     ['CONTENT', ROUTES.ADMIN_CONTENT],

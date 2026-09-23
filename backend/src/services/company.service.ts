@@ -1,5 +1,9 @@
 import type { FilterQuery, Types } from "mongoose";
-import { Company, type ICompany } from "../models/company.model.js";
+import {
+  Company,
+  type ICompany,
+  type ICompanyContact,
+} from "../models/company.model.js";
 import { ProductionOrder } from "../models/productionOrder.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
@@ -13,6 +17,26 @@ export interface ListOptions {
 export interface CompanyListItem extends ICompany {
   orderCount: number;
 }
+
+/**
+ * Present a company's contacts as rows, whatever shape they are stored in.
+ *
+ * A row written before `contacts` existed carries its detail in the legacy
+ * free-text `contact` field. Rather than migrating the collection, that text is
+ * surfaced as a single name-only row, so the UI has exactly one shape to render
+ * and the original wording is preserved until someone edits it.
+ */
+const withContacts = <T extends { contacts?: ICompanyContact[]; contact?: string }>(
+  company: T
+): T => {
+  if (company.contacts?.length) return company;
+  if (!company.contact?.trim()) return { ...company, contacts: [] };
+
+  return {
+    ...company,
+    contacts: [{ name: company.contact.trim(), phone: "", email: "" }],
+  };
+};
 
 export interface ListResult {
   items: CompanyListItem[];
@@ -37,7 +61,15 @@ export const listCompanies = async ({
 
   if (search) {
     const rx = new RegExp(escapeRegex(search), "i");
-    filter.$or = [{ name: rx }, { location: rx }, { contact: rx }];
+    filter.$or = [
+      { name: rx },
+      { location: rx },
+      { "contacts.name": rx },
+      { "contacts.phone": rx },
+      { "contacts.email": rx },
+      // Still matched so buyers not yet re-saved remain findable by contact.
+      { contact: rx },
+    ];
   }
 
   const skip = (page - 1) * limit;
@@ -74,23 +106,31 @@ const withOrderCounts = async (companies: ICompany[]): Promise<CompanyListItem[]
   const byId = new Map(counts.map((c) => [String(c._id), c.count]));
 
   return companies.map((c) => ({
-    ...c,
+    ...withContacts(c),
     orderCount: byId.get(String(c._id)) ?? 0,
   })) as CompanyListItem[];
 };
 
+/**
+ * The document itself — for the service's own writes, which need a live
+ * Mongoose document rather than a presented one.
+ */
 export const getCompany = async (id: string): Promise<ICompany> => {
   const company = await Company.findById(id).exec();
   if (!company) throw new ApiError(404, "That company no longer exists");
   return company;
 };
 
+/** The same company as the API returns it, with legacy contacts folded in. */
+export const getCompanyView = async (id: string): Promise<Record<string, unknown>> =>
+  withContacts((await getCompany(id)).toObject());
+
 export interface CompanyInput {
   name: string;
   address?: string;
   location?: string;
   gst?: string;
-  contact?: string;
+  contacts?: ICompanyContact[];
 }
 
 export const createCompany = async (
@@ -103,7 +143,7 @@ export interface CompanyPatch {
   address?: string;
   location?: string;
   gst?: string;
-  contact?: string;
+  contacts?: ICompanyContact[];
   isActive?: boolean;
 }
 
@@ -123,6 +163,15 @@ export const updateCompany = async (
     patch.name !== undefined && patch.name !== company.name ? patch.name : null;
 
   Object.assign(company, patch);
+
+  /*
+   * Once structured contacts are written, the legacy free text has been
+   * superseded — it was only ever shown by being folded into that same list.
+   * Leaving it would make the row match a search for a contact it no longer
+   * claims to have.
+   */
+  if (patch.contacts !== undefined) company.contact = "";
+
   await company.save();
 
   if (renamedTo) {

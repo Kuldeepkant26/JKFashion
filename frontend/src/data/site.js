@@ -1,9 +1,12 @@
 /**
- * Single source of truth for JK Fashion's business details.
+ * JK Fashion's build-time business details.
  *
  * Values marked TODO are placeholders — replace them with the client's real
- * details when they arrive. Everything on the site reads from here, so one
- * edit updates every page.
+ * details when they arrive.
+ *
+ * Anything the owner must be able to change without a redeploy does not belong
+ * here: it is served by the API and edited in the admin panel. See `contact`
+ * below.
  */
 
 export const company = {
@@ -14,14 +17,18 @@ export const company = {
   yearsExperience: 25,           // TODO confirm with client
 };
 
+/**
+ * Contact details are NOT here.
+ *
+ * The phone number, address and email are owner-editable in the admin panel
+ * (Settings → Hero Content), so they live server-side and are read through
+ * `useHomeContentStore`. Hard-coding them here again would give the site two
+ * sources of truth, and the stale one always wins somewhere.
+ *
+ * The built-in values used when the API is unreachable are in
+ * `data/homeFallback.js`; the link helpers are in `utils/contactLinks.js`.
+ */
 export const contact = {
-  email: 'info@jkfashion.com',      // TODO confirm
-  salesEmail: 'sales@jkfashion.com', // TODO confirm
-  phone: '+91 98765 43210',                   // TODO confirm
-  phoneHref: '+919876543210',                 // TODO confirm
-  whatsapp: '919876543210',                   // TODO confirm
-  address: 'Surat, Gujarat, India',           // TODO confirm
-  addressFull: 'Surat, Gujarat 395006, India', // TODO confirm
   hours: 'Mon – Sat, 9:30 am – 6:30 pm IST',
   responseTime: "We'll get back to you within 24 working hours.",
 };

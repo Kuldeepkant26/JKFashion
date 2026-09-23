@@ -1,10 +1,32 @@
-/** Mirrors ROLES.MAIN_ADMIN on the API — the seeded owner. */
-export const MAIN_ADMIN = 'MAIN_ADMIN';
+/**
+ * Order-specific constants.
+ *
+ * The generic ones — input styling, date helpers, range presets — live in
+ * `admin/constants/ui.js` and are re-exported here so existing imports in this
+ * folder keep working and this file stays the one place an orders screen
+ * imports from.
+ */
+export {
+  MAIN_ADMIN,
+  inputClass,
+  labelClass,
+  formatDate,
+  toDateInput,
+  DATE_PRESETS,
+} from '../../constants/ui.js';
 
-/** Mirrors ORDER_STATUSES in the API's productionOrder model. */
-export const ORDER_STATUSES = ['PENDING', 'RUNNING', 'PAUSED', 'COMPLETED'];
+// Metres are this section's unit; the shared formatter is unit-agnostic.
+export { formatQuantity as formatMetres } from '../../constants/ui.js';
+
+/**
+ * Mirrors ORDER_STATUSES in the API's productionOrder model, in lifecycle
+ * order. An order opens at SAMPLING — nothing goes to the floor before the
+ * buyer approves a sample.
+ */
+export const ORDER_STATUSES = ['SAMPLING', 'PENDING', 'RUNNING', 'PAUSED', 'COMPLETED'];
 
 export const STATUS_LABELS = {
+  SAMPLING: 'Sampling',
   PENDING: 'Pending',
   RUNNING: 'Running',
   PAUSED: 'Paused',
@@ -13,6 +35,7 @@ export const STATUS_LABELS = {
 };
 
 export const STATUS_STYLES = {
+  SAMPLING: 'bg-violet-50 text-violet-700',
   PENDING: 'bg-brand-ink/8 text-brand-ink/60',
   RUNNING: 'bg-sky-50 text-sky-700',
   PAUSED: 'bg-amber-50 text-amber-700',
@@ -34,26 +57,3 @@ export const FILTERS = [
 /** Mirrors the API's own cap, so an oversized file is caught before upload. */
 export const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 export const IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp,image/avif';
-
-export const inputClass =
-  'w-full rounded-xl bg-surface-card px-3.5 py-2.5 font-body text-sm text-brand-ink ' +
-  'ring-1 ring-brand-ink/12 transition-shadow placeholder:text-brand-ink/35 ' +
-  'focus:outline-none focus:ring-2 focus:ring-brand-pink';
-
-export const formatDate = (iso) =>
-  iso
-    ? new Date(iso).toLocaleDateString(undefined, {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      })
-    : '—';
-
-/** Metres read better without trailing zeroes: 125 rather than 125.0. */
-export const formatMetres = (n) => {
-  const value = Number(n ?? 0);
-  return Number.isInteger(value) ? String(value) : value.toFixed(1);
-};
-
-/** An ISO date for an <input type="date">, which wants exactly YYYY-MM-DD. */
-export const toDateInput = (iso) => (iso ? String(iso).slice(0, 10) : '');

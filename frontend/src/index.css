@@ -196,6 +196,18 @@
   /* Warm neutral surfaces, tinted a few percent toward the active brand. */
   --admin-cream: color-mix(in oklab, var(--brand-primary) 6%, #F4F1EF);
   --admin-sidebar: color-mix(in oklab, var(--brand-primary) 4%, #FFFFFF);
+
+  /*
+   * The working area behind the cards: plain white, untinted.
+   *
+   * A separate token from --admin-cream rather than a change to it. The panel
+   * reads better with a neutral ground under the data — a colour cast on a
+   * screen full of figures is noise — but --admin-cream is ALSO the fill of
+   * several inset panels (the image picker, the log form, the remarks box),
+   * and those need to stay a shade off the card they sit in or they vanish
+   * into it. Splitting the two keeps the page white and the insets visible.
+   */
+  --admin-page: #FFFFFF;
 }
 
 :root[data-scheme="dark"] {
@@ -203,6 +215,10 @@
      so the sidebar stays above the page rather than sinking into it. */
   --admin-cream: color-mix(in oklab, var(--brand-primary) 6%, #0B0B0F);
   --admin-sidebar: color-mix(in oklab, var(--brand-primary) 12%, #18181F);
+
+  /* "White" under a dark preset is the darkest surface, so the cards above it
+     still read as raised. */
+  --admin-page: #0B0B0F;
 }
 
 @theme inline {
@@ -213,6 +229,7 @@
 
   --color-admin-cream: var(--admin-cream);
   --color-admin-sidebar: var(--admin-sidebar);
+  --color-admin-page: var(--admin-page);
 
   /* For surfaces that stay light under every preset (the login screen). A real
      token rather than an arbitrary value, so `/60` opacity modifiers work —
@@ -248,6 +265,33 @@
 @theme inline {
   --font-display: var(--brand-font-display);
   --font-body: var(--brand-font-body);
+}
+
+/* --------------------------------------------------------------------------
+   DATA SURFACES — the same trick, scoped to a subtree.
+
+   Because `@theme inline` emits `font-family: var(--font-body)` rather than
+   baking the stack in, redefining these two variables on an element re-points
+   every `font-body` / `font-display` utility INSIDE it, and nothing outside.
+   That is what lets Inventory carry its own typeface without a second set of
+   utility classes on every element or a change to the site's fonts.
+
+   Inventory shows metres, order numbers and dates that get read off a screen
+   and copied onto a docket. A display serif is wrong for that: it is chosen
+   for headlines, its figures are not designed to line up in a column, and the
+   family is whatever theme preset the site is wearing. A system UI stack with
+   tabular figures is what a data screen wants, and it loads nothing extra.
+   -------------------------------------------------------------------------- */
+[data-surface="data"] {
+  --font-display: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-body: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  /* Figures of equal width, so quantities stack into readable columns and a
+     number does not shuffle sideways as it updates. */
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-body);
 }
 
 /* Prevent horizontal scroll & Mobile scroll fixes */

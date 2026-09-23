@@ -57,10 +57,15 @@
       This block is the one machine-readable description of the business that
       survives that, and is what Google reads for the knowledge panel.
 
-      TODO (client to supply): replace the telephone, email and streetAddress
-      placeholders with the real details, then submit the domain in Google
-      Search Console. Deliberately left empty rather than invented — wrong
-      contact data in schema is worse than none.
+      The phone number and locality are the client's real details. They are
+      duplicated here rather than read from the API on purpose: this block has
+      to be in the HTML a crawler receives, before any JavaScript runs. The
+      editable copy lives in the admin panel — if the owner changes their
+      number there, this needs the same edit.
+
+      TODO (client to supply): email and streetAddress, then submit the domain
+      in Google Search Console. Both are deliberately absent rather than
+      invented — wrong contact data in schema is worse than none.
     -->
     <script type="application/ld+json">
       {
@@ -72,8 +77,11 @@
         "logo": "https://jkfashionembroidery.com/favicon.png",
         "image": "https://jkfashionembroidery.com/jk_fashion_img1-full.jpg",
         "description": "Manufacturers of schiffli embroidered fabrics, cotton and net laces, and crochet trims for garment and fabric exporters.",
+        "telephone": "+919810014413",
         "address": {
           "@type": "PostalAddress",
+          "addressLocality": "Faridabad",
+          "addressRegion": "Haryana",
           "addressCountry": "IN"
         },
         "knowsAbout": [

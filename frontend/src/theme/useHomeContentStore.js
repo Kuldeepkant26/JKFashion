@@ -28,6 +28,11 @@ const write = (value) => {
  * `image.url` is flattened to `imageSrc` here so no variant has to know whether
  * the picture came from Cloudinary or the bundle. A hero with no uploaded image
  * falls back to the bundled cut-out rather than rendering a broken <img>.
+ *
+ * `contact` spreads the same way, which matters more than it looks: a server
+ * value of "" must survive the merge, because an empty detail is how the owner
+ * hides a line from the site. Only a group the API did not send at all — an
+ * older build, or an unreachable server — falls back to the bundled details.
  */
 const merge = (data) => ({
   hero: {
@@ -35,6 +40,9 @@ const merge = (data) => ({
     ...data?.hero,
     imageSrc: data?.hero?.image?.url || HOME_FALLBACK.hero.imageSrc,
   },
+  contact: data?.contact
+    ? { ...HOME_FALLBACK.contact, ...data.contact }
+    : { ...HOME_FALLBACK.contact },
 });
 
 /**

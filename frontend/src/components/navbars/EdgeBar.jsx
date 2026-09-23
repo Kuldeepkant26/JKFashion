@@ -4,7 +4,9 @@ import SectionLink from './SectionLink.jsx';
 import MobileMenu from './MobileMenu.jsx';
 import MenuButton from './MenuButton.jsx';
 import EnquireLink from './EnquireLink.jsx';
-import { company, contact } from '../../data/site.js';
+import { company } from '../../data/site.js';
+import { useHomeContentStore } from '../../theme/useHomeContentStore.js';
+import { telHref } from '../../utils/contactLinks.js';
 import logo from '../../assets/jk-fashion-logo.png';
 
 /**
@@ -20,6 +22,9 @@ export default function EdgeBar() {
   const menu = useMobileMenu();
   const activeId = useActiveSection();
   const { scrolled, hidden } = useNavScroll({ menuOpen: menu.open });
+
+  /* Owner-editable, from the admin panel. */
+  const contact = useHomeContentStore((s) => s.contact);
 
   return (
     <>
@@ -41,16 +46,19 @@ export default function EdgeBar() {
                style={{ color: 'color-mix(in oklab, var(--surface-primary) 85%, transparent)',
                         lineHeight: '36px' }}>
             <span>{company.tagline}</span>
+            {/* Only the details the owner has set — an empty strip entry would
+                read as a broken link rather than as an absent one. */}
             <span className="flex items-center gap-6">
-              <a href={`mailto:${contact.email}`} className="transition-opacity hover:opacity-70">
-                {contact.email}
-              </a>
-              <a
-                href={`tel:${contact.phone.replace(/\s/g, '')}`}
-                className="transition-opacity hover:opacity-70"
-              >
-                {contact.phone}
-              </a>
+              {contact.email ? (
+                <a href={`mailto:${contact.email}`} className="transition-opacity hover:opacity-70">
+                  {contact.email}
+                </a>
+              ) : null}
+              {contact.phone ? (
+                <a href={telHref(contact.phone)} className="transition-opacity hover:opacity-70">
+                  {contact.phone}
+                </a>
+              ) : null}
             </span>
           </div>
         </div>

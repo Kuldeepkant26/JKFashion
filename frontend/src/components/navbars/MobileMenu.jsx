@@ -1,7 +1,9 @@
 import { NAV_LINKS } from './useNavbar.js';
 import SectionLink from './SectionLink.jsx';
 import EnquireLink from './EnquireLink.jsx';
-import { company, contact } from '../../data/site.js';
+import { company } from '../../data/site.js';
+import { useHomeContentStore } from '../../theme/useHomeContentStore.js';
+import { telHref } from '../../utils/contactLinks.js';
 
 /**
  * The mobile navigation, shared by every navbar variant.
@@ -15,6 +17,9 @@ import { company, contact } from '../../data/site.js';
  * while it is invisible, which `hidden` alone would not allow us to animate.
  */
 export default function MobileMenu({ open, onClose }) {
+  /* Owner-editable, from the admin panel. */
+  const contact = useHomeContentStore((s) => s.contact);
+
   return (
     <div
       id="site-mobile-menu"
@@ -96,12 +101,18 @@ export default function MobileMenu({ open, onClose }) {
         className="px-6 pb-10 text-center font-body text-sm"
         style={{ color: 'var(--text-secondary)' }}
       >
-        <a href={`mailto:${contact.email}`} className="block py-1">
-          {contact.email}
-        </a>
-        <a href={`tel:${contact.phone.replace(/\s/g, '')}`} className="block py-1">
-          {contact.phone}
-        </a>
+        {/* Only what the owner has set — see the footer for why a blank line
+            is worse than no line. */}
+        {contact.email ? (
+          <a href={`mailto:${contact.email}`} className="block py-1">
+            {contact.email}
+          </a>
+        ) : null}
+        {contact.phone ? (
+          <a href={telHref(contact.phone)} className="block py-1">
+            {contact.phone}
+          </a>
+        ) : null}
       </div>
     </div>
   );

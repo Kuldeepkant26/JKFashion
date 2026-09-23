@@ -28,4 +28,18 @@ export const HOME_FALLBACK = {
      */
     imageSrc: hero.showcase[2],
   },
+
+  /**
+   * The business details, shown in the footer, the navbar strip, the mobile
+   * menu and the enquiry block.
+   *
+   * These mirror backend/src/config/homeDefaults.ts — keep the two in step.
+   * `email` is empty on purpose: there is no published address yet, and every
+   * place that shows it omits the line entirely rather than printing a blank.
+   */
+  contact: {
+    phone: '9810014413',
+    address: 'Faridabad, Haryana India',
+    email: '',
+  },
 };

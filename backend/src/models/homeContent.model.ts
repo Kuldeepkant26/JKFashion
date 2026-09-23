@@ -29,9 +29,23 @@ export interface IHomeHero {
   imageAlt: string;
 }
 
+/**
+ * The business details every public section shows.
+ *
+ * One group rather than a field per place they appear: the footer, the navbar
+ * strip, the mobile menu and the enquiry block all show the same number, so a
+ * change has to be one edit, not four.
+ */
+export interface IHomeContact {
+  phone: string;
+  address: string;
+  email: string;
+}
+
 export interface IHomeContent extends Document {
   key: string;
   hero: IHomeHero;
+  contact: IHomeContact;
 
   updatedBy?: Types.ObjectId;
   createdAt: Date;
@@ -60,6 +74,22 @@ const homeContentSchema = new Schema<IHomeContent>(
       ctaLabel: { type: String, trim: true, maxlength: 40, default: "" },
       image: { type: mediaRefSchema, default: () => ({}) },
       imageAlt: { type: String, trim: true, maxlength: 160, default: "" },
+    },
+
+    /*
+     * Every field defaults to "" and none is required, because an empty value
+     * is meaningful here: the site hides a detail it has no value for rather
+     * than printing a blank label. That is what lets the owner run without a
+     * published email address until they have one.
+     *
+     * `phone` is stored exactly as the owner types it, spaces and all — it is
+     * what visitors read. The tel: and wa.me links strip it at the point of
+     * use, so no second field can drift out of step with this one.
+     */
+    contact: {
+      phone: { type: String, trim: true, maxlength: 40, default: "" },
+      address: { type: String, trim: true, maxlength: 200, default: "" },
+      email: { type: String, trim: true, maxlength: 160, default: "" },
     },
 
     updatedBy: { type: Schema.Types.ObjectId, ref: "AdminUser" },

@@ -19,7 +19,14 @@ export const ROLE_VALUES: Role[] = Object.values(ROLES);
  * somewhere that could be forgotten.
  */
 export const PERMISSIONS = Object.freeze({
+  /**
+   * Production orders and buyer companies. Presented in the panel as
+   * "Orders" — the id predates that rename and is stored on every staff
+   * account, so it stays as it is rather than forcing a migration.
+   */
   INVENTORY: "INVENTORY",
+  /** The daily materials ledger: stock on the floor, and expenses. */
+  STOCK: "STOCK",
   ENQUIRIES: "ENQUIRIES",
   CONTENT: "CONTENT",
   SETTINGS: "SETTINGS",

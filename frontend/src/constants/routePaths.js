@@ -10,9 +10,24 @@ export const ROUTES = {
   ADMIN_LOGIN: '/admin/login',
   ADMIN: '/admin',
   ADMIN_DASHBOARD: '/admin/dashboard',
+  /**
+   * Production orders and the buyers they are for. Presented as "Orders";
+   * the permission behind it is still called INVENTORY, which predates the
+   * rename — see constants/permissions.js.
+   */
+  ADMIN_ORDERS: '/admin/orders',
+  ADMIN_ORDERS_LIST: '/admin/orders/list',
+  ADMIN_ORDERS_COMPANIES: '/admin/orders/companies',
+
+  /**
+   * The daily materials ledger — what stock is on the floor, what came in and
+   * what went out. A different section from Orders, with its own permission.
+   */
   ADMIN_INVENTORY: '/admin/inventory',
-  ADMIN_INVENTORY_ORDERS: '/admin/inventory/orders',
-  ADMIN_INVENTORY_COMPANIES: '/admin/inventory/companies',
+  ADMIN_INVENTORY_OVERVIEW: '/admin/inventory/overview',
+  ADMIN_INVENTORY_MATERIALS: '/admin/inventory/materials',
+  ADMIN_INVENTORY_REPORT: '/admin/inventory/report',
+  ADMIN_INVENTORY_EXPENSES: '/admin/inventory/expenses',
   ADMIN_STAFF: '/admin/staff',
   ADMIN_ENQUIRIES: '/admin/enquiries',
   ADMIN_CONTENT: '/admin/content',

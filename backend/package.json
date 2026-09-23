@@ -10,6 +10,8 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "seed": "tsx src/scripts/seedAdmin.ts",
+    "seed:inventory": "tsx src/scripts/seedInventory.ts",
+    "seed:stock": "tsx src/scripts/seedStock.ts",
     "cleanup:step-images": "tsx src/scripts/cleanupStepImages.ts",
     "typecheck": "tsc --noEmit"
   },

@@ -31,9 +31,14 @@ const AdminPlaceholder = lazy(() => import('./admin/pages/AdminPlaceholder'));
 const AdminEnquiries = lazy(() => import('./admin/pages/AdminEnquiries.jsx'));
 const AdminStaff = lazy(() => import('./admin/pages/AdminStaff.jsx'));
 const AdminNoAccess = lazy(() => import('./admin/pages/AdminNoAccess.jsx'));
-const InventoryLayout = lazy(() => import('./admin/pages/inventory/InventoryLayout.jsx'));
-const CompaniesTab = lazy(() => import('./admin/pages/inventory/CompaniesTab.jsx'));
-const OrdersTab = lazy(() => import('./admin/pages/inventory/OrdersTab.jsx'));
+const OrdersLayout = lazy(() => import('./admin/pages/orders/OrdersLayout.jsx'));
+const CompaniesTab = lazy(() => import('./admin/pages/orders/CompaniesTab.jsx'));
+const OrdersTab = lazy(() => import('./admin/pages/orders/OrdersTab.jsx'));
+const StockLayout = lazy(() => import('./admin/pages/stock/StockLayout.jsx'));
+const StockOverviewTab = lazy(() => import('./admin/pages/stock/OverviewTab.jsx'));
+const StockMaterialsTab = lazy(() => import('./admin/pages/stock/MaterialsTab.jsx'));
+const StockReportTab = lazy(() => import('./admin/pages/stock/ReportTab.jsx'));
+const StockExpensesTab = lazy(() => import('./admin/pages/stock/ExpensesTab.jsx'));
 const SettingsLayout = lazy(() => import('./admin/pages/settings/SettingsLayout.jsx'));
 const ThemeTab = lazy(() => import('./admin/pages/settings/ThemeTab.jsx'));
 const FontTab = lazy(() => import('./admin/pages/settings/FontTab.jsx'));
@@ -114,20 +119,55 @@ function App() {
             }
           />
           <Route path="no-access" element={<AdminNoAccess />} />
-          {/* Inventory is a section with its own tabs; the bare path lands on
-              the first one so /admin/inventory is never a blank screen. */}
+          {/* Orders is a section with its own tabs; the bare path lands on
+              the first one so /admin/orders is never a blank screen. */}
           <Route
-            path="inventory"
+            path="orders"
             element={
               <PermissionRoute section="INVENTORY">
-                <InventoryLayout />
+                <OrdersLayout />
               </PermissionRoute>
             }
           >
-            <Route index element={<Navigate to={ROUTES.ADMIN_INVENTORY_ORDERS} replace />} />
-            <Route path="orders" element={<OrdersTab />} />
+            <Route index element={<Navigate to={ROUTES.ADMIN_ORDERS_COMPANIES} replace />} />
             <Route path="companies" element={<CompaniesTab />} />
+            <Route path="list" element={<OrdersTab />} />
           </Route>
+
+          {/*
+            Orders used to live under /admin/inventory, which now belongs to
+            the stock ledger below. These are the two paths people have
+            bookmarked, so they redirect to where those screens moved.
+            Declared before the stock section for legibility — the router
+            ranks by specificity, not source order, so these would win either
+            way, but a reader should not have to know that.
+          */}
+          <Route
+            path="inventory/orders"
+            element={<Navigate to={ROUTES.ADMIN_ORDERS_LIST} replace />}
+          />
+          <Route
+            path="inventory/companies"
+            element={<Navigate to={ROUTES.ADMIN_ORDERS_COMPANIES} replace />}
+          />
+
+          {/* The daily materials ledger. A separate section and permission —
+              this is stock on the floor, not the orders it is worked against. */}
+          <Route
+            path="inventory"
+            element={
+              <PermissionRoute section="STOCK">
+                <StockLayout />
+              </PermissionRoute>
+            }
+          >
+            <Route index element={<Navigate to={ROUTES.ADMIN_INVENTORY_OVERVIEW} replace />} />
+            <Route path="overview" element={<StockOverviewTab />} />
+            <Route path="materials" element={<StockMaterialsTab />} />
+            <Route path="report" element={<StockReportTab />} />
+            <Route path="expenses" element={<StockExpensesTab />} />
+          </Route>
+
           <Route
             path="staff"
             element={

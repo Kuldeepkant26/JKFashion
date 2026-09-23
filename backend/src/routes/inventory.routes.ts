@@ -13,6 +13,7 @@ import {
 } from "../validators/company.validator.js";
 import {
   listOrderRules,
+  previewOrderNumberRules,
   createOrderRules,
   updateOrderRules,
   orderIdRules,
@@ -62,6 +63,14 @@ router.delete(
  * "/orders/:id" cannot quietly swallow "/orders/summary".
  */
 router.get("/summary", orderController.getSummary);
+
+/** Literal, so it is declared before "/orders/:id" like "/summary" above. */
+router.get(
+  "/orders/next-number",
+  previewOrderNumberRules,
+  validate,
+  orderController.previewOrderNumber
+);
 
 router.get("/orders", listOrderRules, validate, orderController.listOrders);
 

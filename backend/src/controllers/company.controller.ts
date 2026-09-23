@@ -17,22 +17,37 @@ export const listCompanies = asyncHandler<AuthedRequest>(async (req, res) => {
 });
 
 export const getCompany = asyncHandler<AuthedRequest>(async (req, res) => {
-  const company = await companyService.getCompany(req.params.id as string);
+  const company = await companyService.getCompanyView(req.params.id as string);
   res.status(200).json(new ApiResponse(200, company));
 });
 
+/**
+ * Drop rows the validator allows through but that carry nothing.
+ *
+ * The validator rejects a row with all three fields blank; this additionally
+ * normalises whitespace so " " never reaches the database as a contact name.
+ */
+const cleanContacts = (
+  contacts: Array<Record<string, unknown>> | undefined
+): companyService.CompanyInput["contacts"] =>
+  (contacts ?? []).map((c) => ({
+    name: String(c?.name ?? "").trim(),
+    phone: String(c?.phone ?? "").trim(),
+    email: String(c?.email ?? "").trim(),
+  }));
+
 export const createCompany = asyncHandler<AuthedRequest>(async (req, res) => {
   // Only the fields the validator vetted — never the raw body.
-  const { name, address, location, gst, contact } = req.body as {
+  const { name, address, location, gst, contacts } = req.body as {
     name: string;
     address?: string;
     location?: string;
     gst?: string;
-    contact?: string;
+    contacts?: Array<Record<string, unknown>>;
   };
 
   const company = await companyService.createCompany(
-    { name, address, location, gst, contact },
+    { name, address, location, gst, contacts: cleanContacts(contacts) },
     req.user!._id as never
   );
 
@@ -40,12 +55,12 @@ export const createCompany = asyncHandler<AuthedRequest>(async (req, res) => {
 });
 
 export const updateCompany = asyncHandler<AuthedRequest>(async (req, res) => {
-  const { name, address, location, gst, contact, isActive } = req.body as {
+  const { name, address, location, gst, contacts, isActive } = req.body as {
     name?: string;
     address?: string;
     location?: string;
     gst?: string;
-    contact?: string;
+    contacts?: Array<Record<string, unknown>>;
     isActive?: boolean;
   };
 
@@ -55,7 +70,7 @@ export const updateCompany = asyncHandler<AuthedRequest>(async (req, res) => {
   if (address !== undefined) patch.address = address;
   if (location !== undefined) patch.location = location;
   if (gst !== undefined) patch.gst = gst;
-  if (contact !== undefined) patch.contact = contact;
+  if (contacts !== undefined) patch.contacts = cleanContacts(contacts);
   if (isActive !== undefined) patch.isActive = isActive;
 
   const company = await companyService.updateCompany(req.params.id as string, patch);

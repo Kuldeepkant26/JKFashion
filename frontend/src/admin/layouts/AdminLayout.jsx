@@ -61,11 +61,13 @@ export default function AdminLayout() {
   };
 
   return (
-    <div className="font-body min-h-screen bg-admin-cream text-brand-ink scroll-auto">
+    /* The working area is plain white; the sidebar keeps the brand tint, so
+       the two still read as separate surfaces. */
+    <div className="font-body min-h-screen bg-admin-page text-brand-ink scroll-auto">
       {/* ---------------------------------------- mobile top bar */}
       <header
         className="sticky top-0 z-20 flex items-center gap-3 border-b border-brand-ink/8
-                   bg-admin-cream/95 px-4 py-3 backdrop-blur lg:hidden"
+                   bg-admin-page/95 px-4 py-3 backdrop-blur lg:hidden"
       >
         <button
           type="button"

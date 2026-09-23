@@ -13,11 +13,17 @@ import {
     FaMapMarkerAlt,
     FaWhatsapp
 } from 'react-icons/fa';
-import { company, contact, social } from '../data/site';
+import { company, social } from '../data/site';
+import { useHomeContentStore } from '../theme/useHomeContentStore.js';
+import { telHref, whatsappHref } from '../utils/contactLinks.js';
 import logo from '../assets/jk-fashion-logo.png';
 
 const Footer = () => {
     const currentYear = new Date().getFullYear();
+
+    /* Owner-editable, from the admin panel. */
+    const contact = useHomeContentStore((s) => s.contact);
+
     return (
         <footer className="footer-section">
             <div className="footer-container">
@@ -40,9 +46,13 @@ const Footer = () => {
                             <a href={social.facebook} target="_blank" rel="noopener noreferrer" className="social-link" aria-label="Facebook">
                                 <FaFacebookF />
                             </a>
-                            <a href={`https://wa.me/${contact.whatsapp}`} target="_blank" rel="noopener noreferrer" className="social-link" aria-label="WhatsApp">
-                                <FaWhatsapp />
-                            </a>
+                            {/* Dropped entirely when there is no number — a wa.me link with
+                                nothing after the slash is a dead end, not a contact. */}
+                            {contact.phone ? (
+                                <a href={whatsappHref(contact.phone)} target="_blank" rel="noopener noreferrer" className="social-link" aria-label="WhatsApp">
+                                    <FaWhatsapp />
+                                </a>
+                            ) : null}
                         </div>
                     </div>
 
@@ -82,19 +92,30 @@ const Footer = () => {
 
                         <div className="footer-column" id="footer-contact-section">
                             <h3 className="footer-heading">Contact Us</h3>
+                            {/* Each line appears only when the owner has given a value.
+                                An icon beside an empty string reads as broken, so a
+                                detail that is not set is omitted rather than blanked —
+                                which is what keeps the email row out until there is
+                                an address to put in it. */}
                             <ul className="footer-contact">
-                                <li>
-                                    <FaEnvelope className="contact-icon" />
-                                    <a href={`mailto:${contact.email}`}>{contact.email}</a>
-                                </li>
-                                <li>
-                                    <FaPhone className="contact-icon" />
-                                    <a href={`tel:${contact.phoneHref}`}>{contact.phone}</a>
-                                </li>
-                                <li>
-                                    <FaMapMarkerAlt className="contact-icon" />
-                                    <span>{contact.address}</span>
-                                </li>
+                                {contact.email ? (
+                                    <li>
+                                        <FaEnvelope className="contact-icon" />
+                                        <a href={`mailto:${contact.email}`}>{contact.email}</a>
+                                    </li>
+                                ) : null}
+                                {contact.phone ? (
+                                    <li>
+                                        <FaPhone className="contact-icon" />
+                                        <a href={telHref(contact.phone)}>{contact.phone}</a>
+                                    </li>
+                                ) : null}
+                                {contact.address ? (
+                                    <li>
+                                        <FaMapMarkerAlt className="contact-icon" />
+                                        <span>{contact.address}</span>
+                                    </li>
+                                ) : null}
                             </ul>
                         </div>
                     </div>

@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom';
 import {
   FiGrid,
   FiClipboard,
+  FiPackage,
   FiMail,
   FiFileText,
   FiSettings,
@@ -32,7 +33,8 @@ import logo from '../../assets/jk-fashion-logo.png';
 const NAV_GROUPS = [
   [
     { to: ROUTES.ADMIN_DASHBOARD, label: 'Dashboard', Icon: FiGrid, permission: 'DASHBOARD' },
-    { to: ROUTES.ADMIN_INVENTORY, label: 'Inventory', Icon: FiClipboard, permission: 'INVENTORY' },
+    { to: ROUTES.ADMIN_ORDERS, label: 'Orders', Icon: FiClipboard, permission: 'INVENTORY' },
+    { to: ROUTES.ADMIN_INVENTORY, label: 'Inventory', Icon: FiPackage, permission: 'STOCK' },
     { to: ROUTES.ADMIN_ENQUIRIES, label: 'Enquiries', Icon: FiMail, permission: 'ENQUIRIES' },
     { to: ROUTES.ADMIN_CONTENT, label: 'Content', Icon: FiFileText, permission: 'CONTENT' },
   ],

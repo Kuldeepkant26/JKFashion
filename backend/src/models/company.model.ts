@@ -6,11 +6,36 @@ import mongoose, { Schema, type Document, type Model, type Types } from "mongoos
  * Deliberately thin: name, where they are, and how to reach someone. Anything
  * about a particular job belongs on the production order, not here.
  */
+/**
+ * One person to reach at a buyer.
+ *
+ * Every field is optional individually — a buyer who gives only a mobile, or
+ * only an accounts email, is normal — but a row with all three empty is
+ * meaningless and is rejected by the validator rather than stored as noise.
+ */
+export interface ICompanyContact {
+  name: string;
+  phone: string;
+  email: string;
+}
+
+const contactSchema = new Schema<ICompanyContact>(
+  {
+    name: { type: String, trim: true, maxlength: 120, default: "" },
+    phone: { type: String, trim: true, maxlength: 40, default: "" },
+    // Lowercased so one address is one value regardless of how it was typed.
+    email: { type: String, trim: true, lowercase: true, maxlength: 160, default: "" },
+  },
+  { _id: false }
+);
+
 export interface ICompany extends Document {
   name: string;
   address: string;
   location: string;
   gst: string;
+  contacts: ICompanyContact[];
+  /** @deprecated Superseded by `contacts`. Read-only; see the schema note. */
   contact: string;
   isActive: boolean;
   createdBy?: Types.ObjectId;
@@ -36,8 +61,22 @@ const companySchema = new Schema<ICompany>(
     gst: { type: String, trim: true, uppercase: true, maxlength: 20, default: "" },
 
     /**
-     * Free text, not split into person and phone. The client writes
-     * "Ramesh Shah, 98765 43210" and splitting it would reject his own data.
+     * Who to reach, as structured rows. A buyer normally has more than one —
+     * a merchandiser for the job and someone in accounts for the payment —
+     * so this is a list rather than a single set of fields.
+     */
+    contacts: { type: [contactSchema], default: [] },
+
+    /**
+     * The original free-text contact. Kept, never written.
+     *
+     * Rows created before `contacts` existed hold a string like
+     * "Ramesh Shah, 98765 43210", and dropping the path would delete that on
+     * the next save. The service folds a non-empty value into `contacts` on
+     * read, so the UI sees one shape; this exists only so the original text
+     * survives until every row has been edited at least once.
+     *
+     * @deprecated Read-only compatibility shim.
      */
     contact: { type: String, trim: true, maxlength: 200, default: "" },
 

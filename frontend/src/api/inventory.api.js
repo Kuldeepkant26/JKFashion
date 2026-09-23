@@ -54,8 +54,29 @@ const toFormData = (payload, file) => {
 export const createOrder = (payload, file) =>
   api.post('/inventory/orders', toFormData(payload, file), multipart).then(unwrap);
 
+/**
+ * Drop empty values from a patch.
+ *
+ * The form posts every field it holds, including '' for the ones left blank.
+ * The API's validators skip empty strings, but the controller only skips
+ * `undefined` — so an '' would reach the update and clear a field nobody
+ * touched. Matching what `toFormData` already does on create keeps the two
+ * paths honest with each other.
+ */
+const prune = (patch) =>
+  Object.fromEntries(
+    Object.entries(patch).filter(([, v]) => v !== undefined && v !== null && v !== '')
+  );
+
 export const updateOrder = (id, patch) =>
-  api.patch(`/inventory/orders/${id}`, patch).then(unwrap);
+  api.patch(`/inventory/orders/${id}`, prune(patch)).then(unwrap);
+
+/**
+ * The order number a new order for this buyer would get.
+ * A preview — the number is claimed when the order is saved.
+ */
+export const previewOrderNumber = (companyId) =>
+  api.get('/inventory/orders/next-number', { params: { companyId } }).then(unwrap);
 
 export const setOrderStatus = (id, status) =>
   api.patch(`/inventory/orders/${id}/status`, { status }).then(unwrap);

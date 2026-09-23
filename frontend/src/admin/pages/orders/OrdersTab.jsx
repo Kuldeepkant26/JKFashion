@@ -1,27 +1,145 @@
-import { useCallback, useEffect, useState } from 'react';
-import { FiClipboard, FiPlus, FiSearch } from 'react-icons/fi';
+import { useEffect, useState } from 'react';
+import { FiClipboard, FiPlus, FiSearch, FiCalendar, FiX } from 'react-icons/fi';
 import * as inventoryApi from '../../../api/inventory.api.js';
+import { useCachedQuery, cacheKey, invalidate } from '../../../api/useCachedQuery.js';
 import { useAppStore } from '../../../store/useAppStore.js';
 import EmptyState from '../../components/EmptyState.jsx';
 import Spinner from '../../components/Spinner.jsx';
+import ConfirmDialog from '../../components/ConfirmDialog.jsx';
 import OrderCard from './OrderCard.jsx';
 import OrderForm from './OrderForm.jsx';
 import OrderDetail from './OrderDetail.jsx';
 import InventoryStats from './InventoryStats.jsx';
-import { MAIN_ADMIN, FILTERS, inputClass } from './constants.js';
+import { MAIN_ADMIN, FILTERS, DATE_PRESETS, inputClass } from './constants.js';
+
+/**
+ * Filter by when the order was raised.
+ *
+ * Presets for the questions that get asked ("what came in this month"), plus an
+ * explicit range for the ones that do not. Choosing a preset fills the two date
+ * inputs, and editing either of them drops back to "Custom" — so what is shown
+ * always matches what is being sent.
+ */
+function DateRangeFilter({ range, onChange }) {
+  const [open, setOpen] = useState(false);
+
+  const active = DATE_PRESETS.find((p) => {
+    const r = p.range();
+    return r.from === range.from && r.to === range.to;
+  });
+
+  const label = active
+    ? active.label
+    : `${range.from || 'Any'} → ${range.to || 'today'}`;
+
+  const applied = Boolean(range.from || range.to);
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center gap-1.5 font-body text-xs font-semibold uppercase tracking-[0.12em] text-brand-ink/50">
+          <FiCalendar aria-hidden /> Raised
+        </span>
+
+        {DATE_PRESETS.map((preset) => {
+          const r = preset.range();
+          const isActive = r.from === range.from && r.to === range.to;
+
+          return (
+            <button
+              key={preset.value}
+              type="button"
+              onClick={() => onChange(r)}
+              aria-pressed={isActive}
+              className={`rounded-xl px-3 py-1.5 font-body text-xs font-semibold transition-colors
+                          ${
+                            isActive
+                              ? 'bg-brand-pink text-on-primary'
+                              : 'text-brand-ink/60 ring-1 ring-brand-ink/12 hover:bg-brand-ink/5'
+                          }`}
+            >
+              {preset.label}
+            </button>
+          );
+        })}
+
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          className={`rounded-xl px-3 py-1.5 font-body text-xs font-semibold transition-colors
+                      ${
+                        !active && applied
+                          ? 'bg-brand-pink text-on-primary'
+                          : 'text-brand-ink/60 ring-1 ring-brand-ink/12 hover:bg-brand-ink/5'
+                      }`}
+        >
+          Custom range
+        </button>
+
+        {applied ? (
+          <span className="inline-flex items-center gap-1.5 font-body text-xs text-brand-ink/50">
+            {label}
+            <button
+              type="button"
+              onClick={() => {
+                onChange({ from: '', to: '' });
+                setOpen(false);
+              }}
+              aria-label="Clear date filter"
+              className="grid h-5 w-5 place-items-center rounded-full text-brand-ink/40
+                         transition-colors hover:bg-brand-ink/5 hover:text-brand-ink"
+            >
+              <FiX size={12} />
+            </button>
+          </span>
+        ) : null}
+      </div>
+
+      {open ? (
+        <div className="flex flex-wrap items-end gap-3 rounded-xl bg-admin-cream p-3">
+          <label className="flex flex-col gap-1.5">
+            <span className="font-body text-xs font-semibold uppercase tracking-[0.12em] text-brand-ink/60">
+              From
+            </span>
+            <input
+              type="date"
+              value={range.from}
+              max={range.to || undefined}
+              onChange={(e) => onChange({ ...range, from: e.target.value })}
+              className={inputClass}
+            />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="font-body text-xs font-semibold uppercase tracking-[0.12em] text-brand-ink/60">
+              To
+            </span>
+            <input
+              type="date"
+              value={range.to}
+              min={range.from || undefined}
+              onChange={(e) => onChange({ ...range, to: e.target.value })}
+              className={inputClass}
+            />
+          </label>
+          <p className="font-body text-xs text-brand-ink/50">
+            Filters on the date an order was raised, not its deadline.
+          </p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 export default function OrdersTab() {
   const user = useAppStore((s) => s.user);
   const isOwner = user?.role === MAIN_ADMIN;
 
-  const [data, setData] = useState(null);
-  const [summary, setSummary] = useState(null);
-  const [companies, setCompanies] = useState([]);
   const [status, setStatus] = useState('');
+  const [range, setRange] = useState({ from: '', to: '' });
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
-  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [note, setNote] = useState('');
@@ -30,6 +148,7 @@ export default function OrdersTab() {
   const [editing, setEditing] = useState(null);
   const [selected, setSelected] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [confirming, setConfirming] = useState(null);
 
   const flash = (message) => {
     setNote(message);
@@ -45,55 +164,46 @@ export default function OrdersTab() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const [orders, stats] = await Promise.all([
-        inventoryApi.listOrders({
-          status: status || undefined,
-          search: debounced || undefined,
-          page,
-          limit: 20,
-        }),
-        inventoryApi.getSummary(),
-      ]);
-      setData(orders);
-      setSummary(stats);
-    } catch (err) {
-      setError(err?.message ?? 'Could not load orders.');
-    } finally {
-      setLoading(false);
-    }
-  }, [status, debounced, page]);
+  const params = {
+    status: status || undefined,
+    search: debounced || undefined,
+    from: range.from || undefined,
+    to: range.to || undefined,
+    page,
+    limit: 20,
+  };
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const {
+    data,
+    error: loadError,
+    loading,
+  } = useCachedQuery(cacheKey('orders', params), () => inventoryApi.listOrders(params));
 
-  /* The form needs the buyer list; fetched once rather than per open. */
-  useEffect(() => {
-    let cancelled = false;
-    inventoryApi
-      .listCompanies({ limit: 100 })
-      .then((result) => {
-        if (!cancelled) setCompanies(result.items);
-      })
-      .catch(() => {
-        // The form shows an empty picker and says so; not worth a banner here.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { data: summary } = useCachedQuery(cacheKey('summary'), inventoryApi.getSummary);
 
+  /* The form needs the buyer list. Shares the `companies` cache prefix, so a
+     company added on the other tab appears here without a reload. */
+  const { data: companyList } = useCachedQuery(
+    cacheKey('companies', { limit: 100 }),
+    () => inventoryApi.listCompanies({ limit: 100 })
+  );
+  const companies = companyList?.items ?? [];
+
+  /**
+   * Open an order's detail panel.
+   *
+   * The card's own record is shown immediately and the full one — which the
+   * list omits, because it excludes the production log — replaces it when it
+   * arrives. `detailLoading` therefore means "fetching the log", not "nothing
+   * to show": the panel always has an order to render while it is up.
+   */
   const openDetail = async (order) => {
     setEditing(null);
     setSelected(order);
     setDetailLoading(true);
     try {
-      // The list omits the log, so the detail view fetches the full record.
-      setSelected(await inventoryApi.getOrder(order._id));
+      const full = await inventoryApi.getOrder(order._id);
+      setSelected(full);
     } catch (err) {
       setError(err?.message ?? 'Could not open that order.');
       setSelected(null);
@@ -102,24 +212,30 @@ export default function OrdersTab() {
     }
   };
 
-  const remove = async (order) => {
-    if (
-      !window.confirm(
-        `Delete order ${order.orderNumber}? Its production log goes with it, and this ` +
-          `cannot be undone.`
-      )
-    ) {
-      return;
+  /** Pull the open panel's order again, after something changed it. */
+  const reloadDetail = async (id) => {
+    try {
+      setSelected(await inventoryApi.getOrder(id));
+    } catch {
+      // The order is gone, or unreadable — close rather than leave a panel
+      // showing a record that no longer matches the list behind it.
+      setSelected(null);
     }
+  };
+
+  const remove = async () => {
+    const order = confirming;
     setBusy(true);
     setError('');
     try {
       await inventoryApi.deleteOrder(order._id);
+      invalidate('orders', 'summary', 'companies');
       setSelected(null);
-      await load();
+      setConfirming(null);
       flash('Order deleted');
     } catch (err) {
       setError(err?.message ?? 'Could not delete that order.');
+      setConfirming(null);
     } finally {
       setBusy(false);
     }
@@ -127,6 +243,8 @@ export default function OrdersTab() {
 
   const items = data?.items ?? [];
   const counts = data?.statusCounts ?? {};
+  const shownError = error || loadError?.message;
+  const filtered = Boolean(debounced || status || range.from || range.to);
 
   return (
     <div className="flex flex-col gap-5">
@@ -148,25 +266,24 @@ export default function OrdersTab() {
           />
         </label>
 
-        {!editing ? (
-          <button
-            type="button"
-            onClick={() => {
-              setSelected(null);
-              setEditing('new');
-            }}
-            className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-brand-pink px-5 py-2.5
-                       font-body text-sm font-semibold text-on-primary transition-colors
-                       hover:bg-brand-pink-dark focus-visible:outline-2
-                       focus-visible:outline-offset-2 focus-visible:outline-brand-pink"
-          >
-            <FiPlus aria-hidden /> New order
-          </button>
-        ) : null}
+        <button
+          type="button"
+          onClick={() => {
+            setSelected(null);
+            setEditing('new');
+          }}
+          className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-brand-pink px-5 py-2.5
+                     font-body text-sm font-semibold text-on-primary transition-colors
+                     hover:bg-brand-pink-dark focus-visible:outline-2
+                     focus-visible:outline-offset-2 focus-visible:outline-brand-pink"
+        >
+          <FiPlus aria-hidden /> New order
+        </button>
       </div>
 
       {/* Scrolls rather than wraps: a filter bar on two lines stops reading as
-          one control. The counts are of the whole collection, not this page. */}
+          one control. The counts are of the whole collection, not this page —
+          so they do not move when a date range is applied. */}
       <div className="-mx-1 overflow-x-auto pb-1">
         <div className="flex min-w-max gap-1 rounded-2xl bg-brand-ink/[0.04] p-1">
           {FILTERS.map((f) => (
@@ -202,33 +319,65 @@ export default function OrdersTab() {
         </div>
       </div>
 
+      <DateRangeFilter
+        range={range}
+        onChange={(next) => {
+          setRange(next);
+          setPage(1);
+        }}
+      />
+
       {note ? (
         <p role="status" className="text-sm font-semibold text-emerald-600">
           {note}
         </p>
       ) : null}
 
-      {error ? (
+      {shownError ? (
         <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2.5 text-sm text-rose-700">
-          {error}
+          {shownError}
         </p>
       ) : null}
 
       {editing ? (
         <OrderForm
+          open
+          key={editing === 'new' ? 'new' : editing._id}
           initial={editing === 'new' ? null : editing}
           companies={companies}
           setError={setError}
           onCancel={() => setEditing(null)}
           onSaved={(message) => {
+            /*
+             * Re-open the detail panel on the order that was just edited, with
+             * its fresh values. Without this the save appeared to do nothing:
+             * the panel had been closed to show the dialog and never came back.
+             */
+            const edited = editing !== 'new' ? editing._id : null;
             setEditing(null);
-            load();
+            if (edited) reloadDetail(edited);
             flash(message);
           }}
         />
       ) : null}
 
-      {selected || detailLoading ? (
+      <ConfirmDialog
+        open={Boolean(confirming)}
+        title="Delete this order?"
+        message={
+          confirming
+            ? `Order ${confirming.orderNumber} and its production log will be removed. This cannot be undone.`
+            : ''
+        }
+        confirmLabel="Delete order"
+        onConfirm={remove}
+        onCancel={() => setConfirming(null)}
+      />
+
+      {/* `selected` alone gates this, not `detailLoading`: a delete clears the
+          selection while a detail fetch may still be in flight, and gating on
+          the flag too would leave a spinner up with no record behind it. */}
+      {selected ? (
         <OrderDetail
           order={selected}
           loading={detailLoading}
@@ -237,19 +386,21 @@ export default function OrdersTab() {
           setError={setError}
           onClose={() => setSelected(null)}
           onEdit={(order) => {
+            // The panel is hidden while the dialog is up, and `editing` keeps
+            // the order so `onSaved` can bring the panel back refreshed.
             setSelected(null);
             setEditing(order);
           }}
-          onDelete={remove}
+          onDelete={setConfirming}
           onChanged={(updated) => {
             setSelected(updated);
             // The card, the pill counts and the gauge all move with it.
-            load();
+            invalidate('orders', 'summary');
           }}
         />
       ) : null}
 
-      {loading && !data ? (
+      {loading ? (
         <div className="grid min-h-[40vh] place-items-center">
           <Spinner label="Loading orders" />
         </div>
@@ -266,7 +417,7 @@ export default function OrdersTab() {
               <button
                 type="button"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1 || loading}
+                disabled={page <= 1}
                 className="rounded-xl px-4 py-2.5 font-body text-sm font-semibold text-brand-ink/70
                            ring-1 ring-brand-ink/12 transition-colors hover:bg-brand-ink/5
                            disabled:opacity-40"
@@ -279,7 +430,7 @@ export default function OrdersTab() {
               <button
                 type="button"
                 onClick={() => setPage((p) => Math.min(data.pages, p + 1))}
-                disabled={page >= data.pages || loading}
+                disabled={page >= data.pages}
                 className="rounded-xl px-4 py-2.5 font-body text-sm font-semibold text-brand-ink/70
                            ring-1 ring-brand-ink/12 transition-colors hover:bg-brand-ink/5
                            disabled:opacity-40"
@@ -293,12 +444,10 @@ export default function OrdersTab() {
         <EmptyState
           className="min-h-[40vh] bg-surface-card"
           icon={FiClipboard}
-          title={
-            debounced || status ? 'No orders match that view' : 'No production orders yet'
-          }
+          title={filtered ? 'No orders match that view' : 'No production orders yet'}
           hint={
-            debounced || status
-              ? 'Try another filter or search.'
+            filtered
+              ? 'Try another filter, date range or search.'
               : 'Raise an order against one of your buyers to start tracking it.'
           }
         />

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import * as enquiryApi from '../api/enquiry.api.js';
-import { contact, company } from '../data/site.js';
+import { company } from '../data/site.js';
+import { useHomeContentStore } from '../theme/useHomeContentStore.js';
+import { telHref } from '../utils/contactLinks.js';
 import '../css/EnquirySection.css';
 
 /** The anchor the navbars' Enquire buttons scroll to. */
@@ -48,6 +50,9 @@ const timeAgo = (iso) => {
 };
 
 export default function EnquirySection() {
+  /* Owner-editable, from the admin panel. */
+  const contact = useHomeContentStore((s) => s.contact);
+
   const [values, setValues] = useState(EMPTY);
   const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
@@ -134,19 +139,33 @@ export default function EnquirySection() {
             takes to run it — quality, lead time and the sampling we would recommend first.
           </p>
 
+          {/* The owner's own details, from the admin panel. A term with no
+              value beneath it reads as an oversight, so a detail that is not
+              set drops its whole row — which is what keeps Email out until
+              there is an address to publish. */}
           <dl className="enquiry__details">
-            <div>
-              <dt>Email</dt>
-              <dd>
-                <a href={`mailto:${contact.salesEmail}`}>{contact.salesEmail}</a>
-              </dd>
-            </div>
-            <div>
-              <dt>Phone</dt>
-              <dd>
-                <a href={`tel:${contact.phone.replace(/\s/g, '')}`}>{contact.phone}</a>
-              </dd>
-            </div>
+            {contact.email ? (
+              <div>
+                <dt>Email</dt>
+                <dd>
+                  <a href={`mailto:${contact.email}`}>{contact.email}</a>
+                </dd>
+              </div>
+            ) : null}
+            {contact.phone ? (
+              <div>
+                <dt>Phone</dt>
+                <dd>
+                  <a href={telHref(contact.phone)}>{contact.phone}</a>
+                </dd>
+              </div>
+            ) : null}
+            {contact.address ? (
+              <div>
+                <dt>Address</dt>
+                <dd>{contact.address}</dd>
+              </div>
+            ) : null}
             <div>
               <dt>Company</dt>
               <dd>{company.name}</dd>
