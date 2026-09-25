@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { FiX, FiEdit2, FiTrash2, FiPlus, FiImage } from 'react-icons/fi';
+import { FiX, FiEdit2, FiTrash2, FiPlus, FiImage, FiLink } from 'react-icons/fi';
+import { TbCalculator } from 'react-icons/tb';
 import * as inventoryApi from '../../../api/inventory.api.js';
 import Spinner from '../../components/Spinner.jsx';
 import ConfirmDialog from '../../components/ConfirmDialog.jsx';
+import StitchCalculator from './StitchCalculator.jsx';
 import {
   ORDER_STATUSES,
   STATUS_LABELS,
@@ -21,8 +23,13 @@ const Detail = ({ label, value }) => (
   </div>
 );
 
-/** Add a day's production. Inline rather than a modal — it is two fields. */
-function LogForm({ orderId, onLogged, onCancel, setError }) {
+/**
+ * Add a day's production. Inline rather than a modal — it is two fields.
+ *
+ * Shows what is left on the order and what this entry would leave, so the
+ * person logging sees Ordered − Produced = Remaining as they type.
+ */
+function LogForm({ orderId, ordered, produced, onLogged, onCancel, setError }) {
   const [metres, setMetres] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [note, setNote] = useState('');
@@ -91,6 +98,18 @@ function LogForm({ orderId, onLogged, onCancel, setError }) {
         </label>
       </div>
 
+      <p className="font-body text-xs text-brand-ink/70">
+        {formatMetres(ordered)}m ordered − {formatMetres(produced)}m produced ={' '}
+        <b>{formatMetres(Math.max(0, ordered - produced))}m remaining</b>
+        {Number(metres) ? (
+          <>
+            {' '}
+            · after this entry:{' '}
+            <b>{formatMetres(Math.max(0, ordered - produced - Number(metres)))}m</b>
+          </>
+        ) : null}
+      </p>
+
       <p className="font-body text-xs text-brand-ink/50">
         To correct a mistake, log a negative number with a note — the original entry and its
         correction both stay in the history.
@@ -128,9 +147,11 @@ export default function OrderDetail({
   onEdit,
   onDelete,
   onChanged,
+  onOpenSample,
   setError,
 }) {
   const [logging, setLogging] = useState(false);
+  const [calculating, setCalculating] = useState(false);
   const [confirmingEntry, setConfirmingEntry] = useState(null);
 
   /*
@@ -175,6 +196,13 @@ export default function OrderDetail({
 
   return (
     <div className="flex flex-col gap-5 rounded-2xl bg-surface-card p-5 shadow-sm ring-1 ring-black/5">
+      <StitchCalculator
+        open={calculating}
+        onClose={() => setCalculating(false)}
+        title={`Calculator — order ${order.orderNumber}`}
+        initial={{ quantity: remaining || ordered, repeat: order.repeat, stitches: order.stitches }}
+      />
+
       <ConfirmDialog
         open={Boolean(confirmingEntry)}
         title="Remove this log entry?"
@@ -194,7 +222,7 @@ export default function OrderDetail({
         {order.designImage?.url ? (
           <img
             src={order.designImage.url}
-            alt=""
+            alt={`Design ${order.designNumber}`}
             className="h-14 w-14 shrink-0 rounded-xl object-cover ring-1 ring-brand-ink/8"
           />
         ) : (
@@ -214,6 +242,18 @@ export default function OrderDetail({
                 still arriving, rather than replacing the panel with a spinner. */}
             {loading ? <span className="ml-2 text-brand-ink/40">refreshing…</span> : null}
           </p>
+          {order.sampleNumber ? (
+            <button
+              type="button"
+              onClick={() => onOpenSample?.(order.sample)}
+              disabled={!onOpenSample}
+              className="mt-1 inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5
+                         font-body text-[11px] font-semibold text-violet-700 enabled:hover:underline
+                         disabled:cursor-default"
+            >
+              <FiLink aria-hidden size={11} /> From sample {order.sampleNumber}
+            </button>
+          ) : null}
         </div>
 
         <button
@@ -283,6 +323,11 @@ export default function OrderDetail({
         <Detail label="Width" value={order.fabricWidth} />
         <Detail label="Yarn" value={order.yarnType} />
         <Detail label="Colour" value={order.yarnColor} />
+        <Detail label="Repeat" value={order.repeat ? `${order.repeat}"` : ''} />
+        <Detail
+          label="Stitches / repeat"
+          value={order.stitches ? Number(order.stitches).toLocaleString('en-IN') : ''}
+        />
         <Detail label="Start" value={formatDate(order.startDate)} />
         <Detail label="Deadline" value={formatDate(order.deadline)} />
         <Detail label="Est. completion" value={formatDate(order.estCompletion)} />
@@ -323,6 +368,8 @@ export default function OrderDetail({
         {logging ? (
           <LogForm
             orderId={order._id}
+            ordered={ordered}
+            produced={done}
             setError={setError}
             onCancel={() => setLogging(false)}
             onLogged={(updated) => {
@@ -393,6 +440,16 @@ export default function OrderDetail({
                      transition-colors hover:bg-brand-ink/5 disabled:opacity-60"
         >
           <FiEdit2 aria-hidden /> Edit order
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setCalculating(true)}
+          className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 font-body text-sm
+                     font-semibold text-brand-ink/70 ring-1 ring-brand-ink/12
+                     transition-colors hover:bg-brand-ink/5"
+        >
+          <TbCalculator aria-hidden /> Calculator
         </button>
 
         {/* Destructive and irreversible, so it is owner-only — matching the

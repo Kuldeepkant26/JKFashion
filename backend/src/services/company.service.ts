@@ -4,7 +4,14 @@ import {
   type ICompany,
   type ICompanyContact,
 } from "../models/company.model.js";
-import { ProductionOrder } from "../models/productionOrder.model.js";
+import {
+  ProductionOrder,
+  OPEN_ORDER_STATUSES,
+  ORDER_STATUS,
+} from "../models/productionOrder.model.js";
+import { Sample, SAMPLE_STATUS, OPEN_SAMPLE_STATUSES } from "../models/sample.model.js";
+import { uploadImage, destroyImage } from "../config/cloudinary.js";
+import { startOfDayUTC } from "../utils/productionDate.js";
 import { ApiError } from "../utils/ApiError.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
 
@@ -16,6 +23,9 @@ export interface ListOptions {
 
 export interface CompanyListItem extends ICompany {
   orderCount: number;
+  activeOrders: number;
+  sampleCount: number;
+  openSamples: number;
 }
 
 /**
@@ -89,26 +99,55 @@ export const listCompanies = async ({
 };
 
 /**
- * How many orders each company on this page has.
+ * What each company on this page has on the go — orders and samples, total
+ * and still open — so the list can say where work is without opening a buyer.
  *
- * One grouped aggregate for the whole page rather than a count per row, so the
- * cost is a single extra query regardless of the page size.
+ * Two grouped aggregates for the whole page rather than counts per row, so the
+ * cost is fixed regardless of the page size.
  */
 const withOrderCounts = async (companies: ICompany[]): Promise<CompanyListItem[]> => {
   if (!companies.length) return [];
 
   const ids = companies.map((c) => c._id);
-  const counts = await ProductionOrder.aggregate<{ _id: Types.ObjectId; count: number }>([
-    { $match: { company: { $in: ids } } },
-    { $group: { _id: "$company", count: { $sum: 1 } } },
-  ]).exec();
+  type Row = { _id: Types.ObjectId; count: number; open: number };
 
-  const byId = new Map(counts.map((c) => [String(c._id), c.count]));
+  const [orders, samples] = await Promise.all([
+    ProductionOrder.aggregate<Row>([
+      { $match: { company: { $in: ids } } },
+      {
+        $group: {
+          _id: "$company",
+          count: { $sum: 1 },
+          open: { $sum: { $cond: [{ $in: ["$status", OPEN_ORDER_STATUSES] }, 1, 0] } },
+        },
+      },
+    ]).exec(),
+    Sample.aggregate<Row>([
+      { $match: { company: { $in: ids } } },
+      {
+        $group: {
+          _id: "$company",
+          count: { $sum: 1 },
+          open: { $sum: { $cond: [{ $in: ["$status", OPEN_SAMPLE_STATUSES] }, 1, 0] } },
+        },
+      },
+    ]).exec(),
+  ]);
 
-  return companies.map((c) => ({
-    ...withContacts(c),
-    orderCount: byId.get(String(c._id)) ?? 0,
-  })) as CompanyListItem[];
+  const orderBy = new Map(orders.map((r) => [String(r._id), r]));
+  const sampleBy = new Map(samples.map((r) => [String(r._id), r]));
+
+  return companies.map((c) => {
+    const o = orderBy.get(String(c._id));
+    const smp = sampleBy.get(String(c._id));
+    return {
+      ...withContacts(c),
+      orderCount: o?.count ?? 0,
+      activeOrders: o?.open ?? 0,
+      sampleCount: smp?.count ?? 0,
+      openSamples: smp?.open ?? 0,
+    };
+  }) as CompanyListItem[];
 };
 
 /**
@@ -175,34 +214,250 @@ export const updateCompany = async (
   await company.save();
 
   if (renamedTo) {
-    await ProductionOrder.updateMany(
-      { company: company._id },
-      { $set: { companyName: renamedTo } }
-    ).exec();
+    await Promise.all([
+      ProductionOrder.updateMany(
+        { company: company._id },
+        { $set: { companyName: renamedTo } }
+      ).exec(),
+      Sample.updateMany({ company: company._id }, { $set: { companyName: renamedTo } }).exec(),
+    ]);
   }
 
   return company;
 };
 
 /**
- * Delete, but never orphan an order.
+ * Delete, but never orphan an order or a sample.
  *
- * A company with orders against it is refused rather than cascaded: those
- * orders are the record of work done and paid for, and deleting a buyer should
- * not quietly take them with it.
+ * A company with work against it is refused rather than cascaded: those
+ * records are the history of work done and paid for, and deleting a buyer
+ * should not quietly take them with it.
  */
 export const deleteCompany = async (id: string): Promise<void> => {
   const company = await getCompany(id);
 
-  const orderCount = await ProductionOrder.countDocuments({ company: company._id }).exec();
+  const [orderCount, sampleCount] = await Promise.all([
+    ProductionOrder.countDocuments({ company: company._id }).exec(),
+    Sample.countDocuments({ company: company._id }).exec(),
+  ]);
 
-  if (orderCount > 0) {
+  if (orderCount > 0 || sampleCount > 0) {
+    const parts = [
+      orderCount ? `${orderCount} order${orderCount === 1 ? "" : "s"}` : "",
+      sampleCount ? `${sampleCount} sample${sampleCount === 1 ? "" : "s"}` : "",
+    ].filter(Boolean);
+
     throw new ApiError(
       409,
-      `This company has ${orderCount} order${orderCount === 1 ? "" : "s"}. ` +
-        `Delete those first, or deactivate the company instead.`
+      `This company has ${parts.join(" and ")}. Delete those first, or deactivate the company instead.`
     );
   }
 
   await company.deleteOne();
+  if (company.logo?.publicId) await destroyImage(company.logo.publicId);
+};
+
+/* ------------------------------------------------------------------ logo */
+
+/** Logos live apart from design images, so the two can never be confused. */
+const LOGO_FOLDER = "companies";
+
+export const setLogo = async (
+  id: string,
+  buffer: Buffer,
+  filename: string
+): Promise<Record<string, unknown>> => {
+  const company = await getCompany(id);
+
+  const previous = company.logo?.publicId;
+  const uploaded = await uploadImage(buffer, filename, LOGO_FOLDER);
+
+  company.logo = uploaded;
+  await company.save();
+
+  // Only after the new one is stored, and only if it really changed.
+  if (previous && previous !== uploaded.publicId) await destroyImage(previous);
+  return withContacts(company.toObject());
+};
+
+export const clearLogo = async (id: string): Promise<Record<string, unknown>> => {
+  const company = await getCompany(id);
+
+  const publicId = company.logo?.publicId;
+  company.logo = {};
+  await company.save();
+
+  if (publicId) await destroyImage(publicId);
+  return withContacts(company.toObject());
+};
+
+/* -------------------------------------------------------------- overview */
+
+export type ActivityKind =
+  | "SAMPLE_CREATED"
+  | "SAMPLE_SENT"
+  | "SAMPLE_APPROVED"
+  | "SAMPLE_REJECTED"
+  | "ORDER_CREATED"
+  | "PRODUCTION_LOGGED";
+
+export interface ActivityItem {
+  kind: ActivityKind;
+  date: Date;
+  /** What the entry is about, for the link: a sample or an order. */
+  ref: { type: "sample" | "order"; id: string; number: string };
+  designNumber: string;
+  metres?: number;
+  note?: string;
+  by?: string;
+}
+
+/** Enough history to read back a season; older work is in the lists. */
+const ACTIVITY_LIMIT = 80;
+
+/**
+ * Everything that has happened for one buyer, newest first.
+ *
+ * Assembled from the records themselves — sample dates, order creation, the
+ * production log — rather than kept in a separate audit collection, so it
+ * cannot disagree with them. What it cannot show is anything those records do
+ * not carry: a status that changed and changed back leaves no trace here.
+ */
+const companyActivity = async (companyId: Types.ObjectId): Promise<ActivityItem[]> => {
+  const [samples, orders, logs] = await Promise.all([
+    Sample.find({ company: companyId })
+      .select("sampleNumber designNumber status createdAt sentAt decidedAt")
+      .sort({ createdAt: -1 })
+      .limit(ACTIVITY_LIMIT)
+      .lean()
+      .exec(),
+    ProductionOrder.find({ company: companyId })
+      .select("orderNumber designNumber orderedMetres sampleNumber createdAt")
+      .sort({ createdAt: -1 })
+      .limit(ACTIVITY_LIMIT)
+      .lean()
+      .exec(),
+    ProductionOrder.aggregate<{
+      _id: Types.ObjectId;
+      orderNumber: string;
+      designNumber: string;
+      entry: { date: Date; metres: number; note: string; loggedByName: string };
+    }>([
+      { $match: { company: companyId } },
+      { $project: { orderNumber: 1, designNumber: 1, log: 1 } },
+      { $unwind: "$log" },
+      { $sort: { "log.date": -1, "log.createdAt": -1 } },
+      { $limit: ACTIVITY_LIMIT },
+      { $project: { orderNumber: 1, designNumber: 1, entry: "$log" } },
+    ]).exec(),
+  ]);
+
+  const items: ActivityItem[] = [];
+
+  for (const smp of samples) {
+    const ref = { type: "sample" as const, id: String(smp._id), number: smp.sampleNumber };
+    const base = { ref, designNumber: smp.designNumber };
+
+    items.push({ ...base, kind: "SAMPLE_CREATED", date: smp.createdAt });
+    if (smp.sentAt) items.push({ ...base, kind: "SAMPLE_SENT", date: smp.sentAt });
+    if (smp.decidedAt && smp.status === SAMPLE_STATUS.APPROVED) {
+      items.push({ ...base, kind: "SAMPLE_APPROVED", date: smp.decidedAt });
+    }
+    if (smp.decidedAt && smp.status === SAMPLE_STATUS.REJECTED) {
+      items.push({ ...base, kind: "SAMPLE_REJECTED", date: smp.decidedAt });
+    }
+  }
+
+  for (const order of orders) {
+    items.push({
+      kind: "ORDER_CREATED",
+      date: order.createdAt,
+      ref: { type: "order", id: String(order._id), number: order.orderNumber },
+      designNumber: order.designNumber,
+      metres: order.orderedMetres,
+      note: order.sampleNumber ? `From sample ${order.sampleNumber}` : "",
+    });
+  }
+
+  for (const row of logs) {
+    items.push({
+      kind: "PRODUCTION_LOGGED",
+      date: row.entry.date,
+      ref: { type: "order", id: String(row._id), number: row.orderNumber },
+      designNumber: row.designNumber,
+      metres: row.entry.metres,
+      note: row.entry.note,
+      by: row.entry.loggedByName,
+    });
+  }
+
+  items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  return items.slice(0, ACTIVITY_LIMIT);
+};
+
+/**
+ * One buyer's dashboard: the company, its figures, and its history.
+ *
+ * The lists of its samples and orders are fetched separately, through the
+ * ordinary list endpoints filtered by company, so they page and search the
+ * same way they do everywhere else.
+ */
+export const getCompanyOverview = async (id: string): Promise<Record<string, unknown>> => {
+  const company = await getCompany(id);
+  const companyId = company._id as Types.ObjectId;
+
+  const [orderStats, sampleStats, overdueOrders, activity] = await Promise.all([
+    ProductionOrder.aggregate<{
+      _id: string;
+      count: number;
+      ordered: number;
+      produced: number;
+    }>([
+      { $match: { company: companyId } },
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 },
+          ordered: { $sum: "$orderedMetres" },
+          produced: { $sum: "$completedMetres" },
+        },
+      },
+    ]).exec(),
+    Sample.aggregate<{ _id: string; count: number }>([
+      { $match: { company: companyId } },
+      { $group: { _id: "$status", count: { $sum: 1 } } },
+    ]).exec(),
+    ProductionOrder.countDocuments({
+      company: companyId,
+      deadline: { $ne: null, $lt: startOfDayUTC() },
+      status: { $in: OPEN_ORDER_STATUSES },
+    }).exec(),
+    companyActivity(companyId),
+  ]);
+
+  const orders = { total: 0, active: 0, completed: 0, overdue: overdueOrders };
+  const metres = { ordered: 0, produced: 0, remaining: 0 };
+  for (const row of orderStats) {
+    orders.total += row.count;
+    if (OPEN_ORDER_STATUSES.includes(row._id as never)) orders.active += row.count;
+    if (row._id === ORDER_STATUS.COMPLETED) orders.completed += row.count;
+    metres.ordered += row.ordered;
+    metres.produced += row.produced;
+  }
+  metres.remaining = Math.max(0, metres.ordered - metres.produced);
+
+  const samples: Record<string, number> = { total: 0, open: 0 };
+  for (const row of sampleStats) {
+    samples[row._id] = row.count;
+    samples.total = (samples.total ?? 0) + row.count;
+    if (OPEN_SAMPLE_STATUSES.includes(row._id as never)) {
+      samples.open = (samples.open ?? 0) + row.count;
+    }
+  }
+
+  return {
+    company: withContacts(company.toObject()),
+    stats: { orders, metres, samples },
+    activity,
+  };
 };

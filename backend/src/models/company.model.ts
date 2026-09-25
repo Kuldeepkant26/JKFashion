@@ -1,4 +1,5 @@
 import mongoose, { Schema, type Document, type Model, type Types } from "mongoose";
+import { type IMediaRef } from "./processSection.model.js";
 
 /**
  * A buyer the floor produces for.
@@ -29,8 +30,19 @@ const contactSchema = new Schema<ICompanyContact>(
   { _id: false }
 );
 
+const logoSchema = new Schema<IMediaRef>(
+  {
+    publicId: { type: String },
+    url: { type: String },
+    width: { type: Number },
+    height: { type: Number },
+  },
+  { _id: false }
+);
+
 export interface ICompany extends Document {
   name: string;
+  logo: IMediaRef;
   address: string;
   location: string;
   gst: string;
@@ -53,6 +65,15 @@ const companySchema = new Schema<ICompany>(
      * error handler, so this needs no check in the service.
      */
     name: { type: String, required: true, trim: true, maxlength: 160, unique: true },
+
+    /**
+     * The buyer's own mark, shown on their card and dashboard.
+     *
+     * Set and cleared only through the company's logo endpoints — never as a
+     * side effect of a design upload. Design images belong to samples and
+     * orders; this is the one image that identifies the buyer.
+     */
+    logo: { type: logoSchema, default: () => ({}) },
 
     address: { type: String, trim: true, maxlength: 400, default: "" },
     location: { type: String, trim: true, maxlength: 120, default: "" },

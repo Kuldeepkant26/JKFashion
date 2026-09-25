@@ -79,13 +79,20 @@ const Gauge = ({ pct }) => {
   );
 };
 
+const SectionTitle = ({ children }) => (
+  <h2 className="mt-2 font-body text-xs font-semibold uppercase tracking-[0.18em] text-brand-pink">
+    {children}
+  </h2>
+);
+
 export default function InventoryStats({ summary }) {
   if (!summary) return null;
 
-  const { counts = {} } = summary;
+  const { counts = {}, samples = {} } = summary;
 
   return (
     <div className="flex flex-col gap-3">
+      <SectionTitle>Production</SectionTitle>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <div className="sm:col-span-2">
           <Gauge pct={summary.overallPct ?? 0} />
@@ -125,6 +132,19 @@ export default function InventoryStats({ summary }) {
           </dd>
         </div>
       </dl>
+
+      <SectionTitle>Sampling</SectionTitle>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <Tile label="In progress" value={samples.IN_PROGRESS ?? 0} tone="brand" />
+        <Tile label="With the buyer" value={samples.SENT ?? 0} />
+        <Tile label="Approved" value={samples.APPROVED ?? 0} tone="good" />
+        <Tile label="Rejected" value={samples.REJECTED ?? 0} />
+        <Tile
+          label="Overdue"
+          value={samples.OVERDUE ?? 0}
+          tone={samples.OVERDUE > 0 ? 'danger' : 'neutral'}
+        />
+      </div>
     </div>
   );
 }

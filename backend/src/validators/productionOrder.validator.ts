@@ -7,6 +7,7 @@ const LIST_STATUSES = [...ORDER_STATUSES, "OVERDUE"];
 export const listOrderRules: ValidationChain[] = [
   query("status").optional().isIn(LIST_STATUSES).withMessage("Unknown status"),
   query("companyId").optional().isMongoId().withMessage("Unknown company"),
+  query("sampleId").optional().isMongoId().withMessage("Unknown sample"),
   query("search").optional().isString().trim().isLength({ max: 100 }),
   /*
    * The range filters on when the order was raised. Left as strings rather
@@ -43,6 +44,8 @@ const orderFields = (optional: boolean): ValidationChain[] => {
     body("startDate").optional({ checkFalsy: true }).isISO8601().toDate(),
     body("deadline").optional({ checkFalsy: true }).isISO8601().toDate(),
     body("estCompletion").optional({ checkFalsy: true }).isISO8601().toDate(),
+    body("repeat").optional({ checkFalsy: true }).isFloat({ min: 0, max: 10_000 }).toFloat(),
+    body("stitches").optional({ checkFalsy: true }).isInt({ min: 0, max: 100_000_000 }).toInt(),
     body("mendings").optional({ checkFalsy: true }).isInt({ min: 0, max: 100000 }).toInt(),
     body("rejectedMetres")
       .optional({ checkFalsy: true })
@@ -59,6 +62,9 @@ const orderFields = (optional: boolean): ValidationChain[] => {
  */
 export const createOrderRules: ValidationChain[] = [
   body("companyId").isMongoId().withMessage("Choose a company"),
+  body("sampleId").optional({ checkFalsy: true }).isMongoId().withMessage("Unknown sample"),
+  // Multipart sends "true"/"false" as text.
+  body("useSampleImage").optional({ checkFalsy: true }).isBoolean().toBoolean(),
   body("designNumber")
     .isString()
     .trim()
@@ -74,6 +80,11 @@ export const createOrderRules: ValidationChain[] = [
 export const updateOrderRules: ValidationChain[] = [
   param("id").isMongoId().withMessage("Unknown order"),
   body("companyId").optional().isMongoId().withMessage("Unknown company"),
+  // null unlinks the sample; an id links (or re-links) one.
+  body("sampleId")
+    .optional({ checkFalsy: true })
+    .isMongoId()
+    .withMessage("Unknown sample"),
   body("designNumber").optional().isString().trim().isLength({ min: 1, max: 60 }),
   body("orderedMetres").optional().isFloat({ min: 0.1, max: 10_000_000 }).toFloat(),
   ...orderFields(true),

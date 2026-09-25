@@ -19,9 +19,29 @@ export const createCompany = (payload) =>
 export const updateCompany = (id, patch) =>
   api.patch(`/inventory/companies/${id}`, patch).then(unwrap);
 
-/** Owner-only. Refused with 409 if the company still has orders. */
+/** Owner-only. Refused with 409 if the company still has orders or samples. */
 export const deleteCompany = (id) =>
   api.delete(`/inventory/companies/${id}`).then(unwrap);
+
+/** Resolves to { company, stats: { orders, metres, samples }, activity }. */
+export const getCompanyOverview = (id) =>
+  api.get(`/inventory/companies/${id}/overview`).then(unwrap);
+
+/* Declared ahead of their first use below; `const` bindings are not hoisted. */
+const multipart = { headers: { 'Content-Type': undefined } };
+
+const imageForm = (file) => {
+  const form = new FormData();
+  form.append('image', file);
+  return form;
+};
+
+/** The buyer's logo — set and removed only here, never by a design upload. */
+export const setCompanyLogo = (id, file) =>
+  api.put(`/inventory/companies/${id}/logo`, imageForm(file), multipart).then(unwrap);
+
+export const clearCompanyLogo = (id) =>
+  api.delete(`/inventory/companies/${id}/logo`).then(unwrap);
 
 /* -------------------------------------------------------------- orders */
 
@@ -36,11 +56,10 @@ export const getOrder = (id) => api.get(`/inventory/orders/${id}`).then(unwrap);
 
 /*
  * Creating an order is multipart because it may carry a design image. The
- * Content-Type header is deliberately NOT set: the browser has to add its own
- * multipart boundary, and overriding it with the instance's application/json
- * default would make the body unparseable.
+ * Content-Type header is deliberately NOT set (see `multipart` above): the
+ * browser has to add its own multipart boundary, and overriding it with the
+ * instance's application/json default would make the body unparseable.
  */
-const multipart = { headers: { 'Content-Type': undefined } };
 
 const toFormData = (payload, file) => {
   const form = new FormData();
@@ -68,8 +87,17 @@ const prune = (patch) =>
     Object.entries(patch).filter(([, v]) => v !== undefined && v !== null && v !== '')
   );
 
+/**
+ * `sampleId: null` survives the prune on purpose — it is how an order is
+ * unlinked from its sample, and dropping it would make that impossible.
+ */
 export const updateOrder = (id, patch) =>
-  api.patch(`/inventory/orders/${id}`, prune(patch)).then(unwrap);
+  api
+    .patch(`/inventory/orders/${id}`, {
+      ...prune(patch),
+      ...(patch.sampleId === null ? { sampleId: null } : {}),
+    })
+    .then(unwrap);
 
 /**
  * The order number a new order for this buyer would get.
@@ -89,11 +117,8 @@ export const logProduction = (id, payload) =>
 export const deleteLogEntry = (id, entryId) =>
   api.delete(`/inventory/orders/${id}/log/${entryId}`).then(unwrap);
 
-export const setOrderImage = (id, file) => {
-  const form = new FormData();
-  form.append('image', file);
-  return api.put(`/inventory/orders/${id}/image`, form, multipart).then(unwrap);
-};
+export const setOrderImage = (id, file) =>
+  api.put(`/inventory/orders/${id}/image`, imageForm(file), multipart).then(unwrap);
 
 export const clearOrderImage = (id) =>
   api.delete(`/inventory/orders/${id}/image`).then(unwrap);
@@ -103,3 +128,32 @@ export const deleteOrder = (id) => api.delete(`/inventory/orders/${id}`).then(un
 
 /** The dashboard figures. */
 export const getSummary = () => api.get('/inventory/summary').then(unwrap);
+
+/* ------------------------------------------------------------- samples */
+
+/** Resolves to { items, total, page, limit, pages, statusCounts }. */
+export const listSamples = (params) => api.get('/inventory/samples', { params }).then(unwrap);
+
+/** One sample, with the orders raised from it and their totals. */
+export const getSample = (id) => api.get(`/inventory/samples/${id}`).then(unwrap);
+
+export const createSample = (payload, file) =>
+  api.post('/inventory/samples', toFormData(payload, file), multipart).then(unwrap);
+
+export const updateSample = (id, patch) =>
+  api.patch(`/inventory/samples/${id}`, prune(patch)).then(unwrap);
+
+export const previewSampleNumber = (companyId) =>
+  api.get('/inventory/samples/next-number', { params: { companyId } }).then(unwrap);
+
+export const setSampleStatus = (id, status) =>
+  api.patch(`/inventory/samples/${id}/status`, { status }).then(unwrap);
+
+export const setSampleImage = (id, file) =>
+  api.put(`/inventory/samples/${id}/image`, imageForm(file), multipart).then(unwrap);
+
+export const clearSampleImage = (id) =>
+  api.delete(`/inventory/samples/${id}/image`).then(unwrap);
+
+/** Owner-only. Refused with 409 while orders point at the sample. */
+export const deleteSample = (id) => api.delete(`/inventory/samples/${id}`).then(unwrap);

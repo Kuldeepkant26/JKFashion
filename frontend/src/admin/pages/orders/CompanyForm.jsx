@@ -3,6 +3,7 @@ import { FiPlus, FiTrash2 } from 'react-icons/fi';
 import * as inventoryApi from '../../../api/inventory.api.js';
 import { invalidate } from '../../../api/useCachedQuery.js';
 import Modal from '../../components/Modal.jsx';
+import DesignImageField from './DesignImageField.jsx';
 import { inputClass } from './constants.js';
 
 const FIELDS = [
@@ -52,6 +53,13 @@ export default function CompanyForm({ open, initial, onSaved, onCancel, setError
   const [saving, setSaving] = useState(false);
   const [contactError, setContactError] = useState('');
 
+  /*
+   * The logo is its own upload, saved after the company itself. It is set
+   * and removed only here — never picked up from a design image.
+   */
+  const [logoFile, setLogoFile] = useState(null);
+  const [removeLogo, setRemoveLogo] = useState(false);
+
   const set = (name, value) => setForm((f) => ({ ...f, [name]: value }));
 
   const setContact = (index, key, value) =>
@@ -98,13 +106,17 @@ export default function CompanyForm({ open, initial, onSaved, onCancel, setError
     const payload = { ...form, contacts };
 
     try {
-      if (editing) await inventoryApi.updateCompany(initial._id, payload);
-      else await inventoryApi.createCompany(payload);
+      const saved = editing
+        ? await inventoryApi.updateCompany(initial._id, payload)
+        : await inventoryApi.createCompany(payload);
+
+      if (logoFile) await inventoryApi.setCompanyLogo(saved._id, logoFile);
+      else if (removeLogo && editing) await inventoryApi.clearCompanyLogo(saved._id);
 
       // The order form's buyer picker and the order cards' names read from the
       // same data, so both are dropped along with the company list.
-      invalidate('companies', 'orders', 'summary');
-      onSaved(editing ? 'Company saved' : 'Company added');
+      invalidate('companies', 'orders', 'samples', 'summary', 'company-overview');
+      onSaved(editing ? 'Company saved' : 'Company added', saved);
     } catch (err) {
       setError(err?.message ?? 'Could not save that company.');
       setFieldErrors(err.fieldErrors ?? {});
@@ -185,6 +197,17 @@ export default function CompanyForm({ open, initial, onSaved, onCancel, setError
             </label>
           ))}
         </div>
+
+        <DesignImageField
+          label="Company logo"
+          existingUrl={initial?.logo?.url}
+          file={logoFile}
+          onFile={setLogoFile}
+          removed={removeLogo}
+          onRemovedChange={editing ? setRemoveLogo : undefined}
+          setError={setError}
+          hint="Shown on this buyer's card and dashboard. Design images are separate and never replace it."
+        />
 
         {/* ------------------------------------------------------ contacts */}
         <fieldset className="flex flex-col gap-3 border-t border-brand-ink/8 pt-4">

@@ -33,7 +33,10 @@ const AdminStaff = lazy(() => import('./admin/pages/AdminStaff.jsx'));
 const AdminNoAccess = lazy(() => import('./admin/pages/AdminNoAccess.jsx'));
 const OrdersLayout = lazy(() => import('./admin/pages/orders/OrdersLayout.jsx'));
 const CompaniesTab = lazy(() => import('./admin/pages/orders/CompaniesTab.jsx'));
-const OrdersTab = lazy(() => import('./admin/pages/orders/OrdersTab.jsx'));
+const CompanyDashboard = lazy(() => import('./admin/pages/orders/CompanyDashboard.jsx'));
+const SamplingTab = lazy(() => import('./admin/pages/orders/SamplingTab.jsx'));
+const ProductionTab = lazy(() => import('./admin/pages/orders/ProductionTab.jsx'));
+const StatsTab = lazy(() => import('./admin/pages/orders/StatsTab.jsx'));
 const StockLayout = lazy(() => import('./admin/pages/stock/StockLayout.jsx'));
 const StockOverviewTab = lazy(() => import('./admin/pages/stock/OverviewTab.jsx'));
 const StockMaterialsTab = lazy(() => import('./admin/pages/stock/MaterialsTab.jsx'));
@@ -131,7 +134,10 @@ function App() {
           >
             <Route index element={<Navigate to={ROUTES.ADMIN_ORDERS_COMPANIES} replace />} />
             <Route path="companies" element={<CompaniesTab />} />
-            <Route path="list" element={<OrdersTab />} />
+            <Route path="companies/:id" element={<CompanyDashboard />} />
+            <Route path="sampling" element={<SamplingTab />} />
+            <Route path="list" element={<ProductionTab />} />
+            <Route path="statistics" element={<StatsTab />} />
           </Route>
 
           {/*

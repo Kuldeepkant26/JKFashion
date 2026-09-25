@@ -7,9 +7,10 @@ import * as orderService from "../services/productionOrder.service.js";
 
 export const listOrders = asyncHandler<AuthedRequest>(async (req, res) => {
   // Already coerced by the validator's .toInt(), hence the double assertion.
-  const { status, companyId, search, from, to, page, limit } = req.query as unknown as {
+  const { status, companyId, sampleId, search, from, to, page, limit } = req.query as unknown as {
     status?: OrderStatus | "OVERDUE";
     companyId?: string;
+    sampleId?: string;
     search?: string;
     from?: string;
     to?: string;
@@ -20,6 +21,7 @@ export const listOrders = asyncHandler<AuthedRequest>(async (req, res) => {
   const result = await orderService.listOrders({
     status,
     companyId,
+    sampleId,
     search,
     from,
     to,
@@ -53,6 +55,8 @@ const ORDER_FIELDS = [
   "fabricWidth",
   "yarnType",
   "yarnColor",
+  "repeat",
+  "stitches",
   "startDate",
   "deadline",
   "estCompletion",
@@ -102,6 +106,8 @@ export const createOrder = asyncHandler<AuthedRequest>(async (req, res) => {
     {
       ...(pickFields(body) as Omit<orderService.OrderInput, "companyId">),
       companyId: body.companyId as string,
+      sampleId: (body.sampleId as string) || undefined,
+      useSampleImage: body.useSampleImage === true,
     },
     req.user!._id as never,
     req.file ? { buffer: req.file.buffer, filename: req.file.originalname } : undefined
@@ -115,6 +121,9 @@ export const updateOrder = asyncHandler<AuthedRequest>(async (req, res) => {
 
   const patch: orderService.OrderPatch = pickFields(body);
   if (body.companyId !== undefined) patch.companyId = body.companyId as string;
+  // null is "unlink"; an empty string, like every other field, is "not sent".
+  if (body.sampleId === null) patch.sampleId = null;
+  else if (body.sampleId) patch.sampleId = body.sampleId as string;
 
   const order = await orderService.updateOrder(
     req.params.id as string,

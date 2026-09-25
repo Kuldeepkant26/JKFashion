@@ -93,6 +93,38 @@ export const uploadImage = (
 };
 
 /**
+ * Copy an already-hosted image into a new asset.
+ *
+ * Used when a production order takes its design image from the sample it was
+ * confirmed from. The two records must not share one publicId: each deletes
+ * its own image when it is removed, and a shared file would leave the other
+ * with a broken picture. Cloudinary fetches the source URL itself, so nothing
+ * passes through this server.
+ */
+export const copyImage = async (url: string, subfolder?: string): Promise<UploadedImage> => {
+  ensureConfigured();
+
+  try {
+    const result = await cloudinary.uploader.upload(url, {
+      folder: subfolder ? `${env.cloudinary.folder}/${subfolder}` : env.cloudinary.folder,
+      resource_type: "image",
+    });
+
+    return {
+      publicId: result.public_id,
+      url: result.secure_url,
+      width: result.width,
+      height: result.height,
+    };
+  } catch (error) {
+    logger.error(
+      `Cloudinary copy failed for ${url}: ${error instanceof Error ? error.message : "unknown"}`
+    );
+    throw new ApiError(502, "Could not copy the sample's design image. Please try again.");
+  }
+};
+
+/**
  * Send a video buffer to Cloudinary.
  *
  * Separate from uploadImage because `resource_type` must be "video" for the

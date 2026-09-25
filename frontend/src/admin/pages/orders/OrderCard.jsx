@@ -8,7 +8,7 @@ import { STATUS_LABELS, STATUS_STYLES, formatDate, formatMetres } from './consta
  * to read precisely, and "how many metres are left" is the question the floor
  * actually asks.
  */
-export default function OrderCard({ order, onOpen }) {
+export default function OrderCard({ order, onOpen, showCompany = true }) {
   const ordered = Number(order.orderedMetres ?? 0);
   const done = Number(order.completedMetres ?? 0);
   const remaining = Math.max(0, ordered - done);
@@ -32,7 +32,7 @@ export default function OrderCard({ order, onOpen }) {
           {order.designImage?.url ? (
             <img
               src={order.designImage.url}
-              alt=""
+              alt={`Design ${order.designNumber}`}
               className="h-11 w-11 shrink-0 rounded-xl object-cover ring-1 ring-brand-ink/8"
             />
           ) : (
@@ -46,11 +46,14 @@ export default function OrderCard({ order, onOpen }) {
           )}
 
           <span className="min-w-0 flex-1">
+            {/* Inside a company's dashboard the buyer is already on screen, so
+                the design leads instead of repeating the name on every card. */}
             <span className="block truncate font-body text-sm font-semibold text-brand-ink">
-              {order.companyName}
+              {showCompany ? order.companyName : `Design ${order.designNumber}`}
             </span>
             <span className="mt-0.5 block truncate font-body text-xs text-brand-ink/50">
-              Design {order.designNumber} · Order {order.orderNumber}
+              {showCompany ? `Design ${order.designNumber} · ` : ''}Order {order.orderNumber}
+              {order.sampleNumber ? ` · from ${order.sampleNumber}` : ''}
             </span>
           </span>
 

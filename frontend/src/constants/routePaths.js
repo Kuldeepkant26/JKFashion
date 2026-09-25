@@ -16,8 +16,15 @@ export const ROUTES = {
    * rename — see constants/permissions.js.
    */
   ADMIN_ORDERS: '/admin/orders',
-  ADMIN_ORDERS_LIST: '/admin/orders/list',
   ADMIN_ORDERS_COMPANIES: '/admin/orders/companies',
+  /** One buyer's dashboard. Build it with `companyPath(id)`. */
+  ADMIN_ORDERS_COMPANY: '/admin/orders/companies/:id',
+  /** Sampling, kept apart from production. */
+  ADMIN_ORDERS_SAMPLES: '/admin/orders/sampling',
+  /** Production orders. The path predates the tab's rename, and is bookmarked. */
+  ADMIN_ORDERS_LIST: '/admin/orders/list',
+  /** The figures, on their own tab rather than above the order list. */
+  ADMIN_ORDERS_STATS: '/admin/orders/statistics',
 
   /**
    * The daily materials ledger — what stock is on the floor, what came in and
@@ -52,3 +59,7 @@ export const ROUTES = {
   ADMIN_SETTINGS_PROCESS: '/admin/settings/how-we-work',
   ADMIN_SETTINGS_HOME: '/admin/settings/hero-content',
 };
+
+/** A buyer's dashboard. `tab` and `open` deep-link to a sample or order in it. */
+export const companyPath = (id, query) =>
+  `/admin/orders/companies/${id}${query ? `?${new URLSearchParams(query)}` : ''}`;

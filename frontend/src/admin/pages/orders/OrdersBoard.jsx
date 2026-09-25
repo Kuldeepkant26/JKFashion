@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FiClipboard, FiPlus, FiSearch, FiCalendar, FiX } from 'react-icons/fi';
 import * as inventoryApi from '../../../api/inventory.api.js';
 import { useCachedQuery, cacheKey, invalidate } from '../../../api/useCachedQuery.js';
@@ -9,7 +9,6 @@ import ConfirmDialog from '../../components/ConfirmDialog.jsx';
 import OrderCard from './OrderCard.jsx';
 import OrderForm from './OrderForm.jsx';
 import OrderDetail from './OrderDetail.jsx';
-import InventoryStats from './InventoryStats.jsx';
 import { MAIN_ADMIN, FILTERS, DATE_PRESETS, inputClass } from './constants.js';
 
 /**
@@ -131,7 +130,18 @@ function DateRangeFilter({ range, onChange }) {
   );
 }
 
-export default function OrdersTab() {
+/**
+ * Production orders: filters, the card grid and the detail panel.
+ *
+ * Used twice — as the section-wide Production tab, and inside one company's
+ * dashboard with `companyId` set, where the list, the pill counts and the new
+ * order form are all scoped to that buyer.
+ *
+ * @param companyId   scope to one buyer
+ * @param focusId     an order to open on arrival (linked from elsewhere)
+ * @param onOpenSample called with a sample id when "From sample …" is clicked
+ */
+export default function OrdersBoard({ companyId, focusId, onOpenSample }) {
   const user = useAppStore((s) => s.user);
   const isOwner = user?.role === MAIN_ADMIN;
 
@@ -150,6 +160,17 @@ export default function OrdersTab() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [confirming, setConfirming] = useState(null);
 
+  /*
+   * Bring the panel into view when a different record opens. Inside a
+   * company's dashboard it renders below the buyer's header and figures, and
+   * without this a click appeared to do nothing.
+   */
+  const detailRef = useRef(null);
+  const selectedId = selected?._id;
+  useEffect(() => {
+    if (selectedId) detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [selectedId]);
+
   const flash = (message) => {
     setNote(message);
     setTimeout(() => setNote(''), 2500);
@@ -165,6 +186,7 @@ export default function OrdersTab() {
   }, [search]);
 
   const params = {
+    companyId: companyId || undefined,
     status: status || undefined,
     search: debounced || undefined,
     from: range.from || undefined,
@@ -178,8 +200,6 @@ export default function OrdersTab() {
     error: loadError,
     loading,
   } = useCachedQuery(cacheKey('orders', params), () => inventoryApi.listOrders(params));
-
-  const { data: summary } = useCachedQuery(cacheKey('summary'), inventoryApi.getSummary);
 
   /* The form needs the buyer list. Shares the `companies` cache prefix, so a
      company added on the other tab appears here without a reload. */
@@ -223,13 +243,36 @@ export default function OrdersTab() {
     }
   };
 
+  /*
+   * Open a linked order when arriving with one to show. Fetched before the
+   * panel opens, because unlike a card click there is no list copy to show
+   * while the full record loads.
+   */
+  useEffect(() => {
+    if (!focusId) return undefined;
+
+    let cancelled = false;
+    inventoryApi
+      .getOrder(focusId)
+      .then((order) => {
+        if (cancelled) return;
+        setEditing(null);
+        setSelected(order);
+      })
+      .catch((err) => !cancelled && setError(err?.message ?? 'Could not open that order.'));
+
+    return () => {
+      cancelled = true;
+    };
+  }, [focusId]);
+
   const remove = async () => {
     const order = confirming;
     setBusy(true);
     setError('');
     try {
       await inventoryApi.deleteOrder(order._id);
-      invalidate('orders', 'summary', 'companies');
+      invalidate('orders', 'summary', 'companies', 'samples', 'company-overview');
       setSelected(null);
       setConfirming(null);
       flash('Order deleted');
@@ -248,8 +291,6 @@ export default function OrdersTab() {
 
   return (
     <div className="flex flex-col gap-5">
-      <InventoryStats summary={summary} />
-
       <div className="flex flex-wrap items-center gap-3">
         <label className="relative min-w-0 flex-1">
           <span className="sr-only">Search orders</span>
@@ -261,7 +302,9 @@ export default function OrdersTab() {
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by order, design, buyer, machine…"
+            placeholder={
+              companyId ? 'Search by order, design, machine…' : 'Search by order, design, buyer, machine…'
+            }
             className={`${inputClass} pl-10`}
           />
         </label>
@@ -345,6 +388,7 @@ export default function OrdersTab() {
           key={editing === 'new' ? 'new' : editing._id}
           initial={editing === 'new' ? null : editing}
           companies={companies}
+          companyId={companyId}
           setError={setError}
           onCancel={() => setEditing(null)}
           onSaved={(message) => {
@@ -378,26 +422,29 @@ export default function OrdersTab() {
           selection while a detail fetch may still be in flight, and gating on
           the flag too would leave a spinner up with no record behind it. */}
       {selected ? (
-        <OrderDetail
-          order={selected}
-          loading={detailLoading}
-          isOwner={isOwner}
-          busy={busy}
-          setError={setError}
-          onClose={() => setSelected(null)}
-          onEdit={(order) => {
-            // The panel is hidden while the dialog is up, and `editing` keeps
-            // the order so `onSaved` can bring the panel back refreshed.
-            setSelected(null);
-            setEditing(order);
-          }}
-          onDelete={setConfirming}
-          onChanged={(updated) => {
-            setSelected(updated);
-            // The card, the pill counts and the gauge all move with it.
-            invalidate('orders', 'summary');
-          }}
-        />
+        <div ref={detailRef} className="scroll-mt-4">
+          <OrderDetail
+            order={selected}
+            loading={detailLoading}
+            isOwner={isOwner}
+            busy={busy}
+            setError={setError}
+            onClose={() => setSelected(null)}
+            onEdit={(order) => {
+              // The panel is hidden while the dialog is up, and `editing` keeps
+              // the order so `onSaved` can bring the panel back refreshed.
+              setSelected(null);
+              setEditing(order);
+            }}
+            onDelete={setConfirming}
+            onOpenSample={onOpenSample}
+            onChanged={(updated) => {
+              setSelected(updated);
+              // The card, the pill counts, the gauge and the sample's totals all move with it.
+              invalidate('orders', 'summary', 'samples', 'company-overview');
+            }}
+          />
+        </div>
       ) : null}
 
       {loading ? (
@@ -408,7 +455,12 @@ export default function OrdersTab() {
         <>
           <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {items.map((order) => (
-              <OrderCard key={order._id} order={order} onOpen={openDetail} />
+              <OrderCard
+                key={order._id}
+                order={order}
+                onOpen={openDetail}
+                showCompany={!companyId}
+              />
             ))}
           </ul>
 
@@ -448,7 +500,7 @@ export default function OrdersTab() {
           hint={
             filtered
               ? 'Try another filter, date range or search.'
-              : 'Raise an order against one of your buyers to start tracking it.'
+              : 'Raise an order from an approved sample, or directly against a buyer.'
           }
         />
       )}

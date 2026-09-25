@@ -1,5 +1,6 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { ApiError } from "../utils/ApiError.js";
 import type { AuthedRequest } from "../middlewares/auth.middleware.js";
 import * as companyService from "../services/company.service.js";
 
@@ -81,4 +82,27 @@ export const updateCompany = asyncHandler<AuthedRequest>(async (req, res) => {
 export const deleteCompany = asyncHandler<AuthedRequest>(async (req, res) => {
   await companyService.deleteCompany(req.params.id as string);
   res.status(200).json(new ApiResponse(200, null, "Company deleted"));
+});
+
+/** One buyer's dashboard: the company, its figures and its history. */
+export const getCompanyOverview = asyncHandler<AuthedRequest>(async (req, res) => {
+  const overview = await companyService.getCompanyOverview(req.params.id as string);
+  res.status(200).json(new ApiResponse(200, overview));
+});
+
+export const setLogo = asyncHandler<AuthedRequest>(async (req, res) => {
+  if (!req.file) throw new ApiError(400, "Please choose an image to upload");
+
+  const company = await companyService.setLogo(
+    req.params.id as string,
+    req.file.buffer,
+    req.file.originalname
+  );
+
+  res.status(200).json(new ApiResponse(200, company, "Logo updated"));
+});
+
+export const clearLogo = asyncHandler<AuthedRequest>(async (req, res) => {
+  const company = await companyService.clearLogo(req.params.id as string);
+  res.status(200).json(new ApiResponse(200, company, "Logo removed"));
 });

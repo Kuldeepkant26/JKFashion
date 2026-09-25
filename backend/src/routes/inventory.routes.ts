@@ -1,6 +1,7 @@
 import { Router } from "express";
 import * as companyController from "../controllers/company.controller.js";
 import * as orderController from "../controllers/productionOrder.controller.js";
+import * as sampleController from "../controllers/sample.controller.js";
 import { protect, restrictTo, requirePermission } from "../middlewares/auth.middleware.js";
 import { validate } from "../middlewares/validate.middleware.js";
 import { uploadSingleImage } from "../middlewares/upload.middleware.js";
@@ -21,6 +22,14 @@ import {
   logProductionRules,
   logEntryIdRules,
 } from "../validators/productionOrder.validator.js";
+import {
+  listSampleRules,
+  previewSampleNumberRules,
+  createSampleRules,
+  updateSampleRules,
+  sampleIdRules,
+  setSampleStatusRules,
+} from "../validators/sample.validator.js";
 
 const router = Router();
 
@@ -47,6 +56,28 @@ router.get("/companies/:id", companyIdRules, validate, companyController.getComp
 
 router.patch("/companies/:id", updateCompanyRules, validate, companyController.updateCompany);
 
+/** The buyer's dashboard: figures and history in one read. */
+router.get(
+  "/companies/:id/overview",
+  companyIdRules,
+  validate,
+  companyController.getCompanyOverview
+);
+
+/**
+ * The buyer's logo has its own endpoints — it is never set as a side effect
+ * of saving the company or of uploading a design.
+ */
+router.put(
+  "/companies/:id/logo",
+  uploadSingleImage,
+  companyIdRules,
+  validate,
+  companyController.setLogo
+);
+
+router.delete("/companies/:id/logo", companyIdRules, validate, companyController.clearLogo);
+
 /** Destructive, so it is owner-only rather than any signed-in admin. */
 router.delete(
   "/companies/:id",
@@ -54,6 +85,57 @@ router.delete(
   companyIdRules,
   validate,
   companyController.deleteCompany
+);
+
+/* ---------------------------------------------------------------- samples */
+
+/** Literal, so it is declared before "/samples/:id". */
+router.get(
+  "/samples/next-number",
+  previewSampleNumberRules,
+  validate,
+  sampleController.previewSampleNumber
+);
+
+router.get("/samples", listSampleRules, validate, sampleController.listSamples);
+
+/** Multipart, because a sample may carry a design image — multer parses first. */
+router.post(
+  "/samples",
+  uploadSingleImage,
+  createSampleRules,
+  validate,
+  sampleController.createSample
+);
+
+router.get("/samples/:id", sampleIdRules, validate, sampleController.getSample);
+
+router.patch("/samples/:id", updateSampleRules, validate, sampleController.updateSample);
+
+router.patch(
+  "/samples/:id/status",
+  setSampleStatusRules,
+  validate,
+  sampleController.setStatus
+);
+
+router.put(
+  "/samples/:id/image",
+  uploadSingleImage,
+  sampleIdRules,
+  validate,
+  sampleController.setImage
+);
+
+router.delete("/samples/:id/image", sampleIdRules, validate, sampleController.clearImage);
+
+/** Destructive, so it is owner-only — like deleting an order. */
+router.delete(
+  "/samples/:id",
+  restrictTo(ROLES.MAIN_ADMIN),
+  sampleIdRules,
+  validate,
+  sampleController.deleteSample
 );
 
 /* ----------------------------------------------------------------- orders */

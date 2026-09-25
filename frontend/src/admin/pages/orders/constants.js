@@ -20,13 +20,14 @@ export { formatQuantity as formatMetres } from '../../constants/ui.js';
 
 /**
  * Mirrors ORDER_STATUSES in the API's productionOrder model, in lifecycle
- * order. An order opens at SAMPLING — nothing goes to the floor before the
- * buyer approves a sample.
+ * order. Sampling is not here: samples are their own records (SAMPLE_STATUSES
+ * below), and an order is raised once the buyer approves one.
  */
-export const ORDER_STATUSES = ['SAMPLING', 'PENDING', 'RUNNING', 'PAUSED', 'COMPLETED'];
+export const ORDER_STATUSES = ['PENDING', 'RUNNING', 'PAUSED', 'COMPLETED'];
 
 export const STATUS_LABELS = {
-  SAMPLING: 'Sampling',
+  // Legacy: rows from before samples were split out, until they are migrated.
+  SAMPLING: 'Sampling (old)',
   PENDING: 'Pending',
   RUNNING: 'Running',
   PAUSED: 'Paused',
@@ -57,3 +58,30 @@ export const FILTERS = [
 /** Mirrors the API's own cap, so an oversized file is caught before upload. */
 export const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 export const IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp,image/avif';
+
+/** Mirrors SAMPLE_STATUSES in the API's sample model, in lifecycle order. */
+export const SAMPLE_STATUSES = ['IN_PROGRESS', 'SENT', 'APPROVED', 'REJECTED'];
+
+export const SAMPLE_STATUS_LABELS = {
+  IN_PROGRESS: 'In progress',
+  SENT: 'Sent to buyer',
+  APPROVED: 'Approved',
+  REJECTED: 'Rejected',
+  OVERDUE: 'Overdue',
+};
+
+export const SAMPLE_STATUS_STYLES = {
+  IN_PROGRESS: 'bg-violet-50 text-violet-700',
+  SENT: 'bg-sky-50 text-sky-700',
+  APPROVED: 'bg-emerald-50 text-emerald-700',
+  REJECTED: 'bg-brand-ink/8 text-brand-ink/60',
+  OVERDUE: 'bg-rose-50 text-rose-700',
+};
+
+export const SAMPLE_FILTERS = [
+  { value: '', label: 'All' },
+  ...SAMPLE_STATUSES.map((s) => ({ value: s, label: SAMPLE_STATUS_LABELS[s] })),
+];
+
+/** Metres from a repeat given in inches. */
+export const INCH_IN_METRES = 0.0254;

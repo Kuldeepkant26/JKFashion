@@ -18,6 +18,8 @@ import { AdminUser } from "../models/adminUser.model.js";
 import { Company } from "../models/company.model.js";
 import { ProductionOrder, ORDER_STATUS } from "../models/productionOrder.model.js";
 import { Counter } from "../models/counter.model.js";
+import { Sample, SAMPLE_STATUS, type SampleStatus } from "../models/sample.model.js";
+import { docketNumbering } from "../utils/docketNumber.js";
 import { generateOrderNumber } from "../services/productionOrder.service.js";
 import { startOfDayUTC } from "../utils/productionDate.js";
 
@@ -166,16 +168,33 @@ interface Plan {
   due: number;
 }
 
-const PLANS: Plan[] = [
-  // Sampling — the new initial state, nothing produced yet.
-  { status: ORDER_STATUS.SAMPLING, age: 2, progress: 0, due: 40 },
-  { status: ORDER_STATUS.SAMPLING, age: 5, progress: 0, due: 35 },
-  { status: ORDER_STATUS.SAMPLING, age: 9, progress: 0, due: 28 },
-  { status: ORDER_STATUS.SAMPLING, age: 14, progress: 0, due: 21 },
-  { status: ORDER_STATUS.SAMPLING, age: 21, progress: 0, due: 30 },
-  // Sampling and already late — the overdue filter must catch these too.
-  { status: ORDER_STATUS.SAMPLING, age: 48, progress: 0, due: -6 },
+/**
+ * Samples, one per company in turn. Every status is represented, one open
+ * sample is overdue, and every company gets an approved sample so the orders
+ * below can be linked to where they came from.
+ */
+const SAMPLE_PLANS: Array<{ status: SampleStatus; age: number; due: number }> = [
+  { status: SAMPLE_STATUS.APPROVED, age: 120, due: -100 },
+  { status: SAMPLE_STATUS.APPROVED, age: 110, due: -95 },
+  { status: SAMPLE_STATUS.APPROVED, age: 105, due: -90 },
+  { status: SAMPLE_STATUS.APPROVED, age: 100, due: -85 },
+  { status: SAMPLE_STATUS.APPROVED, age: 98, due: -80 },
+  { status: SAMPLE_STATUS.APPROVED, age: 96, due: -80 },
+  { status: SAMPLE_STATUS.APPROVED, age: 94, due: -78 },
+  { status: SAMPLE_STATUS.APPROVED, age: 92, due: -75 },
+  { status: SAMPLE_STATUS.APPROVED, age: 90, due: -72 },
+  { status: SAMPLE_STATUS.APPROVED, age: 88, due: -70 },
+  { status: SAMPLE_STATUS.APPROVED, age: 86, due: -70 },
+  { status: SAMPLE_STATUS.APPROVED, age: 84, due: -68 },
+  { status: SAMPLE_STATUS.IN_PROGRESS, age: 2, due: 10 },
+  { status: SAMPLE_STATUS.IN_PROGRESS, age: 5, due: 7 },
+  { status: SAMPLE_STATUS.IN_PROGRESS, age: 20, due: -4 },
+  { status: SAMPLE_STATUS.SENT, age: 9, due: 5 },
+  { status: SAMPLE_STATUS.SENT, age: 14, due: 3 },
+  { status: SAMPLE_STATUS.REJECTED, age: 30, due: -15 },
+];
 
+const PLANS: Plan[] = [
   // Pending — approved, not yet on a machine.
   { status: ORDER_STATUS.PENDING, age: 6, progress: 0, due: 25 },
   { status: ORDER_STATUS.PENDING, age: 11, progress: 0, due: 20 },
@@ -310,9 +329,10 @@ const run = async (): Promise<void> => {
 
     if (ids.length) {
       const orders = await ProductionOrder.deleteMany({ company: { $in: ids } }).exec();
+      await Sample.deleteMany({ company: { $in: ids } }).exec();
       await Company.deleteMany({ _id: { $in: ids } }).exec();
       // The counters go too, so numbering restarts with the data it counted.
-      await Counter.deleteMany({ _id: /^order:/ }).exec();
+      await Counter.deleteMany({ _id: /^(order|sample):/ }).exec();
       logger.info(
         `Removed ${ids.length} seeded companies and ${orders.deletedCount ?? 0} of their orders`
       );
@@ -339,6 +359,46 @@ const run = async (): Promise<void> => {
 
   logger.info(`Created ${companies.length} companies`);
 
+  const sampleNumbers = docketNumbering("sample", "SMP");
+  /** company id -> its approved sample, for linking orders below. */
+  const approved = new Map<string, { _id: unknown; sampleNumber: string }>();
+
+  for (let i = 0; i < SAMPLE_PLANS.length; i += 1) {
+    const plan = SAMPLE_PLANS[i]!;
+    const company = companies[i % companies.length]!;
+    const raisedAt = daysAgo(plan.age);
+    const answered = plan.status === SAMPLE_STATUS.APPROVED || plan.status === SAMPLE_STATUS.REJECTED;
+
+    const sample = await Sample.create({
+      company: company._id,
+      companyName: company.name,
+      sampleNumber: await sampleNumbers.next(company.name),
+      designNumber: `D-${100 + i}`,
+      status: plan.status,
+      fabricType: pick(FABRICS),
+      fabricWidth: pick(WIDTHS),
+      yarnType: pick(YARNS),
+      yarnColor: pick(COLOURS),
+      repeat: pick([6.75, 13.5, 27]),
+      stitches: Math.round(between(8000, 60000)),
+      quantity: Math.round(between(1, 5)),
+      deadline: startOfDayUTC(new Date(Date.now() + plan.due * DAY)),
+      sentAt: plan.status === SAMPLE_STATUS.IN_PROGRESS ? undefined : new Date(raisedAt.getTime() + 4 * DAY),
+      decidedAt: answered ? new Date(raisedAt.getTime() + 9 * DAY) : undefined,
+      remarks: "",
+      createdBy: owner._id,
+      updatedBy: owner._id,
+      createdAt: raisedAt,
+      updatedAt: raisedAt,
+    });
+
+    if (plan.status === SAMPLE_STATUS.APPROVED && !approved.has(String(company._id))) {
+      approved.set(String(company._id), sample);
+    }
+  }
+
+  logger.info(`Created ${SAMPLE_PLANS.length} samples`);
+
   let orderCount = 0;
   let logCount = 0;
 
@@ -361,9 +421,13 @@ const run = async (): Promise<void> => {
       i === 14
     );
 
+    const origin = approved.get(String(company._id));
+
     await ProductionOrder.create({
       company: company._id,
       companyName: company.name,
+      sample: origin?._id ?? null,
+      sampleNumber: origin?.sampleNumber ?? "",
       orderNumber,
       designNumber: `D-${100 + i}`,
       status: plan.status,

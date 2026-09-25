@@ -1,0 +1,61 @@
+import { body, param, query, type ValidationChain } from "express-validator";
+import { SAMPLE_STATUSES } from "../models/sample.model.js";
+
+export const listSampleRules: ValidationChain[] = [
+  query("status").optional().isIn(SAMPLE_STATUSES).withMessage("Unknown status"),
+  query("companyId").optional().isMongoId().withMessage("Unknown company"),
+  query("search").optional().isString().trim().isLength({ max: 100 }),
+  query("page").optional().isInt({ min: 1 }).toInt(),
+  query("limit").optional().isInt({ min: 1, max: 100 }).toInt(),
+];
+
+export const previewSampleNumberRules: ValidationChain[] = [
+  query("companyId").isMongoId().withMessage("Choose a company"),
+];
+
+/*
+ * Mirrors the schema's maxlength. Numbers are coerced here because a sample
+ * with a design image arrives as multipart, where every field is a string.
+ */
+const sampleFields = (): ValidationChain[] => {
+  const opt = (chain: ValidationChain) => chain.optional({ checkFalsy: true });
+
+  return [
+    opt(body("fabricType").isString().trim().isLength({ max: 80 })),
+    opt(body("fabricWidth").isString().trim().isLength({ max: 40 })),
+    opt(body("yarnType").isString().trim().isLength({ max: 80 })),
+    opt(body("yarnColor").isString().trim().isLength({ max: 60 })),
+    opt(body("remarks").isString().trim().isLength({ max: 2000 })),
+    opt(body("repeat").isFloat({ min: 0, max: 10_000 }).toFloat()),
+    opt(body("stitches").isInt({ min: 0, max: 100_000_000 }).toInt()),
+    opt(body("quantity").isFloat({ min: 0, max: 1_000_000 }).toFloat()),
+    body("deadline").optional({ checkFalsy: true }).isISO8601().toDate(),
+    body("status").optional().isIn(SAMPLE_STATUSES).withMessage("Unknown status"),
+  ];
+};
+
+export const createSampleRules: ValidationChain[] = [
+  body("companyId").isMongoId().withMessage("Choose a company"),
+  body("designNumber")
+    .isString()
+    .trim()
+    .isLength({ min: 1, max: 60 })
+    .withMessage("Give the design a number"),
+  ...sampleFields(),
+];
+
+export const updateSampleRules: ValidationChain[] = [
+  param("id").isMongoId().withMessage("Unknown sample"),
+  body("companyId").optional().isMongoId().withMessage("Unknown company"),
+  body("designNumber").optional().isString().trim().isLength({ min: 1, max: 60 }),
+  ...sampleFields(),
+];
+
+export const sampleIdRules: ValidationChain[] = [
+  param("id").isMongoId().withMessage("Unknown sample"),
+];
+
+export const setSampleStatusRules: ValidationChain[] = [
+  param("id").isMongoId().withMessage("Unknown sample"),
+  body("status").isIn(SAMPLE_STATUSES).withMessage("Unknown status"),
+];

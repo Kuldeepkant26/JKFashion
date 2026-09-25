@@ -1,14 +1,17 @@
-import type { FilterQuery, Types } from "mongoose";
+import { Types, type FilterQuery } from "mongoose";
 import {
   ProductionOrder,
   ORDER_STATUS,
+  LEGACY_ORDER_STATUS,
   OPEN_ORDER_STATUSES,
   type IProductionOrder,
   type OrderStatus,
 } from "../models/productionOrder.model.js";
 import { Company, type ICompany } from "../models/company.model.js";
-import { nextSeq, peekSeq } from "../models/counter.model.js";
-import { uploadImage, destroyImage } from "../config/cloudinary.js";
+import { Sample, SAMPLE_STATUS, type ISample } from "../models/sample.model.js";
+import { sampleCounts } from "./sample.service.js";
+import { docketNumbering } from "../utils/docketNumber.js";
+import { uploadImage, destroyImage, copyImage } from "../config/cloudinary.js";
 import { ApiError } from "../utils/ApiError.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
 import { startOfDayUTC, endOfDayUTC } from "../utils/productionDate.js";
@@ -16,45 +19,19 @@ import { startOfDayUTC, endOfDayUTC } from "../utils/productionDate.js";
 /** Where Cloudinary keeps design images, under the configured base folder. */
 const IMAGE_FOLDER = "inventory";
 
-/** The house mark that sits between the buyer and the sequence. */
-const ORDER_NUMBER_INFIX = "JK";
-
 /**
- * The buyer's part of an order number: the first word of their name, letters
- * and digits only.
- *
- * "Dexter Exports Pvt Ltd" → "Dexter". Punctuation and accents are stripped
- * rather than transliterated, because this string goes on a printed docket and
- * has to survive being read aloud, typed into a search box and written by hand.
- * A name with no usable characters at all (only symbols) falls back to "ORD" so
- * a number can always be issued.
- */
-const companyPrefix = (name: string): string => {
-  const first = String(name ?? "").trim().split(/\s+/)[0] ?? "";
-  const cleaned = first.normalize("NFD").replace(/[^A-Za-z0-9]/g, "");
-
-  if (!cleaned) return "ORD";
-
-  const capped = cleaned.slice(0, 12);
-  return capped.charAt(0).toUpperCase() + capped.slice(1);
-};
-
-/** The counter key a buyer's sequence lives under. */
-const counterKey = (name: string): string => `order:${companyPrefix(name)}`;
-
-const formatOrderNumber = (name: string, seq: number): string =>
-  `${companyPrefix(name)}-${ORDER_NUMBER_INFIX}-${String(seq).padStart(5, "0")}`;
-
-/**
- * Claim the next order number for a buyer, e.g. `Dexter-JK-00109`.
+ * Order numbers, e.g. `Dexter-JK-00109`.
  *
  * Per-buyer rather than global: the number is read off a docket next to the
  * buyer's name, and a shared sequence would make two adjacent jobs for the same
- * buyer look unrelated. The counter is atomic, so this is safe to call from two
- * requests at once.
+ * buyer look unrelated. "JK" is the house mark. The counter keys (`order:…`)
+ * are unchanged from before the helper was shared, so numbering continues.
  */
-export const generateOrderNumber = async (companyName: string): Promise<string> =>
-  formatOrderNumber(companyName, await nextSeq(counterKey(companyName)));
+const orderNumbers = docketNumbering("order", "JK");
+
+/** Claim the next order number for a buyer. Atomic. */
+export const generateOrderNumber = (companyName: string): Promise<string> =>
+  orderNumbers.next(companyName);
 
 /**
  * What the next number would be, without claiming it — for the form's preview.
@@ -67,7 +44,7 @@ export const previewOrderNumber = async (companyId: string): Promise<string> => 
   const company = await Company.findById(companyId).select("name").lean<ICompany>().exec();
   if (!company) throw new ApiError(404, "That company no longer exists");
 
-  return formatOrderNumber(company.name, await peekSeq(counterKey(company.name)));
+  return orderNumbers.peek(company.name);
 };
 
 /**
@@ -112,6 +89,7 @@ const overdueFilter = (): FilterQuery<IProductionOrder> => ({
 export interface ListOptions {
   status?: OrderStatus | "OVERDUE";
   companyId?: string;
+  sampleId?: string;
   search?: string;
   /** Inclusive bounds on when the order was RAISED, not on its deadline. */
   from?: string;
@@ -139,18 +117,29 @@ export interface ListResult {
 export const listOrders = async ({
   status,
   companyId,
+  sampleId,
   search,
   from,
   to,
   page = 1,
   limit = 20,
 }: ListOptions = {}): Promise<ListResult> => {
-  const filter: FilterQuery<IProductionOrder> = {};
+  /*
+   * `scope` is what the pill counts are taken over: the whole collection on
+   * the Production tab, one buyer inside that buyer's dashboard.
+   */
+  /*
+   * Cast explicitly: `find` casts string ids for us, but the aggregate below
+   * does not, and an uncast id there silently matches nothing.
+   */
+  const scope: FilterQuery<IProductionOrder> = {};
+  if (companyId) scope.company = new Types.ObjectId(companyId);
+  if (sampleId) scope.sample = new Types.ObjectId(sampleId);
+
+  const filter: FilterQuery<IProductionOrder> = { ...scope };
 
   if (status === "OVERDUE") Object.assign(filter, overdueFilter());
   else if (status) filter.status = status;
-
-  if (companyId) filter.company = companyId as unknown as Types.ObjectId;
 
   /*
    * The date range is on `createdAt` — when the order was taken in — because
@@ -189,13 +178,14 @@ export const listOrders = async ({
       .exec(),
     ProductionOrder.countDocuments(filter).exec(),
     /*
-     * The pill counts are of the WHOLE collection, not the current page or
-     * filter — a badge that changed when you clicked it would be useless.
+     * The pill counts are of the whole scope, not the current page or filter
+     * — a badge that changed when you clicked it would be useless.
      */
     ProductionOrder.aggregate<{ _id: OrderStatus; count: number }>([
+      { $match: scope },
       { $group: { _id: "$status", count: { $sum: 1 } } },
     ]).exec(),
-    ProductionOrder.countDocuments(overdueFilter()).exec(),
+    ProductionOrder.countDocuments({ ...scope, ...overdueFilter() }).exec(),
   ]);
 
   const statusCounts: Record<string, number> = { OVERDUE: overdue };
@@ -225,6 +215,10 @@ export const getOrder = async (id: string): Promise<OrderView> => {
 
 export interface OrderInput {
   companyId: string;
+  /** The approved sample this order was confirmed from. null unlinks on update. */
+  sampleId?: string | null;
+  /** Copy the sample's design image when no image of its own is uploaded. */
+  useSampleImage?: boolean;
   designNumber: string;
   status?: OrderStatus;
   orderedMetres: number;
@@ -232,6 +226,8 @@ export interface OrderInput {
   fabricWidth?: string;
   yarnType?: string;
   yarnColor?: string;
+  repeat?: number;
+  stitches?: number;
   startDate?: string;
   deadline?: string;
   estCompletion?: string;
@@ -241,6 +237,30 @@ export interface OrderInput {
   rejectedMetres?: number;
   remarks?: string;
 }
+
+/**
+ * The sample an order may be confirmed from.
+ *
+ * Same buyer, and approved: an order is the buyer saying yes to a sample, so
+ * one still with the buyer — or turned down — cannot be the origin of one.
+ */
+const resolveSample = async (sampleId: string, companyId: string): Promise<ISample> => {
+  const sample = await Sample.findById(sampleId).exec();
+  if (!sample) throw new ApiError(404, "That sample no longer exists");
+
+  if (String(sample.company) !== String(companyId)) {
+    throw new ApiError(422, `Sample ${sample.sampleNumber} belongs to another company.`);
+  }
+
+  if (sample.status !== SAMPLE_STATUS.APPROVED) {
+    throw new ApiError(
+      422,
+      `Sample ${sample.sampleNumber} has not been approved yet. Mark it approved first.`
+    );
+  }
+
+  return sample;
+};
 
 export const createOrder = async (
   input: OrderInput,
@@ -255,7 +275,17 @@ export const createOrder = async (
   const company = await Company.findById(input.companyId).exec();
   if (!company) throw new ApiError(404, "That company no longer exists");
 
-  const uploaded = image ? await uploadImage(image.buffer, image.filename, IMAGE_FOLDER) : null;
+  const sample = input.sampleId ? await resolveSample(input.sampleId, input.companyId) : null;
+
+  /*
+   * An uploaded file always wins. Otherwise the sample's design is copied —
+   * only when asked, so an order never picks up an image nobody chose.
+   */
+  const uploaded = image
+    ? await uploadImage(image.buffer, image.filename, IMAGE_FOLDER)
+    : sample?.designImage?.url && input.useSampleImage
+      ? await copyImage(sample.designImage.url, IMAGE_FOLDER)
+      : null;
 
   try {
     /*
@@ -265,12 +295,17 @@ export const createOrder = async (
      * can read straight down is worth the ordering.
      */
     const orderNumber = await generateOrderNumber(company.name);
+    const { companyId: _c, sampleId: _s, useSampleImage: _u, ...fields } = input;
 
     const order = await ProductionOrder.create({
-      ...input,
+      // The design's repeat and stitches carry over unless this order says otherwise.
+      ...(sample ? { repeat: sample.repeat, stitches: sample.stitches } : {}),
+      ...fields,
       orderNumber,
       company: company._id,
       companyName: company.name,
+      sample: sample?._id ?? null,
+      sampleNumber: sample?.sampleNumber ?? "",
       // Never from the client: the log is the only thing that moves this.
       completedMetres: 0,
       ...(uploaded ? { designImage: uploaded } : {}),
@@ -312,7 +347,29 @@ export const updateOrder = async (
     order.companyName = company.name;
   }
 
-  const { companyId: _ignored, ...fields } = patch;
+  /*
+   * The sample link. `null` unlinks; a new id must pass the same checks as on
+   * create. An unchanged link is re-checked only for belonging to the buyer —
+   * a sample approved then, and since reopened, does not un-confirm an order.
+   */
+  if (patch.sampleId === null) {
+    order.sample = null;
+    order.sampleNumber = "";
+  } else if (patch.sampleId && String(patch.sampleId) !== String(order.sample ?? "")) {
+    const sample = await resolveSample(patch.sampleId, String(order.company));
+    order.sample = sample._id as Types.ObjectId;
+    order.sampleNumber = sample.sampleNumber;
+  } else if (order.sample) {
+    const sample = await Sample.findById(order.sample).select("company").lean<ISample>().exec();
+    if (sample && String(sample.company) !== String(order.company)) {
+      throw new ApiError(
+        422,
+        "This order's sample belongs to its previous buyer. Unlink the sample before moving the order."
+      );
+    }
+  }
+
+  const { companyId: _c, sampleId: _s, useSampleImage: _u, ...fields } = patch;
   Object.assign(order, fields);
   order.updatedBy = updatedBy;
 
@@ -398,12 +455,11 @@ export const logProduction = async (
 
   /*
    * Work having started is what RUNNING means, so the first positive entry
-   * moves it rather than making someone remember to. This fires from SAMPLING
-   * as well as PENDING: metres against a sampling order mean the sample is
-   * approved and the run is under way, whether or not anyone changed the pill.
+   * moves it rather than making someone remember to. This also fires from the
+   * legacy SAMPLING status, so an unmigrated row cannot stay stuck in it.
    */
   const started =
-    order.status === ORDER_STATUS.SAMPLING || order.status === ORDER_STATUS.PENDING;
+    order.status === LEGACY_ORDER_STATUS.SAMPLING || order.status === ORDER_STATUS.PENDING;
   const status = started && input.metres > 0 ? ORDER_STATUS.RUNNING : order.status;
 
   const updated = await ProductionOrder.findByIdAndUpdate(
@@ -485,11 +541,12 @@ export interface SummaryResult {
   overallPct: number;
   todayProduced: number;
   counts: Record<string, number>;
+  samples: Record<string, number>;
 }
 
 /** The figures behind the dashboard strip. */
 export const getSummary = async (): Promise<SummaryResult> => {
-  const [totals, byStatus, overdue, today, companies] = await Promise.all([
+  const [totals, byStatus, overdue, today, companies, samples] = await Promise.all([
     ProductionOrder.aggregate<{ _id: null; ordered: number; produced: number }>([
       {
         $group: {
@@ -513,6 +570,7 @@ export const getSummary = async (): Promise<SummaryResult> => {
       { $group: { _id: null, metres: { $sum: "$log.metres" } } },
     ]).exec(),
     Company.countDocuments().exec(),
+    sampleCounts(),
   ]);
 
   const ordered = totals[0]?.ordered ?? 0;
@@ -533,5 +591,6 @@ export const getSummary = async (): Promise<SummaryResult> => {
     overallPct: ordered > 0 ? Math.min(100, (produced / ordered) * 100) : 0,
     todayProduced: today[0]?.metres ?? 0,
     counts,
+    samples,
   };
 };
