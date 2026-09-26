@@ -60,9 +60,12 @@ const orderFields = (optional: boolean): ValidationChain[] => {
  * it, the controller never reads it off the body, and requiring it here would
  * make the form send a value that is then discarded.
  */
+/*
+ * A new order is always converted from a sample, so the sample is required
+ * and the buyer is not asked for — it comes from the sample.
+ */
 export const createOrderRules: ValidationChain[] = [
-  body("companyId").isMongoId().withMessage("Choose a company"),
-  body("sampleId").optional({ checkFalsy: true }).isMongoId().withMessage("Unknown sample"),
+  body("sampleId").isMongoId().withMessage("Choose the sample this order is converted from"),
   // Multipart sends "true"/"false" as text.
   body("useSampleImage").optional({ checkFalsy: true }).isBoolean().toBoolean(),
   body("designNumber")
@@ -79,12 +82,8 @@ export const createOrderRules: ValidationChain[] = [
 
 export const updateOrderRules: ValidationChain[] = [
   param("id").isMongoId().withMessage("Unknown order"),
+  // Only an order that predates samples may move buyer; the service enforces it.
   body("companyId").optional().isMongoId().withMessage("Unknown company"),
-  // null unlinks the sample; an id links (or re-links) one.
-  body("sampleId")
-    .optional({ checkFalsy: true })
-    .isMongoId()
-    .withMessage("Unknown sample"),
   body("designNumber").optional().isString().trim().isLength({ min: 1, max: 60 }),
   body("orderedMetres").optional().isFloat({ min: 0.1, max: 10_000_000 }).toFloat(),
   ...orderFields(true),

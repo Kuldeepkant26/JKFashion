@@ -2,31 +2,49 @@ import mongoose, { Schema, type Document, type Model, type Types } from "mongoos
 import { type IMediaRef } from "./processSection.model.js";
 
 /**
- * Where a sample is with the buyer.
+ * Where a sample is.
  *
  * A sample is its own record, not a status on a production order: sampling
- * work is done, sent and judged before any quantity is committed, and mixing
- * the two made the order list report samples as production. A production
- * order points back at the approved sample it came from — see `sample` on the
- * productionOrder model.
+ * work is done and judged before any quantity is committed, and mixing the two
+ * made the order list report samples as production.
+ *
+ * Every production order is converted from a sample, one to one. Converting
+ * moves the sample to IN_PRODUCTION, which takes it out of the Sampling list
+ * and into its "In production" tab; the order points back at it through
+ * `sample` on the productionOrder model. Deleting that order returns the
+ * sample to APPROVED.
  *
  * Declaration order is the lifecycle order; the filter pills map over it.
  */
 export const SAMPLE_STATUS = {
   IN_PROGRESS: "IN_PROGRESS",
-  SENT: "SENT",
   APPROVED: "APPROVED",
   REJECTED: "REJECTED",
+  IN_PRODUCTION: "IN_PRODUCTION",
 } as const;
 
 export type SampleStatus = (typeof SAMPLE_STATUS)[keyof typeof SAMPLE_STATUS];
 
 export const SAMPLE_STATUSES: SampleStatus[] = Object.values(SAMPLE_STATUS);
 
-/** Still waiting on the floor or on the buyer. */
+/**
+ * Still in sampling: what the Sampling list shows under "All", and the only
+ * statuses a person may set. IN_PRODUCTION is reached one way — converting the
+ * sample into an order — and left one way, deleting that order.
+ */
+export const SAMPLING_STATUSES: SampleStatus[] = [
+  SAMPLE_STATUS.IN_PROGRESS,
+  SAMPLE_STATUS.APPROVED,
+  SAMPLE_STATUS.REJECTED,
+];
+
+/**
+ * Open: not yet converted, and not turned down. These are what "samples open"
+ * counts, and the samples a new production order may be converted from.
+ */
 export const OPEN_SAMPLE_STATUSES: SampleStatus[] = [
   SAMPLE_STATUS.IN_PROGRESS,
-  SAMPLE_STATUS.SENT,
+  SAMPLE_STATUS.APPROVED,
 ];
 
 const mediaRefSchema = new Schema<IMediaRef>(
@@ -54,7 +72,6 @@ export interface ISample extends Document {
   stitches?: number;
   quantity: number;
   deadline?: Date;
-  sentAt?: Date;
   decidedAt?: Date;
   remarks: string;
   createdBy?: Types.ObjectId;
@@ -100,11 +117,12 @@ const sampleSchema = new Schema<ISample>(
     deadline: { type: Date },
 
     /**
-     * Stamped by the service when the status moves, so the company history
-     * can say when a sample went out and when the buyer answered without a
-     * separate audit collection.
+     * When the buyer's answer was recorded — approved or rejected — stamped by
+     * the service when the status moves, so the company history can say when
+     * without a separate audit collection. A sample converted into an order
+     * without first being marked approved is stamped at conversion: taking
+     * the order is the approval.
      */
-    sentAt: { type: Date },
     decidedAt: { type: Date },
 
     remarks: { type: String, trim: true, maxlength: 2000, default: "" },

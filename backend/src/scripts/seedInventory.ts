@@ -169,28 +169,18 @@ interface Plan {
 }
 
 /**
- * Samples, one per company in turn. Every status is represented, one open
- * sample is overdue, and every company gets an approved sample so the orders
- * below can be linked to where they came from.
+ * Samples still in sampling, one per company in turn: some being made (one of
+ * them overdue), some approved and waiting to be converted into an order, one
+ * rejected. The samples behind the orders below are created with the orders,
+ * one each, already in production.
  */
 const SAMPLE_PLANS: Array<{ status: SampleStatus; age: number; due: number }> = [
-  { status: SAMPLE_STATUS.APPROVED, age: 120, due: -100 },
-  { status: SAMPLE_STATUS.APPROVED, age: 110, due: -95 },
-  { status: SAMPLE_STATUS.APPROVED, age: 105, due: -90 },
-  { status: SAMPLE_STATUS.APPROVED, age: 100, due: -85 },
-  { status: SAMPLE_STATUS.APPROVED, age: 98, due: -80 },
-  { status: SAMPLE_STATUS.APPROVED, age: 96, due: -80 },
-  { status: SAMPLE_STATUS.APPROVED, age: 94, due: -78 },
-  { status: SAMPLE_STATUS.APPROVED, age: 92, due: -75 },
-  { status: SAMPLE_STATUS.APPROVED, age: 90, due: -72 },
-  { status: SAMPLE_STATUS.APPROVED, age: 88, due: -70 },
-  { status: SAMPLE_STATUS.APPROVED, age: 86, due: -70 },
-  { status: SAMPLE_STATUS.APPROVED, age: 84, due: -68 },
   { status: SAMPLE_STATUS.IN_PROGRESS, age: 2, due: 10 },
   { status: SAMPLE_STATUS.IN_PROGRESS, age: 5, due: 7 },
   { status: SAMPLE_STATUS.IN_PROGRESS, age: 20, due: -4 },
-  { status: SAMPLE_STATUS.SENT, age: 9, due: 5 },
-  { status: SAMPLE_STATUS.SENT, age: 14, due: 3 },
+  { status: SAMPLE_STATUS.APPROVED, age: 8, due: -1 },
+  { status: SAMPLE_STATUS.APPROVED, age: 12, due: -3 },
+  { status: SAMPLE_STATUS.APPROVED, age: 15, due: -5 },
   { status: SAMPLE_STATUS.REJECTED, age: 30, due: -15 },
 ];
 
@@ -360,44 +350,42 @@ const run = async (): Promise<void> => {
   logger.info(`Created ${companies.length} companies`);
 
   const sampleNumbers = docketNumbering("sample", "SMP");
-  /** company id -> its approved sample, for linking orders below. */
-  const approved = new Map<string, { _id: unknown; sampleNumber: string }>();
+
+  /** One sample's worth of design, shared by a sample and the order it becomes. */
+  const design = () => ({
+    fabricType: pick(FABRICS),
+    fabricWidth: pick(WIDTHS),
+    yarnType: pick(YARNS),
+    yarnColor: pick(COLOURS),
+    repeat: pick([6.75, 13.5, 27]),
+    stitches: Math.round(between(8000, 60000)),
+  });
 
   for (let i = 0; i < SAMPLE_PLANS.length; i += 1) {
     const plan = SAMPLE_PLANS[i]!;
     const company = companies[i % companies.length]!;
     const raisedAt = daysAgo(plan.age);
-    const answered = plan.status === SAMPLE_STATUS.APPROVED || plan.status === SAMPLE_STATUS.REJECTED;
+    const answered = plan.status !== SAMPLE_STATUS.IN_PROGRESS;
 
-    const sample = await Sample.create({
+    await Sample.create({
       company: company._id,
       companyName: company.name,
       sampleNumber: await sampleNumbers.next(company.name),
-      designNumber: `D-${100 + i}`,
+      designNumber: `D-${300 + i}`,
       status: plan.status,
-      fabricType: pick(FABRICS),
-      fabricWidth: pick(WIDTHS),
-      yarnType: pick(YARNS),
-      yarnColor: pick(COLOURS),
-      repeat: pick([6.75, 13.5, 27]),
-      stitches: Math.round(between(8000, 60000)),
+      ...design(),
       quantity: Math.round(between(1, 5)),
       deadline: startOfDayUTC(new Date(Date.now() + plan.due * DAY)),
-      sentAt: plan.status === SAMPLE_STATUS.IN_PROGRESS ? undefined : new Date(raisedAt.getTime() + 4 * DAY),
-      decidedAt: answered ? new Date(raisedAt.getTime() + 9 * DAY) : undefined,
+      decidedAt: answered ? new Date(raisedAt.getTime() + 6 * DAY) : undefined,
       remarks: "",
       createdBy: owner._id,
       updatedBy: owner._id,
       createdAt: raisedAt,
       updatedAt: raisedAt,
     });
-
-    if (plan.status === SAMPLE_STATUS.APPROVED && !approved.has(String(company._id))) {
-      approved.set(String(company._id), sample);
-    }
   }
 
-  logger.info(`Created ${SAMPLE_PLANS.length} samples`);
+  logger.info(`Created ${SAMPLE_PLANS.length} samples still in sampling`);
 
   let orderCount = 0;
   let logCount = 0;
@@ -407,6 +395,29 @@ const run = async (): Promise<void> => {
     const company = companies[i % companies.length]!;
     const raisedAt = daysAgo(plan.age);
     const ordered = between(200, 4000);
+    const designNumber = `D-${100 + i}`;
+    const details = design();
+
+    /*
+     * Every order is converted from a sample, so each gets one: made a couple
+     * of weeks before the order, approved just before it, now in production.
+     */
+    const sample = await Sample.create({
+      company: company._id,
+      companyName: company.name,
+      sampleNumber: await sampleNumbers.next(company.name),
+      designNumber,
+      status: SAMPLE_STATUS.IN_PRODUCTION,
+      ...details,
+      quantity: Math.round(between(1, 5)),
+      deadline: new Date(raisedAt.getTime() - 5 * DAY),
+      decidedAt: new Date(raisedAt.getTime() - 2 * DAY),
+      remarks: "",
+      createdBy: owner._id,
+      updatedBy: owner._id,
+      createdAt: new Date(raisedAt.getTime() - 14 * DAY),
+      updatedAt: raisedAt,
+    });
 
     // Through the app's own generator, so the counters are left consistent.
     const orderNumber = await generateOrderNumber(company.name);
@@ -421,20 +432,15 @@ const run = async (): Promise<void> => {
       i === 14
     );
 
-    const origin = approved.get(String(company._id));
-
     await ProductionOrder.create({
       company: company._id,
       companyName: company.name,
-      sample: origin?._id ?? null,
-      sampleNumber: origin?.sampleNumber ?? "",
+      sample: sample._id,
+      sampleNumber: sample.sampleNumber,
       orderNumber,
-      designNumber: `D-${100 + i}`,
+      designNumber,
       status: plan.status,
-      fabricType: pick(FABRICS),
-      fabricWidth: pick(WIDTHS),
-      yarnType: pick(YARNS),
-      yarnColor: pick(COLOURS),
+      ...details,
       orderedMetres: ordered,
       completedMetres: total,
       startDate: plan.progress > 0 ? new Date(raisedAt.getTime() + 2 * DAY) : undefined,

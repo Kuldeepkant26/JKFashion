@@ -26,6 +26,42 @@ const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), ' +
   'textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+/**
+ * The dialogs currently open, innermost last.
+ *
+ * Dialogs stack — a confirmation or the calculator opens over a record's
+ * popup — and every open one listens on `document`. Only the top one may
+ * answer Escape and Tab, or one keypress closes the whole stack. The page
+ * behind is locked when the first opens and released when the last closes,
+ * so two dialogs closing in the same render cannot restore each other's
+ * styles out of order and leave the page stuck unscrollable.
+ */
+const openDialogs = [];
+let savedBodyStyle = null;
+
+const lockBody = () => {
+  if (savedBodyStyle) return;
+  const { overflow, paddingRight } = document.body.style;
+  savedBodyStyle = { overflow, paddingRight };
+
+  /*
+   * Without this, scrolling inside the panel chains to the body once it hits
+   * its end and the page drifts underneath — on iOS it never comes back to
+   * where it was. The scrollbar's width is replaced so the page does not jump
+   * sideways.
+   */
+  const gap = window.innerWidth - document.documentElement.clientWidth;
+  document.body.style.overflow = 'hidden';
+  if (gap > 0) document.body.style.paddingRight = `${gap}px`;
+};
+
+const unlockBody = () => {
+  if (openDialogs.length || !savedBodyStyle) return;
+  document.body.style.overflow = savedBodyStyle.overflow;
+  document.body.style.paddingRight = savedBodyStyle.paddingRight;
+  savedBodyStyle = null;
+};
+
 export default function Modal({
   open,
   onClose,
@@ -33,6 +69,12 @@ export default function Modal({
   description,
   children,
   footer,
+  /**
+   * A failure to show inside the dialog. The page's own banner sits behind the
+   * backdrop while a dialog is up, so an action that fails in here has to say
+   * so in here — pinned above the actions, where the eye already is.
+   */
+  error,
   size = 'lg',
   /** Set false for a form with unsaved input, where a stray click is costly. */
   closeOnBackdrop = true,
@@ -43,25 +85,31 @@ export default function Modal({
   /* Whatever had focus before we opened, so it can be handed back on close. */
   const restoreTo = useRef(null);
 
-  const close = useCallback(() => onClose?.(), [onClose]);
+  /*
+   * The latest `onClose`, read through a ref so `close` never changes. Callers
+   * pass inline handlers, and an effect keyed on them re-ran on every parent
+   * render — handing focus back and grabbing it again mid-typing, and moving
+   * this dialog to the top of the stack over one opened above it.
+   */
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+  const close = useCallback(() => onCloseRef.current?.(), []);
 
   useEffect(() => {
     if (!open) return undefined;
 
     restoreTo.current = document.activeElement;
 
-    /*
-     * Lock the page behind the dialog. Without this, scrolling inside the
-     * panel chains to the body once it hits its end and the page drifts
-     * underneath — on iOS it never comes back to where it was.
-     */
-    const { overflow, paddingRight } = document.body.style;
-    const gap = window.innerWidth - document.documentElement.clientWidth;
-    document.body.style.overflow = 'hidden';
-    // Replace the scrollbar's width so the page behind does not jump sideways.
-    if (gap > 0) document.body.style.paddingRight = `${gap}px`;
+    const self = {};
+    openDialogs.push(self);
+    lockBody();
 
     const onKeyDown = (e) => {
+      // A dialog opened over this one owns the keyboard until it closes.
+      if (openDialogs[openDialogs.length - 1] !== self) return;
+
       if (e.key === 'Escape') {
         e.stopPropagation();
         close();
@@ -101,8 +149,8 @@ export default function Modal({
     return () => {
       clearTimeout(timer);
       document.removeEventListener('keydown', onKeyDown, true);
-      document.body.style.overflow = overflow;
-      document.body.style.paddingRight = paddingRight;
+      openDialogs.splice(openDialogs.indexOf(self), 1);
+      unlockBody();
       // Only take focus back if it is still inside the dialog being removed.
       if (restoreTo.current?.isConnected) restoreTo.current.focus?.();
     };
@@ -158,6 +206,15 @@ export default function Modal({
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">{children}</div>
+
+        {error ? (
+          <p
+            role="alert"
+            className="border-t border-rose-100 bg-rose-50 px-5 py-2.5 font-body text-sm text-rose-700"
+          >
+            {error}
+          </p>
+        ) : null}
 
         {footer ? (
           <footer

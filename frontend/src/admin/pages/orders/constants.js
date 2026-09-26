@@ -59,28 +59,41 @@ export const FILTERS = [
 export const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 export const IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp,image/avif';
 
-/** Mirrors SAMPLE_STATUSES in the API's sample model, in lifecycle order. */
-export const SAMPLE_STATUSES = ['IN_PROGRESS', 'SENT', 'APPROVED', 'REJECTED'];
+/**
+ * The statuses a person sets on a sample, in lifecycle order. Mirrors
+ * SAMPLING_STATUSES in the API's sample model.
+ *
+ * IN_PRODUCTION is the fourth, and is not here: a sample reaches it only by
+ * being converted into a production order, which also takes it out of the
+ * Sampling list and into its "In production" tab.
+ */
+export const SAMPLE_STATUSES = ['IN_PROGRESS', 'APPROVED', 'REJECTED'];
 
 export const SAMPLE_STATUS_LABELS = {
   IN_PROGRESS: 'In progress',
-  SENT: 'Sent to buyer',
   APPROVED: 'Approved',
   REJECTED: 'Rejected',
+  IN_PRODUCTION: 'In production',
   OVERDUE: 'Overdue',
 };
 
 export const SAMPLE_STATUS_STYLES = {
   IN_PROGRESS: 'bg-violet-50 text-violet-700',
-  SENT: 'bg-sky-50 text-sky-700',
   APPROVED: 'bg-emerald-50 text-emerald-700',
   REJECTED: 'bg-brand-ink/8 text-brand-ink/60',
+  IN_PRODUCTION: 'bg-sky-50 text-sky-700',
   OVERDUE: 'bg-rose-50 text-rose-700',
 };
 
+/**
+ * The Sampling list's pills. "All" is everything still in sampling — the API
+ * group SAMPLING — because a converted sample has left sampling; it lives
+ * under its own "In production" pill, set apart at the end of the row.
+ */
 export const SAMPLE_FILTERS = [
-  { value: '', label: 'All' },
+  { value: 'SAMPLING', label: 'All' },
   ...SAMPLE_STATUSES.map((s) => ({ value: s, label: SAMPLE_STATUS_LABELS[s] })),
+  { value: 'IN_PRODUCTION', label: 'In production', apart: true },
 ];
 
 /** Metres from a repeat given in inches. */

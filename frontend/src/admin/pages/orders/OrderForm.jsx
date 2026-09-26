@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { FiHash, FiLink } from 'react-icons/fi';
+import { FiHash, FiImage, FiArrowLeft } from 'react-icons/fi';
 import * as inventoryApi from '../../../api/inventory.api.js';
 import { invalidate } from '../../../api/useCachedQuery.js';
 import Modal from '../../components/Modal.jsx';
@@ -7,6 +7,8 @@ import DesignImageField from './DesignImageField.jsx';
 import {
   ORDER_STATUSES,
   STATUS_LABELS,
+  SAMPLE_STATUS_LABELS,
+  SAMPLE_STATUS_STYLES,
   inputClass,
   labelClass,
   toDateInput,
@@ -66,7 +68,7 @@ const SECTIONS = [
   },
 ];
 
-/** The design fields an approved sample hands to the order raised from it. */
+/** The design fields a sample hands to the order it is converted into. */
 const FROM_SAMPLE = [
   'designNumber',
   'fabricType',
@@ -77,10 +79,8 @@ const FROM_SAMPLE = [
   'stitches',
 ];
 
-/** An order opens at PENDING: the sample it came from is already approved. */
+/** An order opens at PENDING: the buyer has said yes, the floor has not started. */
 const EMPTY = {
-  companyId: '',
-  sampleId: '',
   designNumber: '',
   orderedMetres: '',
   status: 'PENDING',
@@ -98,8 +98,8 @@ const EMPTY = {
 const fromOrder = (order) => ({
   ...EMPTY,
   ...Object.fromEntries(Object.keys(EMPTY).map((k) => [k, order[k] ?? ''])),
+  // Only an order from before samples can change buyer; see the Buyer field.
   companyId: order.company ?? '',
-  sampleId: order.sample ?? '',
   // A pre-split SAMPLING row cannot be saved back as SAMPLING; PENDING is
   // what it becomes the first time anyone edits it.
   status: ORDER_STATUSES.includes(order.status) ? order.status : 'PENDING',
@@ -108,35 +108,93 @@ const fromOrder = (order) => ({
   estCompletion: toDateInput(order.estCompletion),
 });
 
-/** Copy a sample's design onto the form, without overwriting what is typed. */
-const applySample = (form, sample, { overwrite = false } = {}) => {
-  const next = { ...form, sampleId: sample._id };
-  for (const key of FROM_SAMPLE) {
-    const value = sample[key];
-    if (value === undefined || value === null || value === '') continue;
-    if (overwrite || form[key] === '' || form[key] === undefined) next[key] = value;
-  }
-  return next;
-};
+const fromSampleFields = (sample) => ({
+  ...EMPTY,
+  ...Object.fromEntries(FROM_SAMPLE.map((k) => [k, sample[k] ?? ''])),
+});
 
+/** The sample an order is (or was) converted from, as a read-only card. */
+function SourceSample({ sample, caption, onChange }) {
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-admin-cream p-3 ring-1 ring-brand-ink/8">
+      {sample.designImage?.url ? (
+        <img
+          src={sample.designImage.url}
+          alt={`Design ${sample.designNumber}`}
+          className="h-12 w-12 shrink-0 rounded-lg object-cover ring-1 ring-brand-ink/8"
+        />
+      ) : (
+        <span
+          aria-hidden
+          className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-brand-ink/5 text-brand-ink/30"
+        >
+          <FiImage />
+        </span>
+      )}
+
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-body text-sm font-semibold text-brand-ink">
+          {sample.companyName} · Design {sample.designNumber}
+        </p>
+        <p className="font-body text-xs text-brand-ink/55">
+          Sample {sample.sampleNumber}
+          {sample.status && sample.status !== 'IN_PRODUCTION' ? (
+            <span
+              className={`ml-2 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                SAMPLE_STATUS_STYLES[sample.status]
+              }`}
+            >
+              {SAMPLE_STATUS_LABELS[sample.status]}
+            </span>
+          ) : null}
+        </p>
+        {caption ? <p className="mt-0.5 font-body text-xs text-brand-ink/45">{caption}</p> : null}
+      </div>
+
+      {onChange ? (
+        <button
+          type="button"
+          onClick={onChange}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 font-body text-xs
+                     font-semibold text-brand-ink/70 ring-1 ring-brand-ink/12 transition-colors
+                     hover:bg-surface-card"
+        >
+          <FiArrowLeft aria-hidden /> Change sample
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * A production order: converting a sample into one, or editing one.
+ *
+ * There is no blank "new order" — every order is converted from a sample,
+ * which is picked first (see SamplePicker) and arrives here as `fromSample`.
+ * The buyer and the design come from it; what is asked for is what the sample
+ * cannot know: the quantity ordered and the schedule.
+ *
+ * @param fromSample the sample being converted (create)
+ * @param initial    the order being edited (edit)
+ * @param onBack     back to the sample list, to pick a different one
+ */
 export default function OrderForm({
   open,
   initial,
   companies,
   /** Inside a company's dashboard the buyer is fixed and not asked for. */
   companyId: fixedCompanyId,
-  /** Raising an order from an approved sample: prefills buyer and design. */
   fromSample,
+  onBack,
   onSaved,
   onCancel,
+  error,
   setError,
 }) {
   const editing = Boolean(initial?._id);
-  const [form, setForm] = useState(() => {
-    if (initial) return fromOrder(initial);
-    const base = { ...EMPTY, companyId: fromSample?.company ?? fixedCompanyId ?? '' };
-    return fromSample ? applySample(base, fromSample, { overwrite: true }) : base;
-  });
+  const [form, setForm] = useState(() =>
+    initial ? fromOrder(initial) : fromSampleFields(fromSample)
+  );
   const [fieldErrors, setFieldErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [file, setFile] = useState(null);
@@ -147,25 +205,21 @@ export default function OrderForm({
 
   const [numberPreview, setNumberPreview] = useState('');
 
-  /** The buyer's approved samples, for the picker. */
-  const [samples, setSamples] = useState([]);
-
-  /** The chosen sample in full — with what has already been ordered from it. */
-  const [sample, setSample] = useState(fromSample ?? null);
+  const buyerId = editing ? form.companyId : fromSample?.company;
 
   /*
-   * Ask the API what the next number for this buyer is, whenever the buyer
-   * changes. Only on create: an existing order keeps the number it was issued.
+   * Ask the API what the next number for this buyer is. Only on create: an
+   * existing order keeps the number it was issued.
    */
   useEffect(() => {
-    if (editing || !form.companyId) {
+    if (editing || !buyerId) {
       setNumberPreview('');
       return undefined;
     }
 
     let cancelled = false;
     inventoryApi
-      .previewOrderNumber(form.companyId)
+      .previewOrderNumber(buyerId)
       .then((result) => {
         if (!cancelled) setNumberPreview(result.orderNumber);
       })
@@ -178,56 +232,13 @@ export default function OrderForm({
     return () => {
       cancelled = true;
     };
-  }, [form.companyId, editing]);
-
-  /* The approved samples this buyer has, whenever the buyer changes. */
-  useEffect(() => {
-    if (!form.companyId) {
-      setSamples([]);
-      return undefined;
-    }
-
-    let cancelled = false;
-    inventoryApi
-      .listSamples({ companyId: form.companyId, status: 'APPROVED', limit: 100 })
-      .then((r) => !cancelled && setSamples(r.items ?? []))
-      .catch(() => !cancelled && setSamples([]));
-
-    return () => {
-      cancelled = true;
-    };
-  }, [form.companyId]);
-
-  /* The chosen sample in full, for its running totals. */
-  useEffect(() => {
-    if (!form.sampleId) {
-      setSample(null);
-      return undefined;
-    }
-
-    let cancelled = false;
-    inventoryApi
-      .getSample(form.sampleId)
-      .then((s) => !cancelled && setSample(s))
-      .catch(() => !cancelled && setSample(null));
-
-    return () => {
-      cancelled = true;
-    };
-  }, [form.sampleId]);
-
-  const sampleImage = sample?.designImage?.url;
+  }, [buyerId, editing]);
 
   const set = (name, value) => setForm((f) => ({ ...f, [name]: value }));
 
-  const chooseCompany = (companyId) =>
-    // A sample belongs to one buyer; changing buyer drops it.
-    setForm((f) => ({ ...f, companyId, sampleId: '' }));
-
-  const chooseSample = (sampleId) => {
-    const picked = samples.find((s) => s._id === sampleId);
-    setForm((f) => (picked ? applySample(f, picked) : { ...f, sampleId: '' }));
-  };
+  /* An order converted from a sample keeps that sample's buyer. */
+  const buyerLocked = editing && Boolean(initial.sample);
+  const sampleImage = fromSample?.designImage?.url;
 
   const submit = async (e) => {
     e.preventDefault();
@@ -236,24 +247,25 @@ export default function OrderForm({
     setFieldErrors({});
     try {
       if (editing) {
-        await inventoryApi.updateOrder(initial._id, {
-          ...form,
-          // '' means "no sample" on the form; the API unlinks on null.
-          sampleId: form.sampleId || (initial.sample ? null : undefined),
-        });
+        const { companyId, ...fields } = form;
+        await inventoryApi.updateOrder(
+          initial._id,
+          buyerLocked || fixedCompanyId ? fields : { ...fields, companyId }
+        );
         if (file) await inventoryApi.setOrderImage(initial._id, file);
         else if (removeImage) await inventoryApi.clearOrderImage(initial._id);
       } else {
         await inventoryApi.createOrder(
           {
             ...form,
-            useSampleImage: Boolean(form.sampleId && useSampleImage && !file && sampleImage),
+            sampleId: fromSample._id,
+            useSampleImage: Boolean(useSampleImage && !file && sampleImage),
           },
           file
         );
       }
 
-      // The list, the pill counts, the gauge and the sample's totals all move with it.
+      // The list, the pill counts, the gauge and the sample's own status all move with it.
       invalidate('orders', 'summary', 'samples', 'companies', 'company-overview');
       onSaved(editing ? 'Order saved' : 'Order created');
     } catch (err) {
@@ -312,28 +324,19 @@ export default function OrderForm({
     );
   };
 
-  const formId = editing ? `order-${initial._id}` : 'order-new';
+  const formId = editing ? `order-${initial._id}` : `order-from-${fromSample?._id}`;
   const shownNumber = editing ? initial.orderNumber : numberPreview;
-
-  /*
-   * The picker lists approved samples. When editing, the order's current
-   * sample is kept as an option even if it has since been reopened, so the
-   * select does not silently show "No sample" for a linked order.
-   */
-  const sampleOptions =
-    form.sampleId && sample && !samples.some((s) => s._id === form.sampleId)
-      ? [sample, ...samples]
-      : samples;
 
   return (
     <Modal
+      error={error}
       open={open}
       onClose={saving ? undefined : onCancel}
       title={editing ? `Edit order ${initial.orderNumber}` : 'New production order'}
       description={
         editing
           ? 'Changes apply to this order only.'
-          : 'Pick the approved sample this order was confirmed from. The order number is generated on save.'
+          : 'Enter what the buyer ordered. Saving converts the sample into this order.'
       }
       closeOnBackdrop={false}
       footer={
@@ -363,28 +366,44 @@ export default function OrderForm({
       }
     >
       <form id={formId} onSubmit={submit} className="flex flex-col gap-5">
+        {/* Where the order comes from. On create it can still be swapped. */}
+        {!editing ? (
+          <SourceSample
+            sample={fromSample}
+            caption="Buyer and design details come from this sample."
+            onChange={saving ? undefined : onBack}
+          />
+        ) : initial.sample ? (
+          <SourceSample
+            sample={{
+              companyName: initial.companyName,
+              designNumber: initial.designNumber,
+              sampleNumber: initial.sampleNumber,
+              designImage: initial.designImage,
+            }}
+            caption="Converted from this sample, so the buyer is fixed."
+          />
+        ) : null}
+
         <div className="grid gap-4 sm:grid-cols-2">
-          {fixedCompanyId ? null : (
+          {/* Only an order from before samples has a buyer that can be changed. */}
+          {editing && !buyerLocked && !fixedCompanyId ? (
             <label className="flex flex-col gap-1.5">
               <span className={labelClass}>Buyer *</span>
               <select
                 required
                 value={form.companyId}
-                onChange={(e) => chooseCompany(e.target.value)}
+                onChange={(e) => set('companyId', e.target.value)}
                 className={`${inputClass} ${fieldErrors.companyId ? 'ring-rose-300' : ''}`}
               >
-                <option value="">Choose a company…</option>
                 {companies.map((c) => (
                   <option key={c._id} value={c._id}>
                     {c.name}
                   </option>
                 ))}
               </select>
-              {fieldErrors.companyId ? (
-                <span className="text-xs text-rose-600">{fieldErrors.companyId}</span>
-              ) : null}
             </label>
-          )}
+          ) : null}
 
           {/* Read-only by design: the server issues the number from an atomic
               per-buyer counter, so two people raising an order at the same
@@ -398,58 +417,11 @@ export default function OrderForm({
                   shownNumber ? 'text-brand-ink' : 'text-brand-ink/40'
                 }`}
               >
-                {shownNumber || 'Choose a buyer first'}
+                {shownNumber || 'Generated on save'}
               </output>
             </div>
           </div>
         </div>
-
-        {/* ------------------------------------------------ source sample */}
-        <fieldset className="flex flex-col gap-3 rounded-2xl bg-admin-cream p-4">
-          <legend className="sr-only">Source sample</legend>
-          <label className="flex flex-col gap-1.5">
-            <span className={`${labelClass} inline-flex items-center gap-1.5`}>
-              <FiLink aria-hidden /> Confirmed from sample
-            </span>
-            <select
-              value={form.sampleId}
-              onChange={(e) => chooseSample(e.target.value)}
-              disabled={!form.companyId}
-              className={`${inputClass} ${fieldErrors.sampleId ? 'ring-rose-300' : ''}`}
-            >
-              <option value="">
-                {!form.companyId
-                  ? 'Choose a buyer first'
-                  : sampleOptions.length
-                    ? 'No sample — repeat or direct order'
-                    : 'No approved samples for this buyer'}
-              </option>
-              {sampleOptions.map((s) => (
-                <option key={s._id} value={s._id}>
-                  {s.sampleNumber} · Design {s.designNumber}
-                </option>
-              ))}
-            </select>
-            {fieldErrors.sampleId ? (
-              <span className="text-xs text-rose-600">{fieldErrors.sampleId}</span>
-            ) : null}
-          </label>
-
-          {sample?.orderTotals ? (
-            <p className="font-body text-xs text-brand-ink/60">
-              {sample.orders?.length ? (
-                <>
-                  Already from this sample: <b>{formatMetres(sample.orderTotals.ordered)}m</b>{' '}
-                  ordered, <b>{formatMetres(sample.orderTotals.produced)}m</b> produced,{' '}
-                  <b>{formatMetres(sample.orderTotals.remaining)}m</b> remaining across{' '}
-                  {sample.orders.length} order{sample.orders.length === 1 ? '' : 's'}.
-                </>
-              ) : (
-                'First order from this sample. Its design details have been filled in below.'
-              )}
-            </p>
-          ) : null}
-        </fieldset>
 
         <div className="flex flex-col gap-2">
           <DesignImageField

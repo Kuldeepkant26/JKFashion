@@ -32,7 +32,6 @@ const TABS = [
 /** How each history entry reads. */
 const ACTIVITY = {
   SAMPLE_CREATED: { label: 'Sample started', dot: 'bg-violet-400' },
-  SAMPLE_SENT: { label: 'Sample sent to buyer', dot: 'bg-sky-400' },
   SAMPLE_APPROVED: { label: 'Sample approved', dot: 'bg-emerald-500' },
   SAMPLE_REJECTED: { label: 'Sample rejected', dot: 'bg-brand-ink/30' },
   ORDER_CREATED: { label: 'Order confirmed', dot: 'bg-brand-pink' },
@@ -205,6 +204,7 @@ export default function CompanyDashboard() {
           open
           key={company._id}
           initial={company}
+          error={error}
           setError={setError}
           onCancel={() => setEditing(false)}
           onSaved={() => setEditing(false)}
@@ -311,8 +311,16 @@ export default function CompanyDashboard() {
 
       {/* ------------------------------------------------------ figures */}
       <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Figure label="Samples open" value={samples.open ?? 0} tone="text-violet-700" />
-        <Figure label="Samples approved" value={samples.APPROVED ?? 0} tone="text-emerald-600" />
+        <Figure
+          label="Samples in progress"
+          value={samples.IN_PROGRESS ?? 0}
+          tone="text-violet-700"
+        />
+        <Figure
+          label="Ready for production"
+          value={samples.APPROVED ?? 0}
+          tone="text-emerald-600"
+        />
         <Figure label="Orders active" value={orders.active} tone="text-sky-700" />
         <Figure
           label="Orders overdue"
@@ -360,9 +368,10 @@ export default function CompanyDashboard() {
                           }`}
             >
               {t.label}
-              {t.value === 'samples' && samples.total ? (
+              {/* Only what is still in sampling — converted samples have moved on. */}
+              {t.value === 'samples' && samples.sampling ? (
                 <span className="ml-1.5 rounded-full bg-brand-ink/10 px-1.5 py-0.5 text-[10px] font-bold text-brand-ink/60">
-                  {samples.total}
+                  {samples.sampling}
                 </span>
               ) : null}
               {t.value === 'orders' && orders.total ? (
@@ -384,13 +393,16 @@ export default function CompanyDashboard() {
         <SamplesBoard
           companyId={company._id}
           focusId={focusId}
+          onFocusDone={() => setParams({ tab }, { replace: true })}
           onOpenOrder={(orderId) => go('orders', orderId)}
         />
       ) : (
         <OrdersBoard
           companyId={company._id}
           focusId={focusId}
+          onFocusDone={() => setParams({ tab }, { replace: true })}
           onOpenSample={(sampleId) => go('samples', sampleId)}
+          onGoToSampling={() => go('samples')}
         />
       )}
     </div>

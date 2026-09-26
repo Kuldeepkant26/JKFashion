@@ -134,6 +134,7 @@ export default function CompaniesTab() {
         <CompanyForm
           open
           initial={null}
+          error={error}
           setError={setError}
           onCancel={() => setAdding(false)}
           onSaved={(_message, company) => {

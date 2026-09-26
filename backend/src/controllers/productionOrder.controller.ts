@@ -104,9 +104,8 @@ export const createOrder = asyncHandler<AuthedRequest>(async (req, res) => {
 
   const order = await orderService.createOrder(
     {
-      ...(pickFields(body) as Omit<orderService.OrderInput, "companyId">),
-      companyId: body.companyId as string,
-      sampleId: (body.sampleId as string) || undefined,
+      ...(pickFields(body) as unknown as orderService.OrderFields),
+      sampleId: body.sampleId as string,
       useSampleImage: body.useSampleImage === true,
     },
     req.user!._id as never,
@@ -121,9 +120,6 @@ export const updateOrder = asyncHandler<AuthedRequest>(async (req, res) => {
 
   const patch: orderService.OrderPatch = pickFields(body);
   if (body.companyId !== undefined) patch.companyId = body.companyId as string;
-  // null is "unlink"; an empty string, like every other field, is "not sent".
-  if (body.sampleId === null) patch.sampleId = null;
-  else if (body.sampleId) patch.sampleId = body.sampleId as string;
 
   const order = await orderService.updateOrder(
     req.params.id as string,

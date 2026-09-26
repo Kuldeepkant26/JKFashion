@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { FiX, FiEdit2, FiTrash2, FiPlus, FiImage, FiLink } from 'react-icons/fi';
+import { FiEdit2, FiTrash2, FiPlus, FiImage, FiLink } from 'react-icons/fi';
 import { TbCalculator } from 'react-icons/tb';
 import * as inventoryApi from '../../../api/inventory.api.js';
-import Spinner from '../../components/Spinner.jsx';
+import Modal from '../../components/Modal.jsx';
 import ConfirmDialog from '../../components/ConfirmDialog.jsx';
 import StitchCalculator from './StitchCalculator.jsx';
 import {
@@ -138,6 +138,18 @@ function LogForm({ orderId, ordered, produced, onLogged, onCancel, setError }) {
   );
 }
 
+const secondaryButton =
+  'inline-flex items-center gap-1.5 rounded-xl px-4 py-2 font-body text-sm font-semibold ' +
+  'text-brand-ink/70 ring-1 ring-brand-ink/12 transition-colors hover:bg-brand-ink/5 ' +
+  'disabled:opacity-60';
+
+/**
+ * One order, in a popup: progress, status, the design, and the production log.
+ *
+ * A popup rather than a panel opened inside the list: the list stays where it
+ * was, and the record gets the whole screen's attention while it is open. The
+ * calculator and the confirmations open over it, not in place of it.
+ */
 export default function OrderDetail({
   order,
   loading,
@@ -148,25 +160,12 @@ export default function OrderDetail({
   onDelete,
   onChanged,
   onOpenSample,
+  error,
   setError,
 }) {
   const [logging, setLogging] = useState(false);
   const [calculating, setCalculating] = useState(false);
   const [confirmingEntry, setConfirmingEntry] = useState(null);
-
-  /*
-   * Only a genuinely absent order falls back to the spinner. `loading` here
-   * means the full record — the one carrying the production log — is still on
-   * its way, while the card's own copy is already being shown; swapping that
-   * for a spinner would blank a panel that has something to display.
-   */
-  if (!order) {
-    return (
-      <div className="grid min-h-[30vh] place-items-center rounded-2xl bg-surface-card shadow-sm ring-1 ring-black/5">
-        <Spinner label="Loading order" />
-      </div>
-    );
-  }
 
   const ordered = Number(order.orderedMetres ?? 0);
   const done = Number(order.completedMetres ?? 0);
@@ -195,7 +194,252 @@ export default function OrderDetail({
   };
 
   return (
-    <div className="flex flex-col gap-5 rounded-2xl bg-surface-card p-5 shadow-sm ring-1 ring-black/5">
+    <>
+      <Modal
+        error={error}
+        open
+        onClose={onClose}
+        title={`Order ${order.orderNumber}`}
+        description={`${order.companyName} · Design ${order.designNumber}${
+          // The record is on screen either way; this only says the log is
+          // still arriving, rather than blanking the popup with a spinner.
+          loading ? ' · refreshing…' : ''
+        }`}
+        footer={
+          <>
+            {/* Destructive and irreversible, so it is owner-only — matching the
+                API, which rejects a delete from anyone else. */}
+            {isOwner ? (
+              <button
+                type="button"
+                onClick={() => onDelete(order)}
+                disabled={busy}
+                className="mr-auto inline-flex items-center gap-1.5 rounded-xl px-4 py-2 font-body
+                           text-sm font-semibold text-rose-700 ring-1 ring-rose-200
+                           transition-colors hover:bg-rose-50 disabled:opacity-60"
+              >
+                <FiTrash2 aria-hidden /> Delete
+              </button>
+            ) : null}
+
+            <button type="button" onClick={() => setCalculating(true)} className={secondaryButton}>
+              <TbCalculator aria-hidden /> Calculator
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onEdit(order)}
+              disabled={busy}
+              className={secondaryButton}
+            >
+              <FiEdit2 aria-hidden /> Edit order
+            </button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-5">
+          <div className="flex items-start gap-4">
+            {order.designImage?.url ? (
+              <img
+                src={order.designImage.url}
+                alt={`Design ${order.designNumber}`}
+                className="h-20 w-20 shrink-0 rounded-xl object-cover ring-1 ring-brand-ink/8"
+              />
+            ) : (
+              <span
+                aria-hidden
+                className="grid h-20 w-20 shrink-0 place-items-center rounded-xl bg-brand-ink/5 text-brand-ink/30"
+              >
+                <FiImage size={22} />
+              </span>
+            )}
+
+            <div className="min-w-0 flex-1">
+              <p className="font-display text-lg font-bold text-brand-ink">{order.companyName}</p>
+              <p className="font-body text-xs text-brand-ink/50">Design {order.designNumber}</p>
+              {order.sampleNumber ? (
+                <button
+                  type="button"
+                  onClick={() => onOpenSample?.(order.sample)}
+                  disabled={!onOpenSample}
+                  className="mt-2 inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5
+                             font-body text-[11px] font-semibold text-violet-700 enabled:hover:underline
+                             disabled:cursor-default"
+                >
+                  <FiLink aria-hidden size={11} /> From sample {order.sampleNumber}
+                </button>
+              ) : null}
+            </div>
+          </div>
+
+          {/* progress */}
+          <div>
+            <div className="flex items-center justify-between font-body text-xs text-brand-ink/60">
+              <span>
+                {formatMetres(ordered)}m ordered − {formatMetres(done)}m produced ={' '}
+                <b className="text-brand-ink">{formatMetres(remaining)}m remaining</b>
+              </span>
+              <span className="font-semibold text-brand-ink">{pct.toFixed(0)}%</span>
+            </div>
+            <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-brand-ink/8">
+              <div
+                className={`h-full rounded-full transition-[width] duration-500 ${
+                  order.status === 'COMPLETED'
+                    ? 'bg-emerald-500'
+                    : order.isOverdue
+                      ? 'bg-rose-500'
+                      : 'bg-brand-pink'
+                }`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            {order.isOverdue ? (
+              <p className="mt-2 font-body text-xs font-semibold text-rose-600">
+                Overdue — the deadline of {formatDate(order.deadline)} has passed.
+              </p>
+            ) : null}
+          </div>
+
+          {/* status */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-body text-xs font-semibold uppercase tracking-[0.12em] text-brand-ink/60">
+              Status
+            </span>
+            {ORDER_STATUSES.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setStatus(s)}
+                disabled={busy || s === order.status}
+                aria-pressed={s === order.status}
+                className={`rounded-full px-3 py-1.5 font-body text-xs font-semibold transition-colors
+                            disabled:cursor-default ${
+                              s === order.status
+                                ? STATUS_STYLES[s]
+                                : 'text-brand-ink/50 ring-1 ring-brand-ink/12 hover:bg-brand-ink/5'
+                            }`}
+              >
+                {STATUS_LABELS[s]}
+              </button>
+            ))}
+          </div>
+
+          <dl className="grid grid-cols-2 gap-4 border-t border-brand-ink/8 pt-4 sm:grid-cols-4">
+            <Detail label="Fabric" value={order.fabricType} />
+            <Detail label="Width" value={order.fabricWidth} />
+            <Detail label="Yarn" value={order.yarnType} />
+            <Detail label="Colour" value={order.yarnColor} />
+            <Detail label="Repeat" value={order.repeat ? `${order.repeat}"` : ''} />
+            <Detail
+              label="Stitches / repeat"
+              value={order.stitches ? Number(order.stitches).toLocaleString('en-IN') : ''}
+            />
+            <Detail label="Start" value={formatDate(order.startDate)} />
+            <Detail label="Deadline" value={formatDate(order.deadline)} />
+            <Detail label="Est. completion" value={formatDate(order.estCompletion)} />
+            <Detail label="Machine" value={order.machine} />
+            <Detail label="Operator" value={order.operator} />
+            <Detail label="Mendings" value={String(order.mendings ?? 0)} />
+            <Detail label="Rejected" value={`${formatMetres(order.rejectedMetres)}m`} />
+          </dl>
+
+          {order.remarks ? (
+            <div className="rounded-xl bg-admin-cream p-3">
+              <p className="font-body text-[10px] font-semibold uppercase tracking-wider text-brand-ink/45">
+                Remarks
+              </p>
+              <p className="mt-1 font-body text-sm text-brand-ink/80">{order.remarks}</p>
+            </div>
+          ) : null}
+
+          {/* production log */}
+          <div className="flex flex-col gap-3 border-t border-brand-ink/8 pt-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="font-body text-xs font-semibold uppercase tracking-[0.12em] text-brand-ink/60">
+                Production log
+              </h3>
+              {!logging ? (
+                <button
+                  type="button"
+                  onClick={() => setLogging(true)}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-brand-pink px-3 py-2
+                             font-body text-xs font-semibold text-on-primary transition-colors
+                             hover:bg-brand-pink-dark"
+                >
+                  <FiPlus aria-hidden /> Log production
+                </button>
+              ) : null}
+            </div>
+
+            {logging ? (
+              <LogForm
+                orderId={order._id}
+                ordered={ordered}
+                produced={done}
+                setError={setError}
+                onCancel={() => setLogging(false)}
+                onLogged={(updated) => {
+                  setLogging(false);
+                  onChanged(updated);
+                }}
+              />
+            ) : null}
+
+            {log.length ? (
+              <ul className="flex flex-col">
+                {log.map((entry) => (
+                  <li
+                    key={entry._id}
+                    className="flex items-center justify-between gap-3 border-b border-brand-ink/8 py-2
+                               last:border-0"
+                  >
+                    <span className="min-w-0">
+                      <span className="font-body text-sm text-brand-ink">
+                        {formatDate(entry.date)}
+                      </span>
+                      {entry.note ? (
+                        <span className="ml-2 font-body text-xs text-brand-ink/50">{entry.note}</span>
+                      ) : null}
+                      <span className="mt-0.5 block font-body text-[11px] text-brand-ink/40">
+                        {entry.loggedByName || 'Unknown'}
+                      </span>
+                    </span>
+
+                    <span className="flex shrink-0 items-center gap-2">
+                      <span
+                        className={`font-body text-sm font-semibold ${
+                          entry.metres < 0 ? 'text-rose-600' : 'text-brand-ink'
+                        }`}
+                      >
+                        {entry.metres > 0 ? '+' : ''}
+                        {formatMetres(entry.metres)}m
+                      </span>
+                      {isOwner ? (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmingEntry(entry)}
+                          aria-label="Remove entry"
+                          className="grid h-7 w-7 place-items-center rounded-full text-brand-ink/35
+                                     transition-colors hover:bg-rose-50 hover:text-rose-600"
+                        >
+                          <FiTrash2 size={13} />
+                        </button>
+                      ) : null}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="font-body text-sm text-brand-ink/45">
+                {loading
+                  ? 'Loading the log…'
+                  : 'Nothing logged yet. The total above comes from these entries.'}
+              </p>
+            )}
+          </div>
+        </div>
+      </Modal>
+
       <StitchCalculator
         open={calculating}
         onClose={() => setCalculating(false)}
@@ -217,256 +461,6 @@ export default function OrderDetail({
         onConfirm={removeEntry}
         onCancel={() => setConfirmingEntry(null)}
       />
-
-      <div className="flex items-start gap-3">
-        {order.designImage?.url ? (
-          <img
-            src={order.designImage.url}
-            alt={`Design ${order.designNumber}`}
-            className="h-14 w-14 shrink-0 rounded-xl object-cover ring-1 ring-brand-ink/8"
-          />
-        ) : (
-          <span
-            aria-hidden
-            className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-brand-ink/5 text-brand-ink/30"
-          >
-            <FiImage />
-          </span>
-        )}
-
-        <div className="min-w-0 flex-1">
-          <h2 className="font-display text-lg font-bold text-brand-ink">{order.companyName}</h2>
-          <p className="font-body text-xs text-brand-ink/50">
-            Order {order.orderNumber} · Design {order.designNumber}
-            {/* The record is on screen either way; this only says the log is
-                still arriving, rather than replacing the panel with a spinner. */}
-            {loading ? <span className="ml-2 text-brand-ink/40">refreshing…</span> : null}
-          </p>
-          {order.sampleNumber ? (
-            <button
-              type="button"
-              onClick={() => onOpenSample?.(order.sample)}
-              disabled={!onOpenSample}
-              className="mt-1 inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5
-                         font-body text-[11px] font-semibold text-violet-700 enabled:hover:underline
-                         disabled:cursor-default"
-            >
-              <FiLink aria-hidden size={11} /> From sample {order.sampleNumber}
-            </button>
-          ) : null}
-        </div>
-
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-brand-ink/50
-                     transition-colors hover:bg-brand-ink/5 hover:text-brand-ink"
-        >
-          <FiX />
-        </button>
-      </div>
-
-      {/* progress */}
-      <div>
-        <div className="flex items-center justify-between font-body text-xs text-brand-ink/50">
-          <span>
-            {formatMetres(done)}m of {formatMetres(ordered)}m · {formatMetres(remaining)}m left
-          </span>
-          <span className="font-semibold text-brand-ink">{pct.toFixed(0)}%</span>
-        </div>
-        <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-brand-ink/8">
-          <div
-            className={`h-full rounded-full transition-[width] duration-500 ${
-              order.status === 'COMPLETED'
-                ? 'bg-emerald-500'
-                : order.isOverdue
-                  ? 'bg-rose-500'
-                  : 'bg-brand-pink'
-            }`}
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-        {order.isOverdue ? (
-          <p className="mt-2 font-body text-xs font-semibold text-rose-600">
-            Overdue — the deadline of {formatDate(order.deadline)} has passed.
-          </p>
-        ) : null}
-      </div>
-
-      {/* status */}
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="font-body text-xs font-semibold uppercase tracking-[0.12em] text-brand-ink/60">
-          Status
-        </span>
-        {ORDER_STATUSES.map((s) => (
-          <button
-            key={s}
-            type="button"
-            onClick={() => setStatus(s)}
-            disabled={busy || s === order.status}
-            aria-pressed={s === order.status}
-            className={`rounded-full px-3 py-1.5 font-body text-xs font-semibold transition-colors
-                        disabled:cursor-default ${
-                          s === order.status
-                            ? STATUS_STYLES[s]
-                            : 'text-brand-ink/50 ring-1 ring-brand-ink/12 hover:bg-brand-ink/5'
-                        }`}
-          >
-            {STATUS_LABELS[s]}
-          </button>
-        ))}
-      </div>
-
-      <dl className="grid gap-4 border-t border-brand-ink/8 pt-4 sm:grid-cols-3 lg:grid-cols-4">
-        <Detail label="Fabric" value={order.fabricType} />
-        <Detail label="Width" value={order.fabricWidth} />
-        <Detail label="Yarn" value={order.yarnType} />
-        <Detail label="Colour" value={order.yarnColor} />
-        <Detail label="Repeat" value={order.repeat ? `${order.repeat}"` : ''} />
-        <Detail
-          label="Stitches / repeat"
-          value={order.stitches ? Number(order.stitches).toLocaleString('en-IN') : ''}
-        />
-        <Detail label="Start" value={formatDate(order.startDate)} />
-        <Detail label="Deadline" value={formatDate(order.deadline)} />
-        <Detail label="Est. completion" value={formatDate(order.estCompletion)} />
-        <Detail label="Machine" value={order.machine} />
-        <Detail label="Operator" value={order.operator} />
-        <Detail label="Mendings" value={String(order.mendings ?? 0)} />
-        <Detail label="Rejected" value={`${formatMetres(order.rejectedMetres)}m`} />
-      </dl>
-
-      {order.remarks ? (
-        <div className="rounded-xl bg-admin-cream p-3">
-          <p className="font-body text-[10px] font-semibold uppercase tracking-wider text-brand-ink/45">
-            Remarks
-          </p>
-          <p className="mt-1 font-body text-sm text-brand-ink/80">{order.remarks}</p>
-        </div>
-      ) : null}
-
-      {/* production log */}
-      <div className="flex flex-col gap-3 border-t border-brand-ink/8 pt-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="font-body text-xs font-semibold uppercase tracking-[0.12em] text-brand-ink/60">
-            Production log
-          </h3>
-          {!logging ? (
-            <button
-              type="button"
-              onClick={() => setLogging(true)}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-brand-pink px-3 py-2
-                         font-body text-xs font-semibold text-on-primary transition-colors
-                         hover:bg-brand-pink-dark"
-            >
-              <FiPlus aria-hidden /> Log production
-            </button>
-          ) : null}
-        </div>
-
-        {logging ? (
-          <LogForm
-            orderId={order._id}
-            ordered={ordered}
-            produced={done}
-            setError={setError}
-            onCancel={() => setLogging(false)}
-            onLogged={(updated) => {
-              setLogging(false);
-              onChanged(updated);
-            }}
-          />
-        ) : null}
-
-        {log.length ? (
-          <ul className="flex max-h-64 flex-col overflow-y-auto">
-            {log.map((entry) => (
-              <li
-                key={entry._id}
-                className="flex items-center justify-between gap-3 border-b border-brand-ink/8 py-2
-                           last:border-0"
-              >
-                <span className="min-w-0">
-                  <span className="font-body text-sm text-brand-ink">
-                    {formatDate(entry.date)}
-                  </span>
-                  {entry.note ? (
-                    <span className="ml-2 font-body text-xs text-brand-ink/50">{entry.note}</span>
-                  ) : null}
-                  <span className="mt-0.5 block font-body text-[11px] text-brand-ink/40">
-                    {entry.loggedByName || 'Unknown'}
-                  </span>
-                </span>
-
-                <span className="flex shrink-0 items-center gap-2">
-                  <span
-                    className={`font-body text-sm font-semibold ${
-                      entry.metres < 0 ? 'text-rose-600' : 'text-brand-ink'
-                    }`}
-                  >
-                    {entry.metres > 0 ? '+' : ''}
-                    {formatMetres(entry.metres)}m
-                  </span>
-                  {isOwner ? (
-                    <button
-                      type="button"
-                      onClick={() => setConfirmingEntry(entry)}
-                      aria-label="Remove entry"
-                      className="grid h-7 w-7 place-items-center rounded-full text-brand-ink/35
-                                 transition-colors hover:bg-rose-50 hover:text-rose-600"
-                    >
-                      <FiTrash2 size={13} />
-                    </button>
-                  ) : null}
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="font-body text-sm text-brand-ink/45">
-            Nothing logged yet. The total above comes from these entries.
-          </p>
-        )}
-      </div>
-
-      <div className="flex flex-wrap gap-2 border-t border-brand-ink/8 pt-4">
-        <button
-          type="button"
-          onClick={() => onEdit(order)}
-          disabled={busy}
-          className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 font-body text-sm
-                     font-semibold text-brand-ink/70 ring-1 ring-brand-ink/12
-                     transition-colors hover:bg-brand-ink/5 disabled:opacity-60"
-        >
-          <FiEdit2 aria-hidden /> Edit order
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setCalculating(true)}
-          className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 font-body text-sm
-                     font-semibold text-brand-ink/70 ring-1 ring-brand-ink/12
-                     transition-colors hover:bg-brand-ink/5"
-        >
-          <TbCalculator aria-hidden /> Calculator
-        </button>
-
-        {/* Destructive and irreversible, so it is owner-only — matching the
-            API, which rejects a delete from anyone else. */}
-        {isOwner ? (
-          <button
-            type="button"
-            onClick={() => onDelete(order)}
-            disabled={busy}
-            className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 font-body text-sm
-                       font-semibold text-rose-700 ring-1 ring-rose-200 transition-colors
-                       hover:bg-rose-50 disabled:opacity-60"
-          >
-            <FiTrash2 aria-hidden /> Delete order
-          </button>
-        ) : null}
-      </div>
-    </div>
+    </>
   );
 }

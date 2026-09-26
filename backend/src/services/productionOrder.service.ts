@@ -8,7 +8,12 @@ import {
   type OrderStatus,
 } from "../models/productionOrder.model.js";
 import { Company, type ICompany } from "../models/company.model.js";
-import { Sample, SAMPLE_STATUS, type ISample } from "../models/sample.model.js";
+import {
+  Sample,
+  SAMPLE_STATUS,
+  OPEN_SAMPLE_STATUSES,
+  type ISample,
+} from "../models/sample.model.js";
 import { sampleCounts } from "./sample.service.js";
 import { docketNumbering } from "../utils/docketNumber.js";
 import { uploadImage, destroyImage, copyImage } from "../config/cloudinary.js";
@@ -213,12 +218,8 @@ export const getOrder = async (id: string): Promise<OrderView> => {
   return { ...view, log };
 };
 
-export interface OrderInput {
-  companyId: string;
-  /** The approved sample this order was confirmed from. null unlinks on update. */
-  sampleId?: string | null;
-  /** Copy the sample's design image when no image of its own is uploaded. */
-  useSampleImage?: boolean;
+/** The fields a caller may set on an order, when converting a sample or editing. */
+export interface OrderFields {
   designNumber: string;
   status?: OrderStatus;
   orderedMetres: number;
@@ -239,43 +240,60 @@ export interface OrderInput {
 }
 
 /**
- * The sample an order may be confirmed from.
- *
- * Same buyer, and approved: an order is the buyer saying yes to a sample, so
- * one still with the buyer — or turned down — cannot be the origin of one.
+ * A new order is always converted from a sample — there is no other way to
+ * raise one. The buyer comes from the sample, so it is not asked for.
  */
-const resolveSample = async (sampleId: string, companyId: string): Promise<ISample> => {
+export interface OrderInput extends OrderFields {
+  sampleId: string;
+  /** Copy the sample's design image when no image of its own is uploaded. */
+  useSampleImage?: boolean;
+}
+
+/**
+ * A sample that may be converted into an order: still open.
+ *
+ * In progress is accepted as well as approved — taking the order is the
+ * buyer's approval, whether or not anyone marked the sample first. One already
+ * in production has its order; one rejected has to be reopened before it can
+ * become one.
+ */
+const convertibleSample = async (sampleId: string): Promise<ISample> => {
   const sample = await Sample.findById(sampleId).exec();
   if (!sample) throw new ApiError(404, "That sample no longer exists");
 
-  if (String(sample.company) !== String(companyId)) {
-    throw new ApiError(422, `Sample ${sample.sampleNumber} belongs to another company.`);
+  if (sample.status === SAMPLE_STATUS.IN_PRODUCTION) {
+    throw new ApiError(409, `Sample ${sample.sampleNumber} is already in production as an order.`);
   }
 
-  if (sample.status !== SAMPLE_STATUS.APPROVED) {
+  if (sample.status === SAMPLE_STATUS.REJECTED) {
     throw new ApiError(
       422,
-      `Sample ${sample.sampleNumber} has not been approved yet. Mark it approved first.`
+      `Sample ${sample.sampleNumber} was rejected. Reopen it before converting it into an order.`
     );
   }
 
   return sample;
 };
 
+/**
+ * Convert a sample into a production order.
+ *
+ * The sample moves to IN_PRODUCTION — out of the Sampling list, into its "In
+ * production" tab — and the order carries its buyer, design and a link back.
+ */
 export const createOrder = async (
   input: OrderInput,
   createdBy: Types.ObjectId,
   image?: { buffer: Buffer; filename: string }
 ): Promise<OrderView> => {
-  /*
-   * The company is looked up rather than trusted: `companyName` is a snapshot
-   * the list renders directly, so it must come from the record, never from
-   * whatever the client happened to send.
-   */
-  const company = await Company.findById(input.companyId).exec();
-  if (!company) throw new ApiError(404, "That company no longer exists");
+  const sample = await convertibleSample(input.sampleId);
 
-  const sample = input.sampleId ? await resolveSample(input.sampleId, input.companyId) : null;
+  /*
+   * The company is looked up rather than trusted from the sample's snapshot:
+   * `companyName` is what the list renders directly, so it must be current.
+   */
+  const company = await Company.findById(sample.company).exec();
+  if (!company) throw new ApiError(404, "That sample's company no longer exists");
 
   /*
    * An uploaded file always wins. Otherwise the sample's design is copied —
@@ -283,29 +301,55 @@ export const createOrder = async (
    */
   const uploaded = image
     ? await uploadImage(image.buffer, image.filename, IMAGE_FOLDER)
-    : sample?.designImage?.url && input.useSampleImage
+    : sample.designImage?.url && input.useSampleImage
       ? await copyImage(sample.designImage.url, IMAGE_FOLDER)
       : null;
 
+  /*
+   * Claim the sample before writing the order. The update only matches while
+   * the sample is still open, so two people converting the same sample at
+   * once cannot both get an order out of it — the second finds nothing to
+   * claim. Converting without an approval on record stamps one now.
+   */
+  const claimed = await Sample.findOneAndUpdate(
+    { _id: sample._id, status: { $in: OPEN_SAMPLE_STATUSES } },
+    {
+      $set: {
+        status: SAMPLE_STATUS.IN_PRODUCTION,
+        decidedAt: sample.decidedAt ?? new Date(),
+        updatedBy: createdBy,
+      },
+    },
+    { new: true }
+  ).exec();
+
+  if (!claimed) {
+    if (uploaded) await destroyImage(uploaded.publicId);
+    throw new ApiError(
+      409,
+      `Sample ${sample.sampleNumber} has just been converted into an order by someone else.`
+    );
+  }
+
   try {
     /*
-     * Claimed here rather than in the controller, and after the upload, so a
-     * failed image does not burn a number and leave a gap in the buyer's
-     * sequence. A gap is not a correctness problem, but a sequence the office
-     * can read straight down is worth the ordering.
+     * Claimed after the upload, so a failed image does not burn a number and
+     * leave a gap in the buyer's sequence. A gap is not a correctness problem,
+     * but a sequence the office can read straight down is worth the ordering.
      */
     const orderNumber = await generateOrderNumber(company.name);
-    const { companyId: _c, sampleId: _s, useSampleImage: _u, ...fields } = input;
+    const { sampleId: _s, useSampleImage: _u, ...fields } = input;
 
     const order = await ProductionOrder.create({
       // The design's repeat and stitches carry over unless this order says otherwise.
-      ...(sample ? { repeat: sample.repeat, stitches: sample.stitches } : {}),
+      repeat: sample.repeat,
+      stitches: sample.stitches,
       ...fields,
       orderNumber,
       company: company._id,
       companyName: company.name,
-      sample: sample?._id ?? null,
-      sampleNumber: sample?.sampleNumber ?? "",
+      sample: sample._id,
+      sampleNumber: sample.sampleNumber,
       // Never from the client: the log is the only thing that moves this.
       completedMetres: 0,
       ...(uploaded ? { designImage: uploaded } : {}),
@@ -315,21 +359,32 @@ export const createOrder = async (
 
     return toView(order);
   } catch (error) {
-    // The file is already on Cloudinary but the row failed — remove it rather
-    // than leaving an asset nothing points at.
+    /*
+     * Hand the sample back exactly as it was, so a failed save does not strand
+     * it in production with no order behind it. And the file is already on
+     * Cloudinary but the row failed — remove it rather than leave an asset
+     * nothing points at.
+     */
+    await Sample.updateOne(
+      { _id: sample._id, status: SAMPLE_STATUS.IN_PRODUCTION },
+      sample.decidedAt
+        ? { $set: { status: sample.status, decidedAt: sample.decidedAt } }
+        : { $set: { status: sample.status }, $unset: { decidedAt: 1 } }
+    ).exec();
     if (uploaded) await destroyImage(uploaded.publicId);
     throw error;
   }
 };
 
-export type OrderPatch = Partial<Omit<OrderInput, "companyId">> & { companyId?: string };
+export type OrderPatch = Partial<OrderFields> & { companyId?: string };
 
 /**
  * Save an order's fields.
  *
  * `completedMetres` is deliberately absent from what a caller may set — it is
  * derived from the log, and letting it be typed here is exactly the drift this
- * design exists to prevent.
+ * design exists to prevent. So is the sample: an order is the sample it was
+ * converted from, and that does not change afterwards.
  */
 export const updateOrder = async (
   id: string,
@@ -341,35 +396,22 @@ export const updateOrder = async (
 
   // Moving an order to another buyer re-snapshots the name with it.
   if (patch.companyId && String(patch.companyId) !== String(order.company)) {
+    // Only an order that predates samples can move — one converted from a
+    // sample belongs to that sample's buyer.
+    if (order.sample) {
+      throw new ApiError(
+        422,
+        `This order was converted from sample ${order.sampleNumber}, so its buyer cannot change.`
+      );
+    }
+
     const company = await Company.findById(patch.companyId).exec();
     if (!company) throw new ApiError(404, "That company no longer exists");
     order.company = company._id as Types.ObjectId;
     order.companyName = company.name;
   }
 
-  /*
-   * The sample link. `null` unlinks; a new id must pass the same checks as on
-   * create. An unchanged link is re-checked only for belonging to the buyer —
-   * a sample approved then, and since reopened, does not un-confirm an order.
-   */
-  if (patch.sampleId === null) {
-    order.sample = null;
-    order.sampleNumber = "";
-  } else if (patch.sampleId && String(patch.sampleId) !== String(order.sample ?? "")) {
-    const sample = await resolveSample(patch.sampleId, String(order.company));
-    order.sample = sample._id as Types.ObjectId;
-    order.sampleNumber = sample.sampleNumber;
-  } else if (order.sample) {
-    const sample = await Sample.findById(order.sample).select("company").lean<ISample>().exec();
-    if (sample && String(sample.company) !== String(order.company)) {
-      throw new ApiError(
-        422,
-        "This order's sample belongs to its previous buyer. Unlink the sample before moving the order."
-      );
-    }
-  }
-
-  const { companyId: _c, sampleId: _s, useSampleImage: _u, ...fields } = patch;
+  const { companyId: _c, ...fields } = patch;
   Object.assign(order, fields);
   order.updatedBy = updatedBy;
 
@@ -528,6 +570,18 @@ export const clearImage = async (id: string): Promise<OrderView> => {
 export const deleteOrder = async (id: string): Promise<void> => {
   const order = await ProductionOrder.findByIdAndDelete(id).exec();
   if (!order) throw new ApiError(404, "That order no longer exists");
+
+  /*
+   * The sample goes back to sampling, approved — ready to be converted again.
+   * Only if no other order still points at it, which can be the case for data
+   * written before a sample became exactly one order.
+   */
+  if (order.sample && !(await ProductionOrder.exists({ sample: order.sample }))) {
+    await Sample.updateOne(
+      { _id: order.sample, status: SAMPLE_STATUS.IN_PRODUCTION },
+      { $set: { status: SAMPLE_STATUS.APPROVED } }
+    ).exec();
+  }
 
   // After the row is gone: an orphaned file costs a little storage, an
   // orphaned row pointing at a deleted file is a broken image on the page.

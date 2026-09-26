@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { FiPlus, FiSearch } from 'react-icons/fi';
 import { TbNeedleThread } from 'react-icons/tb';
 import * as inventoryApi from '../../../api/inventory.api.js';
@@ -10,26 +10,28 @@ import ConfirmDialog from '../../components/ConfirmDialog.jsx';
 import SampleCard from './SampleCard.jsx';
 import SampleForm from './SampleForm.jsx';
 import SampleDetail from './SampleDetail.jsx';
-import OrderForm from './OrderForm.jsx';
 import { MAIN_ADMIN, SAMPLE_FILTERS, inputClass } from './constants.js';
 
 /**
- * Samples: filters, the card grid and the detail panel.
+ * Samples: filters, the card grid and the sample popup.
  *
  * Sampling is kept apart from production — a sample is judged by the buyer
- * before any quantity is committed. An approved sample is where a production
- * order is raised from, which keeps Sampling → Order → Production linked.
+ * before any quantity is committed. Once a sample is converted into an order
+ * (Production → New order) it leaves this list: "All" shows only samples still
+ * in sampling, and converted ones move under the "In production" pill.
  *
  * Used section-wide and inside one company's dashboard (`companyId`).
  *
  * @param focusId     a sample to open on arrival (linked from elsewhere)
- * @param onOpenOrder called with an order id when one of its orders is clicked
+ * @param onFocusDone called once that sample is open, so the link can be cleared
+ * @param onOpenOrder called with an order id from a converted sample's popup
  */
-export default function SamplesBoard({ companyId, focusId, onOpenOrder }) {
+export default function SamplesBoard({ companyId, focusId, onFocusDone, onOpenOrder }) {
   const user = useAppStore((s) => s.user);
   const isOwner = user?.role === MAIN_ADMIN;
 
-  const [status, setStatus] = useState('');
+  // "All" means everything still in sampling — see SAMPLE_FILTERS.
+  const [status, setStatus] = useState('SAMPLING');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
@@ -38,21 +40,9 @@ export default function SamplesBoard({ companyId, focusId, onOpenOrder }) {
   const [note, setNote] = useState('');
 
   const [editing, setEditing] = useState(null); // null | 'new' | sample
-  const [raising, setRaising] = useState(null); // the approved sample an order is raised from
   const [selected, setSelected] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [confirming, setConfirming] = useState(null);
-
-  /*
-   * Bring the panel into view when a different record opens. Inside a
-   * company's dashboard it renders below the buyer's header and figures, and
-   * without this a click appeared to do nothing.
-   */
-  const detailRef = useRef(null);
-  const selectedId = selected?._id;
-  useEffect(() => {
-    if (selectedId) detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [selectedId]);
 
   const flash = (message) => {
     setNote(message);
@@ -89,6 +79,7 @@ export default function SamplesBoard({ companyId, focusId, onOpenOrder }) {
 
   /** Card copy first, full record (with its orders) when it arrives. */
   const openDetail = async (sample) => {
+    setError('');
     setEditing(null);
     setSelected(sample);
     setDetailLoading(true);
@@ -110,7 +101,17 @@ export default function SamplesBoard({ companyId, focusId, onOpenOrder }) {
     }
   };
 
-  /* Open a linked sample when arriving with one to show — fetched first, as there is no card copy. */
+  /*
+   * Open a linked sample when arriving with one to show — fetched first, as
+   * there is no card copy. Then the link is cleared, so the same one can open
+   * it again later.
+   */
+  /* The latest `onFocusDone`, so the effect below stays keyed on the id alone. */
+  const onFocusDoneRef = useRef(onFocusDone);
+  useEffect(() => {
+    onFocusDoneRef.current = onFocusDone;
+  });
+
   useEffect(() => {
     if (!focusId) return undefined;
 
@@ -119,8 +120,10 @@ export default function SamplesBoard({ companyId, focusId, onOpenOrder }) {
       .getSample(focusId)
       .then((sample) => {
         if (cancelled) return;
+        setError('');
         setEditing(null);
         setSelected(sample);
+        onFocusDoneRef.current?.();
       })
       .catch((err) => !cancelled && setError(err?.message ?? 'Could not open that sample.'));
 
@@ -150,7 +153,7 @@ export default function SamplesBoard({ companyId, focusId, onOpenOrder }) {
   const items = data?.items ?? [];
   const counts = data?.statusCounts ?? {};
   const shownError = error || loadError?.message;
-  const filtered = Boolean(debounced || status);
+  const filtered = Boolean(debounced || status !== 'SAMPLING');
 
   return (
     <div className="flex flex-col gap-5">
@@ -188,28 +191,34 @@ export default function SamplesBoard({ companyId, focusId, onOpenOrder }) {
       <div className="-mx-1 overflow-x-auto pb-1">
         <div className="flex min-w-max gap-1 rounded-2xl bg-brand-ink/[0.04] p-1">
           {SAMPLE_FILTERS.map((f) => (
-            <button
-              key={f.value}
-              type="button"
-              onClick={() => {
-                setStatus(f.value);
-                setPage(1);
-              }}
-              aria-pressed={status === f.value}
-              className={`rounded-xl px-4 py-2.5 font-body text-sm font-semibold transition-colors
-                          ${
-                            status === f.value
-                              ? 'bg-surface-card text-brand-ink shadow-sm'
-                              : 'text-brand-ink/55 hover:text-brand-ink'
-                          }`}
-            >
-              {f.label}
-              {f.value && counts[f.value] ? (
-                <span className="ml-1.5 rounded-full bg-brand-ink/10 px-1.5 py-0.5 text-[10px] font-bold text-brand-ink/60">
-                  {counts[f.value]}
-                </span>
+            <Fragment key={f.value}>
+              {/* "In production" is a different bucket from the statuses before
+                  it — samples that have left sampling — so it sits apart. */}
+              {f.apart ? (
+                <span aria-hidden className="mx-1.5 my-2 w-px self-stretch bg-brand-ink/15" />
               ) : null}
-            </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setStatus(f.value);
+                  setPage(1);
+                }}
+                aria-pressed={status === f.value}
+                className={`rounded-xl px-4 py-2.5 font-body text-sm font-semibold transition-colors
+                            ${
+                              status === f.value
+                                ? 'bg-surface-card text-brand-ink shadow-sm'
+                                : 'text-brand-ink/55 hover:text-brand-ink'
+                            }`}
+              >
+                {f.label}
+                {counts[f.value] ? (
+                  <span className="ml-1.5 rounded-full bg-brand-ink/10 px-1.5 py-0.5 text-[10px] font-bold text-brand-ink/60">
+                    {counts[f.value]}
+                  </span>
+                ) : null}
+              </button>
+            </Fragment>
           ))}
         </div>
       </div>
@@ -233,31 +242,13 @@ export default function SamplesBoard({ companyId, focusId, onOpenOrder }) {
           initial={editing === 'new' ? null : editing}
           companies={companies}
           companyId={companyId}
+          error={error}
           setError={setError}
           onCancel={() => setEditing(null)}
           onSaved={(message) => {
             const edited = editing !== 'new' ? editing._id : null;
             setEditing(null);
             if (edited) reloadDetail(edited);
-            flash(message);
-          }}
-        />
-      ) : null}
-
-      {raising ? (
-        <OrderForm
-          open
-          key={`raise-${raising._id}`}
-          fromSample={raising}
-          companies={companies}
-          companyId={companyId}
-          setError={setError}
-          onCancel={() => setRaising(null)}
-          onSaved={(message) => {
-            // Back to the sample, whose list of orders now includes the new one.
-            const from = raising._id;
-            setRaising(null);
-            reloadDetail(from);
             flash(message);
           }}
         />
@@ -277,27 +268,35 @@ export default function SamplesBoard({ companyId, focusId, onOpenOrder }) {
       />
 
       {selected ? (
-        <div ref={detailRef} className="scroll-mt-4">
-          <SampleDetail
-            sample={selected}
-            loading={detailLoading}
-            isOwner={isOwner}
-            busy={busy}
-            setError={setError}
-            onClose={() => setSelected(null)}
-            onEdit={(sample) => {
-              setSelected(null);
-              setEditing(sample);
-            }}
-            onDelete={setConfirming}
-            onRaiseOrder={setRaising}
-            onOpenOrder={onOpenOrder ? (order) => onOpenOrder(order._id) : undefined}
-            onChanged={(updated) => {
-              setSelected(updated);
-              invalidate('samples', 'summary', 'companies', 'company-overview');
-            }}
-          />
-        </div>
+        <SampleDetail
+          sample={selected}
+          loading={detailLoading}
+          isOwner={isOwner}
+          busy={busy}
+          error={error}
+          setError={setError}
+          onClose={() => {
+            setSelected(null);
+            setError('');
+          }}
+          onEdit={(sample) => {
+            setSelected(null);
+            setEditing(sample);
+          }}
+          onDelete={setConfirming}
+          onOpenOrder={
+            onOpenOrder
+              ? (order) => {
+                  setSelected(null);
+                  onOpenOrder(order._id);
+                }
+              : undefined
+          }
+          onChanged={(updated) => {
+            setSelected(updated);
+            invalidate('samples', 'summary', 'companies', 'company-overview');
+          }}
+        />
       ) : null}
 
       {loading ? (
@@ -349,11 +348,19 @@ export default function SamplesBoard({ companyId, focusId, onOpenOrder }) {
         <EmptyState
           className="min-h-[40vh] bg-surface-card"
           icon={TbNeedleThread}
-          title={filtered ? 'No samples match that view' : 'No samples yet'}
+          title={
+            status === 'IN_PRODUCTION' && !debounced
+              ? 'No samples in production yet'
+              : filtered
+                ? 'No samples match that view'
+                : 'No samples in sampling'
+          }
           hint={
-            filtered
-              ? 'Try another filter or search.'
-              : 'Record a sample when the buyer asks for one. Once approved, raise the production order from it.'
+            status === 'IN_PRODUCTION' && !debounced
+              ? 'A sample moves here when it is converted into an order from Production → New order.'
+              : filtered
+                ? 'Try another filter or search.'
+                : 'Record a sample when the buyer asks for one. When they confirm, convert it from Production → New order.'
           }
         />
       )}

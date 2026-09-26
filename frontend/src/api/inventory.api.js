@@ -70,6 +70,10 @@ const toFormData = (payload, file) => {
   return form;
 };
 
+/**
+ * Convert a sample into a production order. `payload.sampleId` is required —
+ * there is no other way to raise one — and the buyer comes from the sample.
+ */
 export const createOrder = (payload, file) =>
   api.post('/inventory/orders', toFormData(payload, file), multipart).then(unwrap);
 
@@ -87,17 +91,8 @@ const prune = (patch) =>
     Object.entries(patch).filter(([, v]) => v !== undefined && v !== null && v !== '')
   );
 
-/**
- * `sampleId: null` survives the prune on purpose — it is how an order is
- * unlinked from its sample, and dropping it would make that impossible.
- */
 export const updateOrder = (id, patch) =>
-  api
-    .patch(`/inventory/orders/${id}`, {
-      ...prune(patch),
-      ...(patch.sampleId === null ? { sampleId: null } : {}),
-    })
-    .then(unwrap);
+  api.patch(`/inventory/orders/${id}`, prune(patch)).then(unwrap);
 
 /**
  * The order number a new order for this buyer would get.
@@ -131,10 +126,13 @@ export const getSummary = () => api.get('/inventory/summary').then(unwrap);
 
 /* ------------------------------------------------------------- samples */
 
-/** Resolves to { items, total, page, limit, pages, statusCounts }. */
+/**
+ * Resolves to { items, total, page, limit, pages, statusCounts }. `status` is
+ * one status, or a group: SAMPLING (not yet converted) or OPEN (convertible).
+ */
 export const listSamples = (params) => api.get('/inventory/samples', { params }).then(unwrap);
 
-/** One sample, with the orders raised from it and their totals. */
+/** One sample, with the order it was converted into (`order`), if any. */
 export const getSample = (id) => api.get(`/inventory/samples/${id}`).then(unwrap);
 
 export const createSample = (payload, file) =>

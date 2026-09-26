@@ -8,6 +8,7 @@ import Spinner from '../../components/Spinner.jsx';
 import ConfirmDialog from '../../components/ConfirmDialog.jsx';
 import OrderCard from './OrderCard.jsx';
 import OrderForm from './OrderForm.jsx';
+import SamplePicker from './SamplePicker.jsx';
 import OrderDetail from './OrderDetail.jsx';
 import { MAIN_ADMIN, FILTERS, DATE_PRESETS, inputClass } from './constants.js';
 
@@ -134,14 +135,26 @@ function DateRangeFilter({ range, onChange }) {
  * Production orders: filters, the card grid and the detail panel.
  *
  * Used twice — as the section-wide Production tab, and inside one company's
- * dashboard with `companyId` set, where the list, the pill counts and the new
- * order form are all scoped to that buyer.
+ * dashboard with `companyId` set, where the list, the pill counts and the
+ * samples offered for a new order are all scoped to that buyer.
  *
- * @param companyId   scope to one buyer
- * @param focusId     an order to open on arrival (linked from elsewhere)
- * @param onOpenSample called with a sample id when "From sample …" is clicked
+ * "New order" does not open a blank form: every order is converted from a
+ * sample, so it opens the list of samples, and picking one opens the order
+ * form filled in from it.
+ *
+ * @param companyId      scope to one buyer
+ * @param focusId        an order to open on arrival (linked from elsewhere)
+ * @param onFocusDone    called once that order is open, so the link can be cleared
+ * @param onOpenSample   called with a sample id when "From sample …" is clicked
+ * @param onGoToSampling offered when there is no sample to convert
  */
-export default function OrdersBoard({ companyId, focusId, onOpenSample }) {
+export default function OrdersBoard({
+  companyId,
+  focusId,
+  onFocusDone,
+  onOpenSample,
+  onGoToSampling,
+}) {
   const user = useAppStore((s) => s.user);
   const isOwner = user?.role === MAIN_ADMIN;
 
@@ -154,22 +167,29 @@ export default function OrdersBoard({ companyId, focusId, onOpenSample }) {
   const [error, setError] = useState('');
   const [note, setNote] = useState('');
 
-  /** null | 'new' | order — the form. Separate from the detail panel. */
+  /*
+   * A new order is two steps: pick the sample (`creating` with nothing
+   * `picked`), then fill in the order converted from it. `editing` is the
+   * existing order whose form is open. The popup of an open order is separate.
+   */
+  const [creating, setCreating] = useState(false);
+  const [picked, setPicked] = useState(null);
   const [editing, setEditing] = useState(null);
   const [selected, setSelected] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [confirming, setConfirming] = useState(null);
 
-  /*
-   * Bring the panel into view when a different record opens. Inside a
-   * company's dashboard it renders below the buyer's header and figures, and
-   * without this a click appeared to do nothing.
-   */
-  const detailRef = useRef(null);
-  const selectedId = selected?._id;
-  useEffect(() => {
-    if (selectedId) detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [selectedId]);
+  const startNewOrder = () => {
+    setSelected(null);
+    setError('');
+    setPicked(null);
+    setCreating(true);
+  };
+
+  const endNewOrder = () => {
+    setCreating(false);
+    setPicked(null);
+  };
 
   const flash = (message) => {
     setNote(message);
@@ -218,6 +238,7 @@ export default function OrdersBoard({ companyId, focusId, onOpenSample }) {
    * to show": the panel always has an order to render while it is up.
    */
   const openDetail = async (order) => {
+    setError('');
     setEditing(null);
     setSelected(order);
     setDetailLoading(true);
@@ -248,6 +269,12 @@ export default function OrdersBoard({ companyId, focusId, onOpenSample }) {
    * panel opens, because unlike a card click there is no list copy to show
    * while the full record loads.
    */
+  /* The latest `onFocusDone`, so the effect below stays keyed on the id alone. */
+  const onFocusDoneRef = useRef(onFocusDone);
+  useEffect(() => {
+    onFocusDoneRef.current = onFocusDone;
+  });
+
   useEffect(() => {
     if (!focusId) return undefined;
 
@@ -256,8 +283,11 @@ export default function OrdersBoard({ companyId, focusId, onOpenSample }) {
       .getOrder(focusId)
       .then((order) => {
         if (cancelled) return;
+        setError('');
         setEditing(null);
         setSelected(order);
+        // Consumed: clearing the link lets the same one open it again later.
+        onFocusDoneRef.current?.();
       })
       .catch((err) => !cancelled && setError(err?.message ?? 'Could not open that order.'));
 
@@ -311,10 +341,7 @@ export default function OrdersBoard({ companyId, focusId, onOpenSample }) {
 
         <button
           type="button"
-          onClick={() => {
-            setSelected(null);
-            setEditing('new');
-          }}
+          onClick={startNewOrder}
           className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-brand-pink px-5 py-2.5
                      font-body text-sm font-semibold text-on-primary transition-colors
                      hover:bg-brand-pink-dark focus-visible:outline-2
@@ -382,24 +409,66 @@ export default function OrdersBoard({ companyId, focusId, onOpenSample }) {
         </p>
       ) : null}
 
+      {creating && !picked ? (
+        <SamplePicker
+          open
+          companyId={companyId}
+          onPick={(sample) => {
+            setError('');
+            setPicked(sample);
+          }}
+          onCancel={endNewOrder}
+          onGoToSampling={
+            onGoToSampling
+              ? () => {
+                  endNewOrder();
+                  onGoToSampling();
+                }
+              : undefined
+          }
+        />
+      ) : null}
+
+      {creating && picked ? (
+        <OrderForm
+          open
+          key={`from-${picked._id}`}
+          fromSample={picked}
+          companies={companies}
+          companyId={companyId}
+          error={error}
+          setError={setError}
+          onBack={() => {
+            setError('');
+            setPicked(null);
+          }}
+          onCancel={endNewOrder}
+          onSaved={(message) => {
+            endNewOrder();
+            flash(message);
+          }}
+        />
+      ) : null}
+
       {editing ? (
         <OrderForm
           open
-          key={editing === 'new' ? 'new' : editing._id}
-          initial={editing === 'new' ? null : editing}
+          key={editing._id}
+          initial={editing}
           companies={companies}
           companyId={companyId}
+          error={error}
           setError={setError}
           onCancel={() => setEditing(null)}
           onSaved={(message) => {
             /*
-             * Re-open the detail panel on the order that was just edited, with
-             * its fresh values. Without this the save appeared to do nothing:
-             * the panel had been closed to show the dialog and never came back.
+             * Re-open the order's popup with its fresh values. Without this the
+             * save appeared to do nothing: the popup had been closed to show
+             * the form and never came back.
              */
-            const edited = editing !== 'new' ? editing._id : null;
+            const edited = editing._id;
             setEditing(null);
-            if (edited) reloadDetail(edited);
+            reloadDetail(edited);
             flash(message);
           }}
         />
@@ -422,29 +491,38 @@ export default function OrdersBoard({ companyId, focusId, onOpenSample }) {
           selection while a detail fetch may still be in flight, and gating on
           the flag too would leave a spinner up with no record behind it. */}
       {selected ? (
-        <div ref={detailRef} className="scroll-mt-4">
-          <OrderDetail
-            order={selected}
-            loading={detailLoading}
-            isOwner={isOwner}
-            busy={busy}
-            setError={setError}
-            onClose={() => setSelected(null)}
-            onEdit={(order) => {
-              // The panel is hidden while the dialog is up, and `editing` keeps
-              // the order so `onSaved` can bring the panel back refreshed.
-              setSelected(null);
-              setEditing(order);
-            }}
-            onDelete={setConfirming}
-            onOpenSample={onOpenSample}
-            onChanged={(updated) => {
-              setSelected(updated);
-              // The card, the pill counts, the gauge and the sample's totals all move with it.
-              invalidate('orders', 'summary', 'samples', 'company-overview');
-            }}
-          />
-        </div>
+        <OrderDetail
+          order={selected}
+          loading={detailLoading}
+          isOwner={isOwner}
+          busy={busy}
+          error={error}
+          setError={setError}
+          onClose={() => {
+            setSelected(null);
+            setError('');
+          }}
+          onEdit={(order) => {
+            // The popup is closed while the form is up, and `editing` keeps
+            // the order so `onSaved` can bring the popup back refreshed.
+            setSelected(null);
+            setEditing(order);
+          }}
+          onDelete={setConfirming}
+          onOpenSample={
+            onOpenSample
+              ? (sampleId) => {
+                  setSelected(null);
+                  onOpenSample(sampleId);
+                }
+              : undefined
+          }
+          onChanged={(updated) => {
+            setSelected(updated);
+            // The card, the pill counts, the gauge and the sample all move with it.
+            invalidate('orders', 'summary', 'samples', 'company-overview');
+          }}
+        />
       ) : null}
 
       {loading ? (
@@ -500,7 +578,7 @@ export default function OrdersBoard({ companyId, focusId, onOpenSample }) {
           hint={
             filtered
               ? 'Try another filter, date range or search.'
-              : 'Raise an order from an approved sample, or directly against a buyer.'
+              : 'Click New order and pick the sample the buyer has confirmed.'
           }
         />
       )}

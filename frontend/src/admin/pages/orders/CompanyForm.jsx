@@ -46,7 +46,7 @@ const labelClass =
   'font-body text-xs font-semibold uppercase tracking-[0.12em] text-brand-ink/60';
 
 /** Create or edit. The same form either way — only the title and verb differ. */
-export default function CompanyForm({ open, initial, onSaved, onCancel, setError }) {
+export default function CompanyForm({ open, initial, onSaved, onCancel, error, setError }) {
   const editing = Boolean(initial?._id);
   const [form, setForm] = useState(initial ? fromCompany(initial) : EMPTY);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -136,6 +136,7 @@ export default function CompanyForm({ open, initial, onSaved, onCancel, setError
 
   return (
     <Modal
+      error={error}
       open={open}
       onClose={saving ? undefined : onCancel}
       title={editing ? 'Edit company' : 'New company'}

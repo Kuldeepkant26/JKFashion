@@ -20,7 +20,7 @@ npm run dev               # http://localhost:5001
 | `npm run build` | Compiles to `dist/` |
 | `npm start` | Runs the compiled build |
 | `npm run seed` | Creates/updates the first admin. Safe to re-run. |
-| `npm run migrate:samples` | Dry run: lists production orders still in the old SAMPLING status. Add `-- --apply` to turn them into samples (orders with production logged become RUNNING instead). Safe to re-run. |
+| `npm run migrate:samples` | Dry run: lists what needs bringing up to the current order/sample model — orders still in the old SAMPLING status, samples marked "sent to buyer", samples with an order not yet marked in production. Add `-- --apply` to make the changes. Safe to re-run. |
 | `npm run typecheck` | `tsc --noEmit` |
 
 ## A TypeScript gotcha worth knowing up front

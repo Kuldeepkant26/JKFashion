@@ -3,12 +3,13 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
 import type { AuthedRequest } from "../middlewares/auth.middleware.js";
 import type { SampleStatus } from "../models/sample.model.js";
+import type { SampleListStatus } from "../services/sample.service.js";
 import * as sampleService from "../services/sample.service.js";
 
 export const listSamples = asyncHandler<AuthedRequest>(async (req, res) => {
   // Already coerced by the validator's .toInt(), hence the double assertion.
   const { status, companyId, search, page, limit } = req.query as unknown as {
-    status?: SampleStatus;
+    status?: SampleListStatus;
     companyId?: string;
     search?: string;
     page?: number;
@@ -26,8 +27,8 @@ export const getSample = asyncHandler<AuthedRequest>(async (req, res) => {
 
 /**
  * The fields a caller may set. `sampleNumber` is absent: the server issues it,
- * exactly as it does an order number. `sentAt` and `decidedAt` are absent too
- * — they are stamped by the service when the status moves.
+ * exactly as it does an order number. `decidedAt` is absent too — it is
+ * stamped by the service when the status moves.
  */
 const SAMPLE_FIELDS = [
   "designNumber",

@@ -71,9 +71,14 @@ export default function SampleForm({
   companyId: fixedCompanyId,
   onSaved,
   onCancel,
+  error,
   setError,
 }) {
   const editing = Boolean(initial?._id);
+
+  /* A converted sample's status follows its order, so it is shown, not asked for. */
+  const inProduction = initial?.status === 'IN_PRODUCTION';
+
   const [form, setForm] = useState(() =>
     initial ? fromSample(initial) : { ...EMPTY, companyId: fixedCompanyId ?? '' }
   );
@@ -109,7 +114,8 @@ export default function SampleForm({
     setFieldErrors({});
     try {
       if (editing) {
-        await inventoryApi.updateSample(initial._id, form);
+        const { status, ...rest } = form;
+        await inventoryApi.updateSample(initial._id, inProduction ? rest : { ...rest, status });
         if (file) await inventoryApi.setSampleImage(initial._id, file);
         else if (removeImage) await inventoryApi.clearSampleImage(initial._id);
       } else {
@@ -141,7 +147,11 @@ export default function SampleForm({
           {f.label}
           {f.required ? ' *' : ''}
         </span>
-        {f.type === 'select' ? (
+        {f.type === 'select' && inProduction ? (
+          <output className="rounded-xl bg-admin-cream px-3.5 py-2.5 font-body text-sm text-brand-ink/70 ring-1 ring-brand-ink/12">
+            {SAMPLE_STATUS_LABELS.IN_PRODUCTION}
+          </output>
+        ) : f.type === 'select' ? (
           <select {...common}>
             {SAMPLE_STATUSES.map((s) => (
               <option key={s} value={s}>
@@ -168,10 +178,11 @@ export default function SampleForm({
 
   return (
     <Modal
+      error={error}
       open={open}
       onClose={saving ? undefined : onCancel}
       title={editing ? `Edit sample ${initial.sampleNumber}` : 'New sample'}
-      description="Sampling is tracked on its own. Once the buyer approves, raise a production order from it."
+      description="Sampling is tracked on its own. To start production, pick the sample from Production → New order."
       closeOnBackdrop={false}
       footer={
         <>

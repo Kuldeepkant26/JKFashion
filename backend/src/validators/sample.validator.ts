@@ -1,8 +1,12 @@
 import { body, param, query, type ValidationChain } from "express-validator";
-import { SAMPLE_STATUSES } from "../models/sample.model.js";
+import { SAMPLE_STATUSES, SAMPLING_STATUSES } from "../models/sample.model.js";
 
 export const listSampleRules: ValidationChain[] = [
-  query("status").optional().isIn(SAMPLE_STATUSES).withMessage("Unknown status"),
+  // A status, or a group: SAMPLING (everything not converted) or OPEN (convertible).
+  query("status")
+    .optional()
+    .isIn([...SAMPLE_STATUSES, "SAMPLING", "OPEN"])
+    .withMessage("Unknown status"),
   query("companyId").optional().isMongoId().withMessage("Unknown company"),
   query("search").optional().isString().trim().isLength({ max: 100 }),
   query("page").optional().isInt({ min: 1 }).toInt(),
@@ -30,7 +34,8 @@ const sampleFields = (): ValidationChain[] => {
     opt(body("stitches").isInt({ min: 0, max: 100_000_000 }).toInt()),
     opt(body("quantity").isFloat({ min: 0, max: 1_000_000 }).toFloat()),
     body("deadline").optional({ checkFalsy: true }).isISO8601().toDate(),
-    body("status").optional().isIn(SAMPLE_STATUSES).withMessage("Unknown status"),
+    // IN_PRODUCTION is set by converting the sample into an order, never by hand.
+    body("status").optional().isIn(SAMPLING_STATUSES).withMessage("Unknown status"),
   ];
 };
 
@@ -57,5 +62,5 @@ export const sampleIdRules: ValidationChain[] = [
 
 export const setSampleStatusRules: ValidationChain[] = [
   param("id").isMongoId().withMessage("Unknown sample"),
-  body("status").isIn(SAMPLE_STATUSES).withMessage("Unknown status"),
+  body("status").isIn(SAMPLING_STATUSES).withMessage("Unknown status"),
 ];

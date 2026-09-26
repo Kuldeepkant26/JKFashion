@@ -1,6 +1,20 @@
 import { FiImage } from 'react-icons/fi';
 import { SAMPLE_STATUS_LABELS, SAMPLE_STATUS_STYLES, formatDate } from './constants.js';
 
+/** The one date worth showing for where the sample is. */
+const dateLine = (sample) => {
+  switch (sample.status) {
+    case 'APPROVED':
+      return `Approved ${formatDate(sample.decidedAt)}`;
+    case 'REJECTED':
+      return `Rejected ${formatDate(sample.decidedAt)}`;
+    case 'IN_PRODUCTION':
+      return 'Converted to an order';
+    default:
+      return `Due ${formatDate(sample.deadline)}`;
+  }
+};
+
 /** One sample, as a card. */
 export default function SampleCard({ sample, onOpen, showCompany = true }) {
   // Overdue outranks the stored status on the badge, as on order cards.
@@ -55,9 +69,7 @@ export default function SampleCard({ sample, onOpen, showCompany = true }) {
             {[sample.fabricType, sample.yarnColor].filter(Boolean).join(' · ') || 'No fabric set'}
           </span>
           <span className={sample.isOverdue ? 'font-semibold text-rose-600' : ''}>
-            {sample.status === 'APPROVED' || sample.status === 'REJECTED'
-              ? `Answered ${formatDate(sample.decidedAt)}`
-              : `Due ${formatDate(sample.deadline)}`}
+            {dateLine(sample)}
           </span>
         </div>
       </button>

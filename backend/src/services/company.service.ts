@@ -9,7 +9,12 @@ import {
   OPEN_ORDER_STATUSES,
   ORDER_STATUS,
 } from "../models/productionOrder.model.js";
-import { Sample, SAMPLE_STATUS, OPEN_SAMPLE_STATUSES } from "../models/sample.model.js";
+import {
+  Sample,
+  SAMPLE_STATUS,
+  OPEN_SAMPLE_STATUSES,
+  SAMPLING_STATUSES,
+} from "../models/sample.model.js";
 import { uploadImage, destroyImage } from "../config/cloudinary.js";
 import { startOfDayUTC } from "../utils/productionDate.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -295,7 +300,6 @@ export const clearLogo = async (id: string): Promise<Record<string, unknown>> =>
 
 export type ActivityKind =
   | "SAMPLE_CREATED"
-  | "SAMPLE_SENT"
   | "SAMPLE_APPROVED"
   | "SAMPLE_REJECTED"
   | "ORDER_CREATED"
@@ -326,7 +330,7 @@ const ACTIVITY_LIMIT = 80;
 const companyActivity = async (companyId: Types.ObjectId): Promise<ActivityItem[]> => {
   const [samples, orders, logs] = await Promise.all([
     Sample.find({ company: companyId })
-      .select("sampleNumber designNumber status createdAt sentAt decidedAt")
+      .select("sampleNumber designNumber status createdAt decidedAt")
       .sort({ createdAt: -1 })
       .limit(ACTIVITY_LIMIT)
       .lean()
@@ -359,8 +363,11 @@ const companyActivity = async (companyId: Types.ObjectId): Promise<ActivityItem[
     const base = { ref, designNumber: smp.designNumber };
 
     items.push({ ...base, kind: "SAMPLE_CREATED", date: smp.createdAt });
-    if (smp.sentAt) items.push({ ...base, kind: "SAMPLE_SENT", date: smp.sentAt });
-    if (smp.decidedAt && smp.status === SAMPLE_STATUS.APPROVED) {
+    // A sample in production was approved on the way — converting it records that.
+    if (
+      smp.decidedAt &&
+      (smp.status === SAMPLE_STATUS.APPROVED || smp.status === SAMPLE_STATUS.IN_PRODUCTION)
+    ) {
       items.push({ ...base, kind: "SAMPLE_APPROVED", date: smp.decidedAt });
     }
     if (smp.decidedAt && smp.status === SAMPLE_STATUS.REJECTED) {
@@ -446,13 +453,16 @@ export const getCompanyOverview = async (id: string): Promise<Record<string, unk
   }
   metres.remaining = Math.max(0, metres.ordered - metres.produced);
 
-  const samples: Record<string, number> = { total: 0, open: 0 };
+  /*
+   * `sampling` is everything not yet converted — what the buyer's Sampling
+   * list shows under "All" — and `open` the part of it still in play.
+   */
+  const samples: Record<string, number> = { total: 0, open: 0, sampling: 0 };
   for (const row of sampleStats) {
     samples[row._id] = row.count;
-    samples.total = (samples.total ?? 0) + row.count;
-    if (OPEN_SAMPLE_STATUSES.includes(row._id as never)) {
-      samples.open = (samples.open ?? 0) + row.count;
-    }
+    samples.total! += row.count;
+    if (OPEN_SAMPLE_STATUSES.includes(row._id as never)) samples.open! += row.count;
+    if (SAMPLING_STATUSES.includes(row._id as never)) samples.sampling! += row.count;
   }
 
   return {
