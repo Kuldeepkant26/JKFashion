@@ -71,8 +71,8 @@ const toFormData = (payload, file) => {
 };
 
 /**
- * Convert a sample into a production order. `payload.sampleId` is required —
- * there is no other way to raise one — and the buyer comes from the sample.
+ * Raise a production order: pass `sampleId` to convert a sample (the buyer
+ * comes from it), or `companyId` to create one directly for a buyer.
  */
 export const createOrder = (payload, file) =>
   api.post('/inventory/orders', toFormData(payload, file), multipart).then(unwrap);

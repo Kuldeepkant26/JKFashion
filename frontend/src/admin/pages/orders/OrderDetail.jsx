@@ -329,9 +329,9 @@ export default function OrderDetail({
             <Detail label="Width" value={order.fabricWidth} />
             <Detail label="Yarn" value={order.yarnType} />
             <Detail label="Colour" value={order.yarnColor} />
-            <Detail label="Repeat" value={order.repeat ? `${order.repeat}"` : ''} />
+            <Detail label="Repeat" value={order.repeat ? String(order.repeat) : ''} />
             <Detail
-              label="Stitches / repeat"
+              label="Stitches"
               value={order.stitches ? Number(order.stitches).toLocaleString('en-IN') : ''}
             />
             <Detail label="Start" value={formatDate(order.startDate)} />

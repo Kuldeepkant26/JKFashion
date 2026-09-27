@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react';
-import { FiSearch, FiImage, FiChevronRight } from 'react-icons/fi';
+import { FiSearch, FiImage, FiChevronRight, FiArrowLeft } from 'react-icons/fi';
 import { TbNeedleThread } from 'react-icons/tb';
 import * as inventoryApi from '../../../api/inventory.api.js';
 import { useCachedQuery, cacheKey } from '../../../api/useCachedQuery.js';
 import Modal from '../../components/Modal.jsx';
 import Spinner from '../../components/Spinner.jsx';
 import EmptyState from '../../components/EmptyState.jsx';
-import { SAMPLE_STATUS_LABELS, SAMPLE_STATUS_STYLES, formatDate, inputClass } from './constants.js';
-
-/** Enough to scroll through; past this, the search narrows it. */
-const LIMIT = 100;
+import {
+  SAMPLE_STATUS_LABELS,
+  SAMPLE_STATUS_STYLES,
+  SAMPLE_PICKER_LIMIT,
+  formatDate,
+  inputClass,
+} from './constants.js';
 
 function SampleRow({ sample, showCompany, onPick }) {
   return (
@@ -88,18 +91,26 @@ function Group({ title, hint, items, showCompany, onPick }) {
 }
 
 /**
- * Step one of a new production order: pick the sample it is for.
+ * "Choose from samples", the first path of New order: pick the sample the
+ * order is for.
  *
- * Every order is converted from a sample, so this is where "New order" starts.
  * Samples still open are offered — approved first, since those are what the
  * buyer has said yes to, then the ones still in progress (converting one of
  * those records the approval). A sample already in production has its order,
  * and a rejected one has to be reopened first, so neither is listed.
  *
  * @param companyId      scope to one buyer (inside their dashboard)
+ * @param onBack         back to the choice between this and "Create new"
  * @param onGoToSampling shown when there is nothing to pick
  */
-export default function SamplePicker({ open, companyId, onPick, onCancel, onGoToSampling }) {
+export default function SamplePicker({
+  open,
+  companyId,
+  onPick,
+  onBack,
+  onCancel,
+  onGoToSampling,
+}) {
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
 
@@ -112,7 +123,7 @@ export default function SamplePicker({ open, companyId, onPick, onCancel, onGoTo
     status: 'OPEN',
     companyId: companyId || undefined,
     search: debounced || undefined,
-    limit: LIMIT,
+    limit: SAMPLE_PICKER_LIMIT,
   };
 
   const { data, error, loading } = useCachedQuery(cacheKey('samples', params), () =>
@@ -128,17 +139,30 @@ export default function SamplePicker({ open, companyId, onPick, onCancel, onGoTo
     <Modal
       open={open}
       onClose={onCancel}
-      title="New production order"
+      title="Choose from samples"
       description="Pick the sample this order is for. It moves out of Sampling and into In production."
       footer={
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-xl px-4 py-2.5 font-body text-sm font-semibold text-brand-ink/70
-                     ring-1 ring-brand-ink/12 transition-colors hover:bg-brand-ink/5"
-        >
-          Cancel
-        </button>
+        <>
+          {onBack ? (
+            <button
+              type="button"
+              onClick={onBack}
+              className="mr-auto inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 font-body
+                         text-sm font-semibold text-brand-ink/70 ring-1 ring-brand-ink/12
+                         transition-colors hover:bg-brand-ink/5"
+            >
+              <FiArrowLeft aria-hidden /> Back
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-xl px-4 py-2.5 font-body text-sm font-semibold text-brand-ink/70
+                       ring-1 ring-brand-ink/12 transition-colors hover:bg-brand-ink/5"
+          >
+            Cancel
+          </button>
+        </>
       }
     >
       <div className="flex flex-col gap-5">
@@ -198,7 +222,7 @@ export default function SamplePicker({ open, companyId, onPick, onCancel, onGoTo
               hint={
                 debounced
                   ? 'Try a design number, a sample number or a buyer.'
-                  : 'A production order starts from a sample. Record the sample first, then come back here.'
+                  : 'Record the sample in Sampling first — or go Back and choose Create new.'
               }
             />
             {!debounced && onGoToSampling ? (

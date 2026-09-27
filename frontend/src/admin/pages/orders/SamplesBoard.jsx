@@ -17,8 +17,9 @@ import { MAIN_ADMIN, SAMPLE_FILTERS, inputClass } from './constants.js';
  *
  * Sampling is kept apart from production — a sample is judged by the buyer
  * before any quantity is committed. Once a sample is converted into an order
- * (Production → New order) it leaves this list: "All" shows only samples still
- * in sampling, and converted ones move under the "In production" pill.
+ * (Production → New order → Choose from samples) it leaves this list: "All"
+ * shows only samples still in sampling, and converted ones move under the
+ * "In production" pill.
  *
  * Used section-wide and inside one company's dashboard (`companyId`).
  *
@@ -357,7 +358,7 @@ export default function SamplesBoard({ companyId, focusId, onFocusDone, onOpenOr
           }
           hint={
             status === 'IN_PRODUCTION' && !debounced
-              ? 'A sample moves here when it is converted into an order from Production → New order.'
+              ? 'A sample moves here when it is converted into an order from Production → New order → Choose from samples.'
               : filtered
                 ? 'Try another filter or search.'
                 : 'Record a sample when the buyer asks for one. When they confirm, convert it from Production → New order.'

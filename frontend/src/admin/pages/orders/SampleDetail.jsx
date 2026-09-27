@@ -33,7 +33,7 @@ const secondaryButton =
  * it has been converted — the production order it became.
  *
  * There is no "convert" button here on purpose. A sample becomes an order one
- * way: Production → New order, where it is picked from the list.
+ * way: Production → New order → Choose from samples.
  */
 export default function SampleDetail({
   sample,
@@ -173,8 +173,8 @@ export default function SampleDetail({
 
           {sample.status === 'APPROVED' ? (
             <p className="rounded-xl bg-emerald-50 px-3 py-2 font-body text-xs text-emerald-800">
-              Ready for production — pick it from <b>Production → New order</b> to convert it into
-              an order.
+              Ready for production — convert it from <b>Production → New order → Choose from
+              samples</b>.
             </p>
           ) : null}
 
@@ -226,9 +226,9 @@ export default function SampleDetail({
             <Detail label="Width" value={sample.fabricWidth} />
             <Detail label="Yarn" value={sample.yarnType} />
             <Detail label="Colour" value={sample.yarnColor} />
-            <Detail label="Repeat" value={sample.repeat ? `${sample.repeat}"` : ''} />
+            <Detail label="Repeat" value={sample.repeat ? String(sample.repeat) : ''} />
             <Detail
-              label="Stitches / repeat"
+              label="Stitches"
               value={sample.stitches ? Number(sample.stitches).toLocaleString('en-IN') : ''}
             />
             <Detail

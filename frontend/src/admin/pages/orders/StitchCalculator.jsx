@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { FiX } from 'react-icons/fi';
 import Modal from '../../components/Modal.jsx';
-import { inputClass, labelClass, INCH_IN_METRES } from './constants.js';
+import RepeatInput from './RepeatInput.jsx';
+import { inputClass, labelClass, normalizeRepeat, repeatToMm } from './constants.js';
 
 /**
  * Repeat, stitch and time/cost working for a design.
@@ -52,7 +53,7 @@ const duration = (minutes) => {
 /** The working itself. Pure, so what is shown is exactly what is computed. */
 const calculate = ({ quantity, repeat, stitches, speed, rate }) => {
   const qty = num(quantity);
-  const repeatM = num(repeat) * INCH_IN_METRES;
+  const repeatM = repeatToMm(repeat) / 1000;
   const perRepeat = num(stitches);
 
   const out = {};
@@ -67,8 +68,8 @@ const calculate = ({ quantity, repeat, stitches, speed, rate }) => {
 
 const FIELDS = [
   { name: 'quantity', label: 'Quantity (m)', step: '0.1', placeholder: '1000' },
-  { name: 'repeat', label: 'Repeat (inch)', step: '0.01', placeholder: '13.5' },
-  { name: 'stitches', label: 'Stitches per repeat', step: '1', placeholder: '24000' },
+  { name: 'repeat', label: 'Repeat', type: 'repeat' },
+  { name: 'stitches', label: 'Stitches', step: '1', placeholder: '24000' },
   { name: 'speed', label: 'Machine speed (stitches/min)', step: '1', placeholder: 'Optional' },
   { name: 'rate', label: 'Rate per 1,000 stitches (₹)', step: '0.01', placeholder: 'Optional' },
 ];
@@ -109,21 +110,34 @@ export function StitchCalculatorPanel({ initial = {} }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="grid gap-3 sm:grid-cols-3">
-        {FIELDS.map((f) => (
-          <label key={f.name} className="flex flex-col gap-1.5">
-            <span className={labelClass}>{f.label}</span>
-            <input
-              type="number"
-              min="0"
-              step={f.step}
-              inputMode="decimal"
-              value={values[f.name] ?? ''}
-              placeholder={f.placeholder}
-              onChange={(e) => set(f.name, e.target.value)}
-              className={inputClass}
-            />
-          </label>
-        ))}
+        {FIELDS.map((f) =>
+          f.type === 'repeat' ? (
+            <label key={f.name} className="flex flex-col gap-1.5 sm:col-span-2">
+              <span className={labelClass}>{f.label}</span>
+              <RepeatInput value={values.repeat} onChange={(value) => set('repeat', value)} />
+              {/* What the working below actually uses, so a mistyped repeat shows. */}
+              <span className="font-body text-xs text-brand-ink/50">
+                {repeatToMm(values.repeat)
+                  ? `${normalizeRepeat(values.repeat)} = ${fmt(repeatToMm(values.repeat), 2)} mm`
+                  : 'Write it like 8/4'}
+              </span>
+            </label>
+          ) : (
+            <label key={f.name} className="flex flex-col gap-1.5">
+              <span className={labelClass}>{f.label}</span>
+              <input
+                type="number"
+                min="0"
+                step={f.step}
+                inputMode="decimal"
+                value={values[f.name] ?? ''}
+                placeholder={f.placeholder}
+                onChange={(e) => set(f.name, e.target.value)}
+                className={inputClass}
+              />
+            </label>
+          )
+        )}
       </div>
 
       <dl className="grid gap-2 rounded-2xl bg-admin-cream p-3 sm:grid-cols-3">
@@ -135,7 +149,7 @@ export function StitchCalculatorPanel({ initial = {} }) {
         <Result
           label="Total stitches"
           value={r.totalStitches ? fmt(r.totalStitches) : null}
-          hint="Repeats × stitches per repeat"
+          hint="Repeats × stitches"
         />
         <Result
           label="Stitches per metre"
@@ -159,8 +173,8 @@ export function StitchCalculatorPanel({ initial = {} }) {
       </dl>
 
       <p className="font-body text-xs text-brand-ink/50">
-        Repeat is the length of fabric one repeat of the design covers, in inches. Machine
-        speed and rate are remembered on this device.
+        Repeat is written the floor&apos;s way: 4/4 is one Swiss inch (27.07 mm), so 8/4 is
+        54.14 mm. Machine speed and rate are remembered on this device.
       </p>
     </div>
   );

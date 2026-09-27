@@ -96,5 +96,43 @@ export const SAMPLE_FILTERS = [
   { value: 'IN_PRODUCTION', label: 'In production', apart: true },
 ];
 
-/** Metres from a repeat given in inches. */
-export const INCH_IN_METRES = 0.0254;
+/**
+ * How many open samples the New order sample list loads at once — enough to
+ * scroll through; past this, its search narrows the list.
+ */
+export const SAMPLE_PICKER_LIMIT = 100;
+
+/**
+ * Common repeats, as the floor writes them — quarters of a Swiss inch. Offered
+ * as one-tap choices under the Repeat field; anything else can be typed.
+ */
+export const REPEAT_PRESETS = ['4/4', '6/4', '8/4', '12/4', '16/4', '24/4'];
+
+/** "8//4", " 8 / 4 " → "8/4". Mirrors normalizeRepeat on the API. */
+export const normalizeRepeat = (value) =>
+  String(value ?? '')
+    .replace(/\s+/g, '')
+    .replace(/\/+/g, '/');
+
+/** One Swiss inch in millimetres — the schiffli machine's unit, and a 4/4 repeat. */
+export const SWISS_INCH_MM = 27.07;
+
+/**
+ * A repeat's length in millimetres, or 0 if it cannot be read.
+ *
+ * "8/4" is eight quarters of a Swiss inch: 54.14 mm. A bare number is read as
+ * inches, which is how repeats were entered before the floor's own notation
+ * was supported.
+ */
+export const repeatToMm = (value) => {
+  const text = normalizeRepeat(value);
+  const fraction = /^(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)$/.exec(text);
+
+  if (fraction) {
+    const [, n, d] = fraction.map(Number);
+    return d > 0 ? (n / d) * SWISS_INCH_MM : 0;
+  }
+
+  const inches = Number(text);
+  return text && Number.isFinite(inches) && inches > 0 ? inches * 25.4 : 0;
+};

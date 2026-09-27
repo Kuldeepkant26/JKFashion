@@ -21,6 +21,7 @@ npm run dev               # http://localhost:5001
 | `npm start` | Runs the compiled build |
 | `npm run seed` | Creates/updates the first admin. Safe to re-run. |
 | `npm run migrate:samples` | Dry run: lists what needs bringing up to the current order/sample model — orders still in the old SAMPLING status, samples marked "sent to buyer", samples with an order not yet marked in production. Add `-- --apply` to make the changes. Safe to re-run. |
+| `npm run renumber:samples` | Dry run: lists samples still numbered in the old format (`Dexter-SMP-00004`) and the number each would get in the current one (`JK-DEX-01`). Add `-- --apply` to renumber them, along with the copy of the number on any order converted from them. Safe to re-run. |
 | `npm run typecheck` | `tsc --noEmit` |
 
 ## A TypeScript gotcha worth knowing up front

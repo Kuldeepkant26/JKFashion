@@ -15,7 +15,7 @@ import {
   type ISample,
 } from "../models/sample.model.js";
 import { sampleCounts } from "./sample.service.js";
-import { docketNumbering } from "../utils/docketNumber.js";
+import { orderNumbers } from "../utils/docketNumber.js";
 import { uploadImage, destroyImage, copyImage } from "../config/cloudinary.js";
 import { ApiError } from "../utils/ApiError.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
@@ -24,17 +24,7 @@ import { startOfDayUTC, endOfDayUTC } from "../utils/productionDate.js";
 /** Where Cloudinary keeps design images, under the configured base folder. */
 const IMAGE_FOLDER = "inventory";
 
-/**
- * Order numbers, e.g. `Dexter-JK-00109`.
- *
- * Per-buyer rather than global: the number is read off a docket next to the
- * buyer's name, and a shared sequence would make two adjacent jobs for the same
- * buyer look unrelated. "JK" is the house mark. The counter keys (`order:…`)
- * are unchanged from before the helper was shared, so numbering continues.
- */
-const orderNumbers = docketNumbering("order", "JK");
-
-/** Claim the next order number for a buyer. Atomic. */
+/** Claim the next order number for a buyer, e.g. `Dexter-JK-00109`. Atomic. */
 export const generateOrderNumber = (companyName: string): Promise<string> =>
   orderNumbers.next(companyName);
 
@@ -227,7 +217,7 @@ export interface OrderFields {
   fabricWidth?: string;
   yarnType?: string;
   yarnColor?: string;
-  repeat?: number;
+  repeat?: string;
   stitches?: number;
   startDate?: string;
   deadline?: string;
@@ -240,11 +230,18 @@ export interface OrderFields {
 }
 
 /**
- * A new order is always converted from a sample — there is no other way to
- * raise one. The buyer comes from the sample, so it is not asked for.
+ * A new order is raised one of two ways:
+ *
+ *   - converted from a sample (`sampleId`) — the usual way. The sample carries
+ *     the buyer and the design, and moves to IN_PRODUCTION.
+ *   - created directly for a buyer (`companyId`) — for work that needed no
+ *     sample: a repeat of a design already made, or an order from a swatch.
+ *
+ * When both are sent the sample decides, and must belong to that buyer.
  */
 export interface OrderInput extends OrderFields {
-  sampleId: string;
+  sampleId?: string;
+  companyId?: string;
   /** Copy the sample's design image when no image of its own is uploaded. */
   useSampleImage?: boolean;
 }
@@ -275,18 +272,85 @@ const convertibleSample = async (sampleId: string): Promise<ISample> => {
   return sample;
 };
 
+type DesignUpload = { buffer: Buffer; filename: string };
+
+/** Raise a new order: convert a sample, or create one directly for a buyer. */
+export const createOrder = (
+  input: OrderInput,
+  createdBy: Types.ObjectId,
+  image?: DesignUpload
+): Promise<OrderView> =>
+  input.sampleId
+    ? convertSample(input.sampleId, input, createdBy, image)
+    : createDirect(input, createdBy, image);
+
+/**
+ * A new order for a buyer, with no sample behind it.
+ *
+ * The company is looked up rather than trusted: `companyName` is a snapshot
+ * the list renders directly, so it must come from the record, never from
+ * whatever the client happened to send.
+ */
+const createDirect = async (
+  input: OrderInput,
+  createdBy: Types.ObjectId,
+  image?: DesignUpload
+): Promise<OrderView> => {
+  if (!input.companyId) {
+    throw new ApiError(422, "Choose a company, or pick a sample to convert.");
+  }
+
+  const company = await Company.findById(input.companyId).exec();
+  if (!company) throw new ApiError(404, "That company no longer exists");
+
+  const uploaded = image ? await uploadImage(image.buffer, image.filename, IMAGE_FOLDER) : null;
+
+  try {
+    // After the upload, so a failed image does not burn a number.
+    const orderNumber = await generateOrderNumber(company.name);
+    const { sampleId: _s, companyId: _c, useSampleImage: _u, ...fields } = input;
+
+    const order = await ProductionOrder.create({
+      ...fields,
+      orderNumber,
+      company: company._id,
+      companyName: company.name,
+      sample: null,
+      sampleNumber: "",
+      // Never from the client: the log is the only thing that moves this.
+      completedMetres: 0,
+      ...(uploaded ? { designImage: uploaded } : {}),
+      createdBy,
+      updatedBy: createdBy,
+    });
+
+    return toView(order);
+  } catch (error) {
+    // The file is already on Cloudinary but the row failed — remove it rather
+    // than leaving an asset nothing points at.
+    if (uploaded) await destroyImage(uploaded.publicId);
+    throw error;
+  }
+};
+
 /**
  * Convert a sample into a production order.
  *
  * The sample moves to IN_PRODUCTION — out of the Sampling list, into its "In
  * production" tab — and the order carries its buyer, design and a link back.
  */
-export const createOrder = async (
+const convertSample = async (
+  sampleId: string,
   input: OrderInput,
   createdBy: Types.ObjectId,
-  image?: { buffer: Buffer; filename: string }
+  image?: DesignUpload
 ): Promise<OrderView> => {
-  const sample = await convertibleSample(input.sampleId);
+  const sample = await convertibleSample(sampleId);
+
+  // A buyer sent alongside the sample must be the sample's own.
+  if (input.companyId && String(input.companyId) !== String(sample.company)) {
+    throw new ApiError(422, `Sample ${sample.sampleNumber} belongs to another company.`);
+  }
 
   /*
    * The company is looked up rather than trusted from the sample's snapshot:
@@ -338,7 +402,7 @@ export const createOrder = async (
      * but a sequence the office can read straight down is worth the ordering.
      */
     const orderNumber = await generateOrderNumber(company.name);
-    const { sampleId: _s, useSampleImage: _u, ...fields } = input;
+    const { sampleId: _s, companyId: _c, useSampleImage: _u, ...fields } = input;
 
     const order = await ProductionOrder.create({
       // The design's repeat and stitches carry over unless this order says otherwise.
@@ -396,7 +460,7 @@ export const updateOrder = async (
 
   // Moving an order to another buyer re-snapshots the name with it.
   if (patch.companyId && String(patch.companyId) !== String(order.company)) {
-    // Only an order that predates samples can move — one converted from a
+    // Only an order with no sample behind it can move — one converted from a
     // sample belongs to that sample's buyer.
     if (order.sample) {
       throw new ApiError(

@@ -9,7 +9,7 @@ import {
 } from "../models/sample.model.js";
 import { ProductionOrder } from "../models/productionOrder.model.js";
 import { Company, type ICompany } from "../models/company.model.js";
-import { docketNumbering } from "../utils/docketNumber.js";
+import { sampleNumbers } from "../utils/docketNumber.js";
 import { uploadImage, destroyImage } from "../config/cloudinary.js";
 import { ApiError } from "../utils/ApiError.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
@@ -17,9 +17,6 @@ import { startOfDayUTC } from "../utils/productionDate.js";
 
 /** Same Cloudinary folder as order design images — they are the same kind of file. */
 const IMAGE_FOLDER = "inventory";
-
-/** Sample numbers, e.g. `Dexter-SMP-00012`. A separate sequence from orders. */
-const sampleNumbers = docketNumbering("sample", "SMP");
 
 export const previewSampleNumber = async (companyId: string): Promise<string> => {
   const company = await Company.findById(companyId).select("name").lean<ICompany>().exec();
@@ -180,7 +177,7 @@ export interface SampleInput {
   fabricWidth?: string;
   yarnType?: string;
   yarnColor?: string;
-  repeat?: number;
+  repeat?: string;
   stitches?: number;
   quantity?: number;
   deadline?: string;

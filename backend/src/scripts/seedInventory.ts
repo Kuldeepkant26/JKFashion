@@ -19,7 +19,7 @@ import { Company } from "../models/company.model.js";
 import { ProductionOrder, ORDER_STATUS } from "../models/productionOrder.model.js";
 import { Counter } from "../models/counter.model.js";
 import { Sample, SAMPLE_STATUS, type SampleStatus } from "../models/sample.model.js";
-import { docketNumbering } from "../utils/docketNumber.js";
+import { sampleNumbers } from "../utils/docketNumber.js";
 import { generateOrderNumber } from "../services/productionOrder.service.js";
 import { startOfDayUTC } from "../utils/productionDate.js";
 
@@ -322,7 +322,7 @@ const run = async (): Promise<void> => {
       await Sample.deleteMany({ company: { $in: ids } }).exec();
       await Company.deleteMany({ _id: { $in: ids } }).exec();
       // The counters go too, so numbering restarts with the data it counted.
-      await Counter.deleteMany({ _id: /^(order|sample):/ }).exec();
+      await Counter.deleteMany({ _id: /^(order|sample|sample-code):/ }).exec();
       logger.info(
         `Removed ${ids.length} seeded companies and ${orders.deletedCount ?? 0} of their orders`
       );
@@ -349,15 +349,13 @@ const run = async (): Promise<void> => {
 
   logger.info(`Created ${companies.length} companies`);
 
-  const sampleNumbers = docketNumbering("sample", "SMP");
-
   /** One sample's worth of design, shared by a sample and the order it becomes. */
   const design = () => ({
     fabricType: pick(FABRICS),
     fabricWidth: pick(WIDTHS),
     yarnType: pick(YARNS),
     yarnColor: pick(COLOURS),
-    repeat: pick([6.75, 13.5, 27]),
+    repeat: pick(["4/4", "6/4", "8/4", "12/4", "16/4"]),
     stitches: Math.round(between(8000, 60000)),
   });
 
@@ -399,25 +397,30 @@ const run = async (): Promise<void> => {
     const details = design();
 
     /*
-     * Every order is converted from a sample, so each gets one: made a couple
-     * of weeks before the order, approved just before it, now in production.
+     * Most orders are converted from a sample, so each of those gets one: made
+     * a couple of weeks before the order, approved just before it, now in
+     * production. Every sixth is a repeat order created directly, with no
+     * sample of its own — the other way an order is raised.
      */
-    const sample = await Sample.create({
-      company: company._id,
-      companyName: company.name,
-      sampleNumber: await sampleNumbers.next(company.name),
-      designNumber,
-      status: SAMPLE_STATUS.IN_PRODUCTION,
-      ...details,
-      quantity: Math.round(between(1, 5)),
-      deadline: new Date(raisedAt.getTime() - 5 * DAY),
-      decidedAt: new Date(raisedAt.getTime() - 2 * DAY),
-      remarks: "",
-      createdBy: owner._id,
-      updatedBy: owner._id,
-      createdAt: new Date(raisedAt.getTime() - 14 * DAY),
-      updatedAt: raisedAt,
-    });
+    const direct = i % 6 === 5;
+    const sample = direct
+      ? null
+      : await Sample.create({
+          company: company._id,
+          companyName: company.name,
+          sampleNumber: await sampleNumbers.next(company.name),
+          designNumber,
+          status: SAMPLE_STATUS.IN_PRODUCTION,
+          ...details,
+          quantity: Math.round(between(1, 5)),
+          deadline: new Date(raisedAt.getTime() - 5 * DAY),
+          decidedAt: new Date(raisedAt.getTime() - 2 * DAY),
+          remarks: "",
+          createdBy: owner._id,
+          updatedBy: owner._id,
+          createdAt: new Date(raisedAt.getTime() - 14 * DAY),
+          updatedAt: raisedAt,
+        });
 
     // Through the app's own generator, so the counters are left consistent.
     const orderNumber = await generateOrderNumber(company.name);
@@ -435,8 +438,8 @@ const run = async (): Promise<void> => {
     await ProductionOrder.create({
       company: company._id,
       companyName: company.name,
-      sample: sample._id,
-      sampleNumber: sample.sampleNumber,
+      sample: sample?._id ?? null,
+      sampleNumber: sample?.sampleNumber ?? "",
       orderNumber,
       designNumber,
       status: plan.status,

@@ -33,9 +33,7 @@ import { Sample, SAMPLE_STATUS } from "../models/sample.model.js";
 
 /** The retired "sent to buyer" status — no longer in the schema's enum. */
 const LEGACY_SENT = "SENT";
-import { docketNumbering } from "../utils/docketNumber.js";
-
-const sampleNumbers = docketNumbering("sample", "SMP");
+import { sampleNumbers } from "../utils/docketNumber.js";
 
 const run = async (): Promise<void> => {
   validateEnv();

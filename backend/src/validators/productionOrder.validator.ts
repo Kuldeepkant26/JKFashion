@@ -1,5 +1,6 @@
 import { body, param, query, type ValidationChain } from "express-validator";
 import { ORDER_STATUSES } from "../models/productionOrder.model.js";
+import { REPEAT_PATTERN, normalizeRepeat } from "../utils/repeat.js";
 
 /** "OVERDUE" is a derived view of the list, not a stored status. */
 const LIST_STATUSES = [...ORDER_STATUSES, "OVERDUE"];
@@ -44,7 +45,13 @@ const orderFields = (optional: boolean): ValidationChain[] => {
     body("startDate").optional({ checkFalsy: true }).isISO8601().toDate(),
     body("deadline").optional({ checkFalsy: true }).isISO8601().toDate(),
     body("estCompletion").optional({ checkFalsy: true }).isISO8601().toDate(),
-    body("repeat").optional({ checkFalsy: true }).isFloat({ min: 0, max: 10_000 }).toFloat(),
+    // As the floor writes it — "8/4" — tidied ("8//4" → "8/4") before it is checked.
+    body("repeat")
+      .optional({ checkFalsy: true })
+      .customSanitizer(normalizeRepeat)
+      .isLength({ max: 20 })
+      .matches(REPEAT_PATTERN)
+      .withMessage("Write the repeat like 8/4"),
     body("stitches").optional({ checkFalsy: true }).isInt({ min: 0, max: 100_000_000 }).toInt(),
     body("mendings").optional({ checkFalsy: true }).isInt({ min: 0, max: 100000 }).toInt(),
     body("rejectedMetres")
@@ -61,11 +68,16 @@ const orderFields = (optional: boolean): ValidationChain[] => {
  * make the form send a value that is then discarded.
  */
 /*
- * A new order is always converted from a sample, so the sample is required
- * and the buyer is not asked for — it comes from the sample.
+ * A new order is converted from a sample (`sampleId`) or created directly for
+ * a buyer (`companyId`). The buyer is required only when there is no sample —
+ * a converted order takes the sample's.
  */
 export const createOrderRules: ValidationChain[] = [
-  body("sampleId").isMongoId().withMessage("Choose the sample this order is converted from"),
+  body("sampleId").optional({ checkFalsy: true }).isMongoId().withMessage("Unknown sample"),
+  body("companyId")
+    .if((_value: unknown, { req }: { req: { body?: Record<string, unknown> } }) => !req.body?.sampleId)
+    .isMongoId()
+    .withMessage("Choose a company"),
   // Multipart sends "true"/"false" as text.
   body("useSampleImage").optional({ checkFalsy: true }).isBoolean().toBoolean(),
   body("designNumber")
@@ -82,7 +94,7 @@ export const createOrderRules: ValidationChain[] = [
 
 export const updateOrderRules: ValidationChain[] = [
   param("id").isMongoId().withMessage("Unknown order"),
-  // Only an order that predates samples may move buyer; the service enforces it.
+  // Only an order with no sample behind it may move buyer; the service enforces it.
   body("companyId").optional().isMongoId().withMessage("Unknown company"),
   body("designNumber").optional().isString().trim().isLength({ min: 1, max: 60 }),
   body("orderedMetres").optional().isFloat({ min: 0.1, max: 10_000_000 }).toFloat(),

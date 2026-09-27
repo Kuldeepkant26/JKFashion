@@ -105,7 +105,9 @@ export const createOrder = asyncHandler<AuthedRequest>(async (req, res) => {
   const order = await orderService.createOrder(
     {
       ...(pickFields(body) as unknown as orderService.OrderFields),
-      sampleId: body.sampleId as string,
+      // One of the two: a sample to convert, or a buyer to create for.
+      sampleId: (body.sampleId as string) || undefined,
+      companyId: (body.companyId as string) || undefined,
       useSampleImage: body.useSampleImage === true,
     },
     req.user!._id as never,

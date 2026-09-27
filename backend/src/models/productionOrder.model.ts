@@ -115,7 +115,7 @@ export interface IProductionOrder extends Document {
   fabricWidth: string;
   yarnType: string;
   yarnColor: string;
-  repeat?: number;
+  repeat?: string;
   stitches?: number;
   orderedMetres: number;
   completedMetres: number;
@@ -186,8 +186,8 @@ const productionOrderSchema = new Schema<IProductionOrder>(
     yarnType: { type: String, trim: true, maxlength: 80, default: "" },
     yarnColor: { type: String, trim: true, maxlength: 60, default: "" },
 
-    /** Design repeat in inches, and stitches per repeat — see the calculator. */
-    repeat: { type: Number, min: 0 },
+    /** The design's repeat as the floor writes it ("8/4"), and its stitch count. */
+    repeat: { type: String, trim: true, maxlength: 20 },
     stitches: { type: Number, min: 0 },
 
     orderedMetres: { type: Number, required: true, min: 0 },

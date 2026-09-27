@@ -4,6 +4,7 @@ import * as inventoryApi from '../../../api/inventory.api.js';
 import { invalidate } from '../../../api/useCachedQuery.js';
 import Modal from '../../components/Modal.jsx';
 import DesignImageField from './DesignImageField.jsx';
+import RepeatInput from './RepeatInput.jsx';
 import {
   ORDER_STATUSES,
   STATUS_LABELS,
@@ -54,8 +55,9 @@ const SECTIONS = [
   {
     title: 'Repeat & stitches',
     fields: [
-      { name: 'repeat', label: 'Repeat (inch)', type: 'number', step: '0.01', min: '0' },
-      { name: 'stitches', label: 'Stitches per repeat', type: 'number', step: '1', min: '0' },
+      // Written the floor's way ("8/4"), with one-tap presets — hence the double width.
+      { name: 'repeat', label: 'Repeat', type: 'repeat', wide: true },
+      { name: 'stitches', label: 'Stitches', type: 'number', step: '1', min: '0' },
     ],
   },
   {
@@ -98,7 +100,7 @@ const EMPTY = {
 const fromOrder = (order) => ({
   ...EMPTY,
   ...Object.fromEntries(Object.keys(EMPTY).map((k) => [k, order[k] ?? ''])),
-  // Only an order from before samples can change buyer; see the Buyer field.
+  // Only an order with no sample behind it can change buyer; see the Buyer field.
   companyId: order.company ?? '',
   // A pre-split SAMPLING row cannot be saved back as SAMPLING; PENDING is
   // what it becomes the first time anyone edits it.
@@ -167,16 +169,17 @@ function SourceSample({ sample, caption, onChange }) {
 }
 
 /**
- * A production order: converting a sample into one, or editing one.
+ * A production order, in one of three modes:
  *
- * There is no blank "new order" — every order is converted from a sample,
- * which is picked first (see SamplePicker) and arrives here as `fromSample`.
- * The buyer and the design come from it; what is asked for is what the sample
- * cannot know: the quantity ordered and the schedule.
+ *   - converting a sample (`fromSample`) — the buyer and the design come from
+ *     the sample; what is asked for is what it cannot know: the quantity
+ *     ordered and the schedule.
+ *   - creating one directly (neither prop) — a blank order for a buyer, for
+ *     work that needed no sample.
+ *   - editing one (`initial`).
  *
- * @param fromSample the sample being converted (create)
- * @param initial    the order being edited (edit)
- * @param onBack     back to the sample list, to pick a different one
+ * @param onBack back a step: to the sample list when converting, to the
+ *               choice between the two ways of starting when creating
  */
 export default function OrderForm({
   open,
@@ -192,8 +195,15 @@ export default function OrderForm({
   setError,
 }) {
   const editing = Boolean(initial?._id);
+  const converting = !editing && Boolean(fromSample);
+  const direct = !editing && !fromSample;
+
   const [form, setForm] = useState(() =>
-    initial ? fromOrder(initial) : fromSampleFields(fromSample)
+    initial
+      ? fromOrder(initial)
+      : fromSample
+        ? fromSampleFields(fromSample)
+        : { ...EMPTY, companyId: fixedCompanyId ?? '' }
   );
   const [fieldErrors, setFieldErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -205,7 +215,7 @@ export default function OrderForm({
 
   const [numberPreview, setNumberPreview] = useState('');
 
-  const buyerId = editing ? form.companyId : fromSample?.company;
+  const buyerId = converting ? fromSample.company : form.companyId;
 
   /*
    * Ask the API what the next number for this buyer is. Only on create: an
@@ -238,6 +248,14 @@ export default function OrderForm({
 
   /* An order converted from a sample keeps that sample's buyer. */
   const buyerLocked = editing && Boolean(initial.sample);
+
+  /*
+   * Inside a buyer's dashboard the buyer is not asked for, but the popup hides
+   * the page behind it — so it is still named here, read-only.
+   */
+  const fixedBuyerName = fixedCompanyId
+    ? (companies.find((c) => c._id === fixedCompanyId)?.name ?? initial?.companyName ?? '')
+    : '';
   const sampleImage = fromSample?.designImage?.url;
 
   const submit = async (e) => {
@@ -254,6 +272,9 @@ export default function OrderForm({
         );
         if (file) await inventoryApi.setOrderImage(initial._id, file);
         else if (removeImage) await inventoryApi.clearOrderImage(initial._id);
+      } else if (direct) {
+        // `form.companyId` is the buyer chosen above, or the dashboard's own.
+        await inventoryApi.createOrder(form, file);
       } else {
         await inventoryApi.createOrder(
           {
@@ -286,13 +307,19 @@ export default function OrderForm({
     };
 
     return (
-      <label key={f.name} className="flex flex-col gap-1.5">
+      <label key={f.name} className={`flex flex-col gap-1.5 ${f.wide ? 'sm:col-span-2' : ''}`}>
         <span className={labelClass}>
           {f.label}
           {f.required ? ' *' : ''}
         </span>
 
-        {f.type === 'select' ? (
+        {f.type === 'repeat' ? (
+          <RepeatInput
+            value={form[f.name]}
+            onChange={(value) => set(f.name, value)}
+            invalid={invalid}
+          />
+        ) : f.type === 'select' ? (
           <select {...common}>
             {f.options.map((o) => (
               <option key={o} value={o}>
@@ -324,7 +351,11 @@ export default function OrderForm({
     );
   };
 
-  const formId = editing ? `order-${initial._id}` : `order-from-${fromSample?._id}`;
+  const formId = editing
+    ? `order-${initial._id}`
+    : converting
+      ? `order-from-${fromSample._id}`
+      : 'order-new';
   const shownNumber = editing ? initial.orderNumber : numberPreview;
 
   return (
@@ -336,11 +367,26 @@ export default function OrderForm({
       description={
         editing
           ? 'Changes apply to this order only.'
-          : 'Enter what the buyer ordered. Saving converts the sample into this order.'
+          : converting
+            ? 'Enter what the buyer ordered. Saving converts the sample into this order.'
+            : 'A new order for a buyer, with no sample behind it.'
       }
       closeOnBackdrop={false}
       footer={
         <>
+          {/* Converting goes back through "Change sample" on the sample card. */}
+          {direct && onBack ? (
+            <button
+              type="button"
+              onClick={onBack}
+              disabled={saving}
+              className="mr-auto inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 font-body
+                         text-sm font-semibold text-brand-ink/70 ring-1 ring-brand-ink/12
+                         transition-colors hover:bg-brand-ink/5 disabled:opacity-40"
+            >
+              <FiArrowLeft aria-hidden /> Back
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={onCancel}
@@ -366,14 +412,14 @@ export default function OrderForm({
       }
     >
       <form id={formId} onSubmit={submit} className="flex flex-col gap-5">
-        {/* Where the order comes from. On create it can still be swapped. */}
-        {!editing ? (
+        {/* Where the order comes from. When converting it can still be swapped. */}
+        {converting ? (
           <SourceSample
             sample={fromSample}
             caption="Buyer and design details come from this sample."
             onChange={saving ? undefined : onBack}
           />
-        ) : initial.sample ? (
+        ) : buyerLocked ? (
           <SourceSample
             sample={{
               companyName: initial.companyName,
@@ -386,8 +432,19 @@ export default function OrderForm({
         ) : null}
 
         <div className="grid gap-4 sm:grid-cols-2">
-          {/* Only an order from before samples has a buyer that can be changed. */}
-          {editing && !buyerLocked && !fixedCompanyId ? (
+          {/* Asked for on a new order made directly, and changeable on one with
+              no sample behind it. A converted order keeps its sample's buyer,
+              and inside a buyer's dashboard the buyer is that one. */}
+          {(direct || (editing && !buyerLocked)) && fixedCompanyId && fixedBuyerName ? (
+            <div className="flex flex-col gap-1.5">
+              <span className={labelClass}>Buyer</span>
+              <output className="rounded-xl bg-admin-cream px-3.5 py-2.5 font-body text-sm font-semibold text-brand-ink ring-1 ring-brand-ink/12">
+                {fixedBuyerName}
+              </output>
+            </div>
+          ) : null}
+
+          {(direct || (editing && !buyerLocked)) && !fixedCompanyId ? (
             <label className="flex flex-col gap-1.5">
               <span className={labelClass}>Buyer *</span>
               <select
@@ -396,12 +453,16 @@ export default function OrderForm({
                 onChange={(e) => set('companyId', e.target.value)}
                 className={`${inputClass} ${fieldErrors.companyId ? 'ring-rose-300' : ''}`}
               >
+                {direct ? <option value="">Choose a company…</option> : null}
                 {companies.map((c) => (
                   <option key={c._id} value={c._id}>
                     {c.name}
                   </option>
                 ))}
               </select>
+              {fieldErrors.companyId ? (
+                <span className="text-xs text-rose-600">{fieldErrors.companyId}</span>
+              ) : null}
             </label>
           ) : null}
 
@@ -417,7 +478,7 @@ export default function OrderForm({
                   shownNumber ? 'text-brand-ink' : 'text-brand-ink/40'
                 }`}
               >
-                {shownNumber || 'Generated on save'}
+                {shownNumber || (buyerId ? 'Generated on save' : 'Choose a buyer first')}
               </output>
             </div>
           </div>
@@ -434,7 +495,7 @@ export default function OrderForm({
           />
 
           {/* Only an explicit, visible choice copies the sample's image. */}
-          {!editing && sampleImage && !file ? (
+          {converting && sampleImage && !file ? (
             <label className="flex items-center gap-2 font-body text-xs text-brand-ink/70">
               <input
                 type="checkbox"

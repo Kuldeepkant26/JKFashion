@@ -4,6 +4,7 @@ import * as inventoryApi from '../../../api/inventory.api.js';
 import { invalidate } from '../../../api/useCachedQuery.js';
 import Modal from '../../components/Modal.jsx';
 import DesignImageField from './DesignImageField.jsx';
+import RepeatInput from './RepeatInput.jsx';
 import {
   SAMPLE_STATUSES,
   SAMPLE_STATUS_LABELS,
@@ -35,8 +36,9 @@ const SECTIONS = [
   {
     title: 'Repeat & stitches',
     fields: [
-      { name: 'repeat', label: 'Repeat (inch)', type: 'number', step: '0.01', min: '0' },
-      { name: 'stitches', label: 'Stitches per repeat', type: 'number', step: '1', min: '0' },
+      // Written the floor's way ("8/4"), with one-tap presets — hence the double width.
+      { name: 'repeat', label: 'Repeat', type: 'repeat', wide: true },
+      { name: 'stitches', label: 'Stitches', type: 'number', step: '1', min: '0' },
     ],
   },
 ];
@@ -142,12 +144,18 @@ export default function SampleForm({
     };
 
     return (
-      <label key={f.name} className="flex flex-col gap-1.5">
+      <label key={f.name} className={`flex flex-col gap-1.5 ${f.wide ? 'sm:col-span-2' : ''}`}>
         <span className={labelClass}>
           {f.label}
           {f.required ? ' *' : ''}
         </span>
-        {f.type === 'select' && inProduction ? (
+        {f.type === 'repeat' ? (
+          <RepeatInput
+            value={form[f.name]}
+            onChange={(value) => set(f.name, value)}
+            invalid={invalid}
+          />
+        ) : f.type === 'select' && inProduction ? (
           <output className="rounded-xl bg-admin-cream px-3.5 py-2.5 font-body text-sm text-brand-ink/70 ring-1 ring-brand-ink/12">
             {SAMPLE_STATUS_LABELS.IN_PRODUCTION}
           </output>
@@ -182,7 +190,7 @@ export default function SampleForm({
       open={open}
       onClose={saving ? undefined : onCancel}
       title={editing ? `Edit sample ${initial.sampleNumber}` : 'New sample'}
-      description="Sampling is tracked on its own. To start production, pick the sample from Production → New order."
+      description="Sampling is tracked on its own. To start production, convert it from Production → New order → Choose from samples."
       closeOnBackdrop={false}
       footer={
         <>

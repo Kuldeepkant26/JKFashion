@@ -8,11 +8,11 @@ import { type IMediaRef } from "./processSection.model.js";
  * work is done and judged before any quantity is committed, and mixing the two
  * made the order list report samples as production.
  *
- * Every production order is converted from a sample, one to one. Converting
- * moves the sample to IN_PRODUCTION, which takes it out of the Sampling list
- * and into its "In production" tab; the order points back at it through
- * `sample` on the productionOrder model. Deleting that order returns the
- * sample to APPROVED.
+ * A sample becomes a production order one to one. Converting moves the
+ * sample to IN_PRODUCTION, which takes it out of the Sampling list and into
+ * its "In production" tab; the order points back at it through `sample` on
+ * the productionOrder model. Deleting that order returns the sample to
+ * APPROVED. (An order can also be created directly, with no sample at all.)
  *
  * Declaration order is the lifecycle order; the filter pills map over it.
  */
@@ -68,7 +68,7 @@ export interface ISample extends Document {
   fabricWidth: string;
   yarnType: string;
   yarnColor: string;
-  repeat?: number;
+  repeat?: string;
   stitches?: number;
   quantity: number;
   deadline?: Date;
@@ -105,8 +105,11 @@ const sampleSchema = new Schema<ISample>(
     yarnType: { type: String, trim: true, maxlength: 80, default: "" },
     yarnColor: { type: String, trim: true, maxlength: 60, default: "" },
 
-    /** Design repeat along the fabric, in inches. Carried onto its orders. */
-    repeat: { type: Number, min: 0 },
+    /**
+     * The design's repeat as the floor writes it — "8/4", quarters of a Swiss
+     * inch (see utils/repeat). Carried onto its order.
+     */
+    repeat: { type: String, trim: true, maxlength: 20 },
 
     /** Stitch count for one repeat of the design. Carried onto its orders. */
     stitches: { type: Number, min: 0 },

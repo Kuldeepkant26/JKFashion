@@ -8,7 +8,7 @@ import Spinner from '../../components/Spinner.jsx';
 import ConfirmDialog from '../../components/ConfirmDialog.jsx';
 import OrderCard from './OrderCard.jsx';
 import OrderForm from './OrderForm.jsx';
-import SamplePicker from './SamplePicker.jsx';
+import NewOrderFlow from './NewOrderFlow.jsx';
 import OrderDetail from './OrderDetail.jsx';
 import { MAIN_ADMIN, FILTERS, DATE_PRESETS, inputClass } from './constants.js';
 
@@ -138,9 +138,8 @@ function DateRangeFilter({ range, onChange }) {
  * dashboard with `companyId` set, where the list, the pill counts and the
  * samples offered for a new order are all scoped to that buyer.
  *
- * "New order" does not open a blank form: every order is converted from a
- * sample, so it opens the list of samples, and picking one opens the order
- * form filled in from it.
+ * "New order" offers two ways to start — convert a sample, or create an order
+ * directly — and follows whichever is chosen (see NewOrderFlow).
  *
  * @param companyId      scope to one buyer
  * @param focusId        an order to open on arrival (linked from elsewhere)
@@ -168,12 +167,11 @@ export default function OrdersBoard({
   const [note, setNote] = useState('');
 
   /*
-   * A new order is two steps: pick the sample (`creating` with nothing
-   * `picked`), then fill in the order converted from it. `editing` is the
-   * existing order whose form is open. The popup of an open order is separate.
+   * `creating` is the New order flow, whose own steps live in NewOrderFlow.
+   * `editing` is the existing order whose form is open. The popup of an open
+   * order is separate from both.
    */
   const [creating, setCreating] = useState(false);
-  const [picked, setPicked] = useState(null);
   const [editing, setEditing] = useState(null);
   const [selected, setSelected] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -182,13 +180,7 @@ export default function OrdersBoard({
   const startNewOrder = () => {
     setSelected(null);
     setError('');
-    setPicked(null);
     setCreating(true);
-  };
-
-  const endNewOrder = () => {
-    setCreating(false);
-    setPicked(null);
   };
 
   const flash = (message) => {
@@ -409,44 +401,25 @@ export default function OrdersBoard({
         </p>
       ) : null}
 
-      {creating && !picked ? (
-        <SamplePicker
-          open
+      {creating ? (
+        <NewOrderFlow
           companyId={companyId}
-          onPick={(sample) => {
-            setError('');
-            setPicked(sample);
+          companies={companies}
+          error={error}
+          setError={setError}
+          onClose={() => setCreating(false)}
+          onCreated={(message) => {
+            setCreating(false);
+            flash(message);
           }}
-          onCancel={endNewOrder}
           onGoToSampling={
             onGoToSampling
               ? () => {
-                  endNewOrder();
+                  setCreating(false);
                   onGoToSampling();
                 }
               : undefined
           }
-        />
-      ) : null}
-
-      {creating && picked ? (
-        <OrderForm
-          open
-          key={`from-${picked._id}`}
-          fromSample={picked}
-          companies={companies}
-          companyId={companyId}
-          error={error}
-          setError={setError}
-          onBack={() => {
-            setError('');
-            setPicked(null);
-          }}
-          onCancel={endNewOrder}
-          onSaved={(message) => {
-            endNewOrder();
-            flash(message);
-          }}
         />
       ) : null}
 
@@ -578,7 +551,7 @@ export default function OrdersBoard({
           hint={
             filtered
               ? 'Try another filter, date range or search.'
-              : 'Click New order and pick the sample the buyer has confirmed.'
+              : 'Click New order to convert a sample the buyer has confirmed, or to create one directly.'
           }
         />
       )}

@@ -1,5 +1,6 @@
 import { body, param, query, type ValidationChain } from "express-validator";
 import { SAMPLE_STATUSES, SAMPLING_STATUSES } from "../models/sample.model.js";
+import { REPEAT_PATTERN, normalizeRepeat } from "../utils/repeat.js";
 
 export const listSampleRules: ValidationChain[] = [
   // A status, or a group: SAMPLING (everything not converted) or OPEN (convertible).
@@ -30,7 +31,13 @@ const sampleFields = (): ValidationChain[] => {
     opt(body("yarnType").isString().trim().isLength({ max: 80 })),
     opt(body("yarnColor").isString().trim().isLength({ max: 60 })),
     opt(body("remarks").isString().trim().isLength({ max: 2000 })),
-    opt(body("repeat").isFloat({ min: 0, max: 10_000 }).toFloat()),
+    // As the floor writes it — "8/4" — tidied ("8//4" → "8/4") before it is checked.
+    body("repeat")
+      .optional({ checkFalsy: true })
+      .customSanitizer(normalizeRepeat)
+      .isLength({ max: 20 })
+      .matches(REPEAT_PATTERN)
+      .withMessage("Write the repeat like 8/4"),
     opt(body("stitches").isInt({ min: 0, max: 100_000_000 }).toInt()),
     opt(body("quantity").isFloat({ min: 0, max: 1_000_000 }).toFloat()),
     body("deadline").optional({ checkFalsy: true }).isISO8601().toDate(),
