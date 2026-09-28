@@ -18,6 +18,10 @@
  * 3. Samples that already have an order are marked in production, so they
  *    leave the Sampling list the way a converted sample does.
  *
+ * 4. Orders that have already produced what was ordered but are not marked
+ *    completed — logged before completion followed the quantity — are marked
+ *    completed, as logging that final entry would now do.
+ *
  * Safe to re-run: each step only ever touches rows not yet in the new shape.
  */
 import mongoose from "mongoose";
@@ -28,12 +32,14 @@ import {
   ProductionOrder,
   ORDER_STATUS,
   LEGACY_ORDER_STATUS,
+  OPEN_ORDER_STATUSES,
 } from "../models/productionOrder.model.js";
+import { reachedGoal } from "../services/productionOrder.service.js";
 import { Sample, SAMPLE_STATUS } from "../models/sample.model.js";
 
 /** The retired "sent to buyer" status — no longer in the schema's enum. */
 const LEGACY_SENT = "SENT";
-import { sampleNumbers } from "../utils/docketNumber.js";
+import { jobNumbers } from "../utils/docketNumber.js";
 
 const run = async (): Promise<void> => {
   validateEnv();
@@ -74,7 +80,7 @@ const run = async (): Promise<void> => {
       await Sample.create({
         company: order.company,
         companyName: order.companyName,
-        sampleNumber: await sampleNumbers.next(order.companyName),
+        sampleNumber: await jobNumbers.next(order.companyName),
         designNumber: order.designNumber,
         status: SAMPLE_STATUS.IN_PROGRESS,
         designImage: order.designImage ?? {},
@@ -126,7 +132,22 @@ const run = async (): Promise<void> => {
     ).exec();
   }
 
-  if (!apply && (legacy.length || sent || stranded)) {
+  const finished = await ProductionOrder.find({ status: { $in: OPEN_ORDER_STATUSES }, $expr: reachedGoal })
+    .select("orderNumber companyName completedMetres orderedMetres")
+    .lean()
+    .exec();
+  logger.info(`${finished.length} order(s) already at their ordered quantity but not completed → completed`);
+  for (const o of finished) {
+    logger.info(`  ${o.orderNumber} (${o.companyName}): ${o.completedMetres}m of ${o.orderedMetres}m`);
+  }
+  if (apply && finished.length) {
+    await ProductionOrder.updateMany(
+      { _id: { $in: finished.map((o) => o._id) }, status: { $in: OPEN_ORDER_STATUSES } },
+      { $set: { status: ORDER_STATUS.COMPLETED } }
+    ).exec();
+  }
+
+  if (!apply && (legacy.length || sent || stranded || finished.length)) {
     logger.info("Re-run with --apply to make these changes.");
   }
 

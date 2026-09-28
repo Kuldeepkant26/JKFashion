@@ -15,7 +15,7 @@ import {
   type ISample,
 } from "../models/sample.model.js";
 import { sampleCounts } from "./sample.service.js";
-import { orderNumbers } from "../utils/docketNumber.js";
+import { jobNumbers, JOB_NUMBER_PATTERN } from "../utils/docketNumber.js";
 import { uploadImage, destroyImage, copyImage } from "../config/cloudinary.js";
 import { ApiError } from "../utils/ApiError.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
@@ -24,22 +24,43 @@ import { startOfDayUTC, endOfDayUTC } from "../utils/productionDate.js";
 /** Where Cloudinary keeps design images, under the configured base folder. */
 const IMAGE_FOLDER = "inventory";
 
-/** Claim the next order number for a buyer, e.g. `Dexter-JK-00109`. Atomic. */
-export const generateOrderNumber = (companyName: string): Promise<string> =>
-  orderNumbers.next(companyName);
+/**
+ * The number an order converted from this sample takes: the sample's own —
+ * it is the same job, confirmed (see utils/docketNumber). A sample still
+ * carrying a number from before the current format gets a fresh one instead,
+ * so no order is issued in a retired format.
+ */
+const numberFromSample = (sample: ISample, companyName: string): Promise<string> =>
+  JOB_NUMBER_PATTERN.test(sample.sampleNumber)
+    ? Promise.resolve(sample.sampleNumber)
+    : jobNumbers.next(companyName);
 
 /**
- * What the next number would be, without claiming it — for the form's preview.
+ * What a new order's number will be, for the form's preview: the sample's own
+ * when converting one, otherwise the buyer's next job number.
  *
- * Advisory only: the stored number is whatever `generateOrderNumber` issues at
- * save time, which is why the form labels this as generated on save rather than
- * presenting it as final.
+ * Advisory only for a direct order — another job raised in between moves the
+ * count on — which is why the form labels it as generated on save.
  */
-export const previewOrderNumber = async (companyId: string): Promise<string> => {
+export const previewOrderNumber = async ({
+  companyId,
+  sampleId,
+}: {
+  companyId?: string;
+  sampleId?: string;
+}): Promise<string> => {
+  if (sampleId) {
+    const sample = await Sample.findById(sampleId).lean<ISample>().exec();
+    if (!sample) throw new ApiError(404, "That sample no longer exists");
+    return JOB_NUMBER_PATTERN.test(sample.sampleNumber)
+      ? sample.sampleNumber
+      : jobNumbers.peek(sample.companyName);
+  }
+
   const company = await Company.findById(companyId).select("name").lean<ICompany>().exec();
   if (!company) throw new ApiError(404, "That company no longer exists");
 
-  return orderNumbers.peek(company.name);
+  return jobNumbers.peek(company.name);
 };
 
 /**
@@ -306,8 +327,8 @@ const createDirect = async (
   const uploaded = image ? await uploadImage(image.buffer, image.filename, IMAGE_FOLDER) : null;
 
   try {
-    // After the upload, so a failed image does not burn a number.
-    const orderNumber = await generateOrderNumber(company.name);
+    // The buyer's next job number — after the upload, so a failed image does not burn one.
+    const orderNumber = await jobNumbers.next(company.name);
     const { sampleId: _s, companyId: _c, useSampleImage: _u, ...fields } = input;
 
     const order = await ProductionOrder.create({
@@ -396,12 +417,8 @@ const convertSample = async (
   }
 
   try {
-    /*
-     * Claimed after the upload, so a failed image does not burn a number and
-     * leave a gap in the buyer's sequence. A gap is not a correctness problem,
-     * but a sequence the office can read straight down is worth the ordering.
-     */
-    const orderNumber = await generateOrderNumber(company.name);
+    // The sample's own number: the order is the same job, confirmed.
+    const orderNumber = await numberFromSample(sample, company.name);
     const { sampleId: _s, companyId: _c, useSampleImage: _u, ...fields } = input;
 
     const order = await ProductionOrder.create({
@@ -501,6 +518,62 @@ export const setStatus = async (
 /** A log this long means something has gone wrong, not that work continued. */
 const MAX_LOG_ENTRIES = 2000;
 
+/**
+ * Slack when comparing a total with the ordered quantity: metres are added as
+ * floating point, and ten entries of 0.1 do not sum to exactly 1.
+ */
+const QUANTITY_EPSILON = 1e-6;
+
+/** "Produced at least what was ordered", as a query on the stored figures. */
+export const reachedGoal = {
+  $gte: [{ $add: ["$completedMetres", QUANTITY_EPSILON] }, "$orderedMetres"],
+};
+
+/**
+ * Where an order's status goes after its produced total moves by `change`.
+ *
+ *   - Reaching the ordered quantity is what COMPLETED means, so the order is
+ *     marked completed the moment its total gets there — from pending,
+ *     running or paused alike.
+ *   - Work having started is what RUNNING means, so the first positive entry
+ *     moves a pending order (or a legacy SAMPLING one) to running.
+ *   - A correction that takes an order finished by quantity back below it
+ *     reopens it. One marked completed by hand while still short — a buyer
+ *     accepting less — was already below and is left alone.
+ *
+ * Each move is a conditional update checked against the stored figures, not
+ * the ones read before the entry was written, so two entries logged at once
+ * cannot leave an order finished by quantity but not by status — and nothing
+ * here ever writes back a status read earlier.
+ */
+const settleStatus = async (
+  id: Types.ObjectId | string,
+  { before, after, goal, change }: { before: number; after: number; goal: number; change: number }
+): Promise<void> => {
+  if (after + QUANTITY_EPSILON >= goal) {
+    await ProductionOrder.updateOne(
+      { _id: id, status: { $ne: ORDER_STATUS.COMPLETED }, $expr: reachedGoal },
+      { $set: { status: ORDER_STATUS.COMPLETED } }
+    ).exec();
+    return;
+  }
+
+  if (change > 0) {
+    await ProductionOrder.updateOne(
+      { _id: id, status: { $in: [LEGACY_ORDER_STATUS.SAMPLING, ORDER_STATUS.PENDING] } },
+      { $set: { status: ORDER_STATUS.RUNNING } }
+    ).exec();
+    return;
+  }
+
+  if (before + QUANTITY_EPSILON >= goal) {
+    await ProductionOrder.updateOne(
+      { _id: id, status: ORDER_STATUS.COMPLETED, $expr: { $not: [reachedGoal] } },
+      { $set: { status: ORDER_STATUS.RUNNING } }
+    ).exec();
+  }
+};
+
 export interface LogInput {
   metres: number;
   date?: string;
@@ -559,26 +632,30 @@ export const logProduction = async (
     createdAt: new Date(),
   };
 
-  /*
-   * Work having started is what RUNNING means, so the first positive entry
-   * moves it rather than making someone remember to. This also fires from the
-   * legacy SAMPLING status, so an unmigrated row cannot stay stuck in it.
-   */
-  const started =
-    order.status === LEGACY_ORDER_STATUS.SAMPLING || order.status === ORDER_STATUS.PENDING;
-  const status = started && input.metres > 0 ? ORDER_STATUS.RUNNING : order.status;
-
   const updated = await ProductionOrder.findByIdAndUpdate(
     id,
     {
       $push: { log: entry },
       $inc: { completedMetres: input.metres },
-      $set: { status, updatedBy: user._id },
+      $set: { updatedBy: user._id },
     },
     { new: true }
   ).exec();
 
   if (!updated) throw new ApiError(404, "That order no longer exists");
+
+  /*
+   * The totals either side of THIS entry, from the atomic result — exact even
+   * if another entry landed a moment before. Then the status follows them:
+   * running once work starts, completed once the ordered quantity is reached.
+   */
+  await settleStatus(updated._id as Types.ObjectId, {
+    before: updated.completedMetres - input.metres,
+    after: updated.completedMetres,
+    goal: updated.orderedMetres,
+    change: input.metres,
+  });
+
   return getOrder(String(updated._id));
 };
 
@@ -591,10 +668,19 @@ export const deleteLogEntry = async (id: string, entryId: string): Promise<Order
   if (!entry) throw new ApiError(404, "That log entry no longer exists");
 
   const metres = entry.metres;
+  const before = order.completedMetres;
   entry.deleteOne();
   // Keep the running total honest with the history it is derived from.
-  order.completedMetres = Math.max(0, order.completedMetres - metres);
+  order.completedMetres = Math.max(0, before - metres);
   await order.save();
+
+  // Removing an entry moves the total like logging its opposite would.
+  await settleStatus(order._id as Types.ObjectId, {
+    before,
+    after: order.completedMetres,
+    goal: order.orderedMetres,
+    change: -metres,
+  });
 
   return getOrder(String(order._id));
 };

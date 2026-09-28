@@ -21,8 +21,13 @@ export const listOrderRules: ValidationChain[] = [
   query("limit").optional().isInt({ min: 1, max: 100 }).toInt(),
 ];
 
+/* The sample being converted, or the buyer a direct order is for. */
 export const previewOrderNumberRules: ValidationChain[] = [
-  query("companyId").isMongoId().withMessage("Choose a company"),
+  query("sampleId").optional({ checkFalsy: true }).isMongoId().withMessage("Unknown sample"),
+  query("companyId")
+    .if((_value: unknown, { req }: { req: { query?: Record<string, unknown> } }) => !req.query?.sampleId)
+    .isMongoId()
+    .withMessage("Choose a company"),
 ];
 
 /*

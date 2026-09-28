@@ -29,7 +29,7 @@ const Detail = ({ label, value }) => (
  * Shows what is left on the order and what this entry would leave, so the
  * person logging sees Ordered − Produced = Remaining as they type.
  */
-function LogForm({ orderId, ordered, produced, onLogged, onCancel, setError }) {
+function LogForm({ orderId, ordered, produced, status, onLogged, onCancel, setError }) {
   const [metres, setMetres] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [note, setNote] = useState('');
@@ -110,6 +110,13 @@ function LogForm({ orderId, ordered, produced, onLogged, onCancel, setError }) {
         ) : null}
       </p>
 
+      {/* Said before saving, so the status change is never a surprise. */}
+      {status !== 'COMPLETED' && Number(metres) > 0 && produced + Number(metres) >= ordered ? (
+        <p className="rounded-lg bg-emerald-50 px-3 py-2 font-body text-xs font-semibold text-emerald-700">
+          This entry reaches the ordered quantity — the order will be marked Completed.
+        </p>
+      ) : null}
+
       <p className="font-body text-xs text-brand-ink/50">
         To correct a mistake, log a negative number with a note — the original entry and its
         correction both stay in the history.
@@ -167,6 +174,25 @@ export default function OrderDetail({
   const [calculating, setCalculating] = useState(false);
   const [confirmingEntry, setConfirmingEntry] = useState(null);
 
+  /*
+   * Said when the server moves the status because the total crossed the
+   * ordered quantity — the pill changing on its own would otherwise look like
+   * a glitch.
+   */
+  const [notice, setNotice] = useState('');
+
+  /** Pass on a changed order, saying so if its total moved its status. */
+  const afterTotalChanged = (updated) => {
+    if (updated.status === 'COMPLETED' && order.status !== 'COMPLETED') {
+      setNotice('Ordered quantity reached — the order is marked Completed.');
+    } else if (order.status === 'COMPLETED' && updated.status !== 'COMPLETED') {
+      setNotice('Below the ordered quantity again — the order is back to Running.');
+    } else {
+      setNotice('');
+    }
+    onChanged(updated);
+  };
+
   const ordered = Number(order.orderedMetres ?? 0);
   const done = Number(order.completedMetres ?? 0);
   const remaining = Math.max(0, ordered - done);
@@ -175,6 +201,7 @@ export default function OrderDetail({
 
   const setStatus = async (status) => {
     setError('');
+    setNotice('');
     try {
       onChanged(await inventoryApi.setOrderStatus(order._id, status));
     } catch (err) {
@@ -185,7 +212,7 @@ export default function OrderDetail({
   const removeEntry = async () => {
     setError('');
     try {
-      onChanged(await inventoryApi.deleteLogEntry(order._id, confirmingEntry._id));
+      afterTotalChanged(await inventoryApi.deleteLogEntry(order._id, confirmingEntry._id));
       setConfirmingEntry(null);
     } catch (err) {
       setError(err?.message ?? 'Could not remove that entry.');
@@ -238,6 +265,7 @@ export default function OrderDetail({
         }
       >
         <div className="flex flex-col gap-5">
+
           <div className="flex items-start gap-4">
             {order.designImage?.url ? (
               <img
@@ -371,16 +399,28 @@ export default function OrderDetail({
               ) : null}
             </div>
 
+            {/* Where the entry was just made — on a phone the top of the popup
+                is scrolled out of sight by now. */}
+            {notice ? (
+              <p
+                role="status"
+                className="rounded-lg bg-emerald-50 px-3 py-2.5 font-body text-sm font-semibold text-emerald-700"
+              >
+                {notice}
+              </p>
+            ) : null}
+
             {logging ? (
               <LogForm
                 orderId={order._id}
                 ordered={ordered}
                 produced={done}
+                status={order.status}
                 setError={setError}
                 onCancel={() => setLogging(false)}
                 onLogged={(updated) => {
                   setLogging(false);
-                  onChanged(updated);
+                  afterTotalChanged(updated);
                 }}
               />
             ) : null}

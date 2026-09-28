@@ -198,9 +198,12 @@ export const deleteOrder = asyncHandler<AuthedRequest>(async (req, res) => {
  * order is saved, and another create in between moves it on.
  */
 export const previewOrderNumber = asyncHandler<AuthedRequest>(async (req, res) => {
-  const { companyId } = req.query as unknown as { companyId: string };
+  const { companyId, sampleId } = req.query as unknown as { companyId?: string; sampleId?: string };
 
-  const orderNumber = await orderService.previewOrderNumber(companyId);
+  const orderNumber = await orderService.previewOrderNumber({
+    companyId: companyId || undefined,
+    sampleId: sampleId || undefined,
+  });
 
   res.status(200).json(new ApiResponse(200, { orderNumber }));
 });

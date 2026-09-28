@@ -95,11 +95,12 @@ export const updateOrder = (id, patch) =>
   api.patch(`/inventory/orders/${id}`, prune(patch)).then(unwrap);
 
 /**
- * The order number a new order for this buyer would get.
- * A preview — the number is claimed when the order is saved.
+ * The number a new order will get: `{ sampleId }` when converting a sample
+ * (the order keeps the sample's number), `{ companyId }` for a direct order
+ * (a preview — the number is claimed when the order is saved).
  */
-export const previewOrderNumber = (companyId) =>
-  api.get('/inventory/orders/next-number', { params: { companyId } }).then(unwrap);
+export const previewOrderNumber = (params) =>
+  api.get('/inventory/orders/next-number', { params }).then(unwrap);
 
 export const setOrderStatus = (id, status) =>
   api.patch(`/inventory/orders/${id}/status`, { status }).then(unwrap);

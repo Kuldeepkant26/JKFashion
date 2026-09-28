@@ -9,7 +9,7 @@ import {
 } from "../models/sample.model.js";
 import { ProductionOrder } from "../models/productionOrder.model.js";
 import { Company, type ICompany } from "../models/company.model.js";
-import { sampleNumbers } from "../utils/docketNumber.js";
+import { jobNumbers } from "../utils/docketNumber.js";
 import { uploadImage, destroyImage } from "../config/cloudinary.js";
 import { ApiError } from "../utils/ApiError.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
@@ -22,7 +22,7 @@ export const previewSampleNumber = async (companyId: string): Promise<string> =>
   const company = await Company.findById(companyId).select("name").lean<ICompany>().exec();
   if (!company) throw new ApiError(404, "That company no longer exists");
 
-  return sampleNumbers.peek(company.name);
+  return jobNumbers.peek(company.name);
 };
 
 /**
@@ -216,7 +216,7 @@ export const createSample = async (
   const uploaded = image ? await uploadImage(image.buffer, image.filename, IMAGE_FOLDER) : null;
 
   try {
-    const sampleNumber = await sampleNumbers.next(company.name);
+    const sampleNumber = await jobNumbers.next(company.name);
     const { companyId: _ignored, ...fields } = input;
 
     const sample = await Sample.create({

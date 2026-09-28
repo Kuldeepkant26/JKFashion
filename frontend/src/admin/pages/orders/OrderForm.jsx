@@ -218,8 +218,9 @@ export default function OrderForm({
   const buyerId = converting ? fromSample.company : form.companyId;
 
   /*
-   * Ask the API what the next number for this buyer is. Only on create: an
-   * existing order keeps the number it was issued.
+   * Ask the API what the new order's number will be: the sample's own when
+   * converting one, the buyer's next otherwise. Only on create: an existing
+   * order keeps the number it was issued.
    */
   useEffect(() => {
     if (editing || !buyerId) {
@@ -229,7 +230,8 @@ export default function OrderForm({
 
     let cancelled = false;
     inventoryApi
-      .previewOrderNumber(buyerId)
+      // Converting keeps the sample's own number; a direct order previews the buyer's next.
+      .previewOrderNumber(converting ? { sampleId: fromSample._id } : { companyId: buyerId })
       .then((result) => {
         if (!cancelled) setNumberPreview(result.orderNumber);
       })
@@ -242,7 +244,7 @@ export default function OrderForm({
     return () => {
       cancelled = true;
     };
-  }, [buyerId, editing]);
+  }, [buyerId, editing, converting, fromSample?._id]);
 
   const set = (name, value) => setForm((f) => ({ ...f, [name]: value }));
 

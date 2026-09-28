@@ -19,8 +19,7 @@ import { Company } from "../models/company.model.js";
 import { ProductionOrder, ORDER_STATUS } from "../models/productionOrder.model.js";
 import { Counter } from "../models/counter.model.js";
 import { Sample, SAMPLE_STATUS, type SampleStatus } from "../models/sample.model.js";
-import { sampleNumbers } from "../utils/docketNumber.js";
-import { generateOrderNumber } from "../services/productionOrder.service.js";
+import { jobNumbers } from "../utils/docketNumber.js";
 import { startOfDayUTC } from "../utils/productionDate.js";
 
 /** Written into each seeded company's address, and matched on --force. */
@@ -322,7 +321,7 @@ const run = async (): Promise<void> => {
       await Sample.deleteMany({ company: { $in: ids } }).exec();
       await Company.deleteMany({ _id: { $in: ids } }).exec();
       // The counters go too, so numbering restarts with the data it counted.
-      await Counter.deleteMany({ _id: /^(order|sample|sample-code):/ }).exec();
+      await Counter.deleteMany({ _id: /^(order|sample|sample-code):/ }).exec(); // every numbering, old and current
       logger.info(
         `Removed ${ids.length} seeded companies and ${orders.deletedCount ?? 0} of their orders`
       );
@@ -368,7 +367,7 @@ const run = async (): Promise<void> => {
     await Sample.create({
       company: company._id,
       companyName: company.name,
-      sampleNumber: await sampleNumbers.next(company.name),
+      sampleNumber: await jobNumbers.next(company.name),
       designNumber: `D-${300 + i}`,
       status: plan.status,
       ...design(),
@@ -408,7 +407,7 @@ const run = async (): Promise<void> => {
       : await Sample.create({
           company: company._id,
           companyName: company.name,
-          sampleNumber: await sampleNumbers.next(company.name),
+          sampleNumber: await jobNumbers.next(company.name),
           designNumber,
           status: SAMPLE_STATUS.IN_PRODUCTION,
           ...details,
@@ -422,8 +421,12 @@ const run = async (): Promise<void> => {
           updatedAt: raisedAt,
         });
 
-    // Through the app's own generator, so the counters are left consistent.
-    const orderNumber = await generateOrderNumber(company.name);
+    /*
+     * As the app numbers them: a converted order keeps its sample's number, a
+     * direct one takes the buyer's next — through the shared generator, so the
+     * counters are left consistent.
+     */
+    const orderNumber = sample ? sample.sampleNumber : await jobNumbers.next(company.name);
 
     const { entries, total } = buildLog(
       ordered,

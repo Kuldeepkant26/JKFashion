@@ -2,6 +2,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar.jsx';
 import Spinner from '../components/Spinner.jsx';
+import DesktopModeNotice from '../components/DesktopModeNotice.jsx';
 import { useAppStore } from '../../store/useAppStore.js';
 import { logout as logoutRequest } from '../../api/auth.api.js';
 import { ROUTES } from '../../constants/routePaths.js';
@@ -134,6 +135,9 @@ export default function AdminLayout() {
         className={`px-4 py-6 transition-[padding] duration-300 ease-out sm:px-6 lg:py-8
                     lg:pr-8 ${collapsed ? 'lg:pl-[108px]' : 'lg:pl-76'}`}
       >
+        {/* Only on a phone with the browser's "Desktop site" setting on. */}
+        <DesktopModeNotice />
+
         {/* Child routes are lazy too, so they need a boundary of their own —
             the one wrapping this layout has already resolved by now. */}
         <Suspense

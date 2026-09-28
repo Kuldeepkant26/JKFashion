@@ -1,46 +1,40 @@
 import { nextSeq, peekSeq } from "../models/counter.model.js";
 
 /**
- * Numbers printed on dockets and sample tags.
+ * Job numbers, printed on sample tags and order dockets: `JK-COR-01`.
  *
- *   order   Dexter-JK-00109   buyer's first word, house mark, five digits
- *   sample  JK-COR-01         house mark, three-letter buyer code, two digits
+ *   JK   the house mark
+ *   COR  the buyer's code — the first three letters of their name
+ *   01   the count, two digits, growing to three after the ninety-ninth
  *
- * Each is drawn from an atomic counter (see counter.model), so two people
- * raising one at the same moment can never be handed the same number. Both
- * formats are defined here and only here — the services, the seed and the
- * migrations all import them, so a number can only ever come out one way.
+ * One number per piece of work, from sampling into production:
+ *
+ *   - a new sample takes the next number;
+ *   - an order converted from a sample keeps that sample's number — it is the
+ *     same job, confirmed — so JK-COR-01 the sample becomes JK-COR-01 the order;
+ *   - an order created directly, with no sample, takes the next number.
+ *
+ * Samples and direct orders draw from one counter per buyer code, so no two
+ * different jobs are ever handed the same number. The counter is atomic (see
+ * counter.model): two people raising work at the same moment cannot collide.
+ *
+ * This is the only place the format is defined — the services, the seed and
+ * the migrations all import it, so a number can only ever come out one way.
  */
 
 const pad = (seq: number, width: number): string => String(seq).padStart(width, "0");
 
-/**
- * The buyer's part of an order number: the first word of their name, letters
- * and digits only.
- *
- * "Dexter Exports Pvt Ltd" → "Dexter". Punctuation and accents are stripped
- * rather than transliterated, because this string goes on a printed docket and
- * has to survive being read aloud, typed into a search box and written by hand.
- * A name with no usable characters at all (only symbols) falls back to "ORD" so
- * a number can always be issued.
- */
-export const companyPrefix = (name: string): string => {
-  const first = String(name ?? "").trim().split(/\s+/)[0] ?? "";
-  const cleaned = first.normalize("NFD").replace(/[^A-Za-z0-9]/g, "");
-
-  if (!cleaned) return "ORD";
-
-  const capped = cleaned.slice(0, 12);
-  return capped.charAt(0).toUpperCase() + capped.slice(1);
-};
+/** A job number in the current format, capturing its buyer code and count. */
+export const JOB_NUMBER_PATTERN = /^JK-([A-Z0-9]{1,3})-(\d{2,})$/;
 
 /**
- * The buyer's code on a sample number: the first three letters or digits of
- * their name, in capitals.
+ * The buyer's code: the first three letters or digits of their name, in
+ * capitals.
  *
- * "Cornell" → "COR", "Dexter Apparels Pvt Ltd" → "DEX", "A & B Traders" →
+ * "Cornell" → "COR", "Orange International" → "ORA", "A & B Traders" →
  * "ABT". Spaces and punctuation are skipped rather than counted, and accents
- * stripped, for the same reason as `companyPrefix`. A shorter name gives a
+ * stripped, because the number goes on a docket and has to survive being read
+ * aloud, typed into a search box and written by hand. A shorter name gives a
  * shorter code ("LG" → "LG"); one with no usable characters falls back to
  * "SMP" so a number can always be issued.
  */
@@ -53,17 +47,17 @@ export const companyCode = (name: string): string => {
 };
 
 /**
- * The counter a sample code draws from.
+ * The counter a buyer code draws from.
  *
- * Keyed by the code, not the buyer, so the number stays unique: two buyers
- * whose names start alike ("Cornell", "Cortex") share the COR sequence rather
- * than both being handed JK-COR-01. Its own namespace, apart from the counters
- * the old sample format used, so the new sequences start fresh.
+ * Keyed by the code, not the buyer, so numbers stay unique: two buyers whose
+ * names start alike ("Cornell", "Cortex") share the COR count rather than both
+ * being handed JK-COR-01. The key says "sample" because samples used it first;
+ * it is kept so installs that have already issued numbers carry on from them.
  */
-export const sampleCounterKey = (code: string): string => `sample-code:${code}`;
+export const jobCounterKey = (code: string): string => `sample-code:${code}`;
 
-export interface DocketNumbering {
-  /** Format a number for this buyer from a sequence value. */
+export interface JobNumbering {
+  /** Format a number for this buyer from a count. */
   format: (companyName: string, seq: number) => string;
   /** Claim the next number. Atomic — safe from two requests at once. */
   next: (companyName: string) => Promise<string>;
@@ -71,30 +65,13 @@ export interface DocketNumbering {
   peek: (companyName: string) => Promise<string>;
 }
 
-const numbering = (
-  key: (companyName: string) => string,
-  format: (companyName: string, seq: number) => string
-): DocketNumbering => ({
+const format = (companyName: string, seq: number): string =>
+  `JK-${companyCode(companyName)}-${pad(seq, 2)}`;
+
+const key = (companyName: string): string => jobCounterKey(companyCode(companyName));
+
+export const jobNumbers: JobNumbering = {
   format,
   next: async (companyName) => format(companyName, await nextSeq(key(companyName))),
   peek: async (companyName) => format(companyName, await peekSeq(key(companyName))),
-});
-
-/**
- * Order numbers, e.g. `Dexter-JK-00109`. Per-buyer: the number is read off a
- * docket next to the buyer's name, and a shared sequence would make two
- * adjacent jobs for the same buyer look unrelated.
- */
-export const orderNumbers = numbering(
-  (name) => `order:${companyPrefix(name)}`,
-  (name, seq) => `${companyPrefix(name)}-JK-${pad(seq, 5)}`
-);
-
-/**
- * Sample numbers, e.g. `JK-COR-01` for Cornell's first sample. Two digits,
- * growing to three after the ninety-ninth (`JK-COR-100`).
- */
-export const sampleNumbers = numbering(
-  (name) => sampleCounterKey(companyCode(name)),
-  (name, seq) => `JK-${companyCode(name)}-${pad(seq, 2)}`
-);
+};
