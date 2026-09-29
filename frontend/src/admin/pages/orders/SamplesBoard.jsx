@@ -26,13 +26,22 @@ import { MAIN_ADMIN, SAMPLE_FILTERS, inputClass } from './constants.js';
  * @param focusId     a sample to open on arrival (linked from elsewhere)
  * @param onFocusDone called once that sample is open, so the link can be cleared
  * @param onOpenOrder called with an order id from a converted sample's popup
+ * @param initialStatus the filter to open on — a link from the dashboard
+ * @param startNew      open the New sample form straight away
  */
-export default function SamplesBoard({ companyId, focusId, onFocusDone, onOpenOrder }) {
+export default function SamplesBoard({
+  companyId,
+  focusId,
+  onFocusDone,
+  onOpenOrder,
+  initialStatus = 'SAMPLING',
+  startNew = false,
+}) {
   const user = useAppStore((s) => s.user);
   const isOwner = user?.role === MAIN_ADMIN;
 
   // "All" means everything still in sampling — see SAMPLE_FILTERS.
-  const [status, setStatus] = useState('SAMPLING');
+  const [status, setStatus] = useState(initialStatus);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
@@ -40,7 +49,7 @@ export default function SamplesBoard({ companyId, focusId, onFocusDone, onOpenOr
   const [error, setError] = useState('');
   const [note, setNote] = useState('');
 
-  const [editing, setEditing] = useState(null); // null | 'new' | sample
+  const [editing, setEditing] = useState(startNew ? 'new' : null); // null | 'new' | sample
   const [selected, setSelected] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [confirming, setConfirming] = useState(null);

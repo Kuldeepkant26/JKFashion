@@ -3,7 +3,7 @@ import { formatMetres } from './constants.js';
 /**
  * A tile of one figure.
  *
- * Not the dashboard's `StatTile`: that one always renders a "+N% vs last
+ * Not a generic stat tile: those render a "+N% vs last
  * period" line, and there is no previous period for "3 orders overdue" — a
  * fake 0% delta would be worse than no delta at all.
  */

@@ -146,8 +146,12 @@ function DateRangeFilter({ range, onChange }) {
  * @param onFocusDone    called once that order is open, so the link can be cleared
  * @param onOpenSample   called with a sample id when "From sample …" is clicked
  * @param onGoToSampling offered when there is no sample to convert
+ * @param initialStatus  the filter to open on — a link from the dashboard
+ * @param startNew       open the New order flow straight away
  */
 export default function OrdersBoard({
+  initialStatus = '',
+  startNew = false,
   companyId,
   focusId,
   onFocusDone,
@@ -157,7 +161,7 @@ export default function OrdersBoard({
   const user = useAppStore((s) => s.user);
   const isOwner = user?.role === MAIN_ADMIN;
 
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useState(initialStatus);
   const [range, setRange] = useState({ from: '', to: '' });
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -171,7 +175,7 @@ export default function OrdersBoard({
    * `editing` is the existing order whose form is open. The popup of an open
    * order is separate from both.
    */
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState(startNew);
   const [editing, setEditing] = useState(null);
   const [selected, setSelected] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);

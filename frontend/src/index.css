@@ -221,6 +221,28 @@
   --admin-page: #0B0B0F;
 }
 
+/*
+ * Status colours for the panel: `critical` for late and below-zero, `good`
+ * for a change in the right direction. Fixed hues rather than theme-derived —
+ * status must mean the same thing under every preset — but stepped per
+ * scheme: rose-700 and emerald-700 on light surfaces, rose-400 and
+ * emerald-400 on dark ones, where the -700s fall under 3:1. Always shown with
+ * an icon or words, never as colour alone.
+ */
+:root {
+  --status-critical: #BE123C;
+  --status-critical-soft: #FFF1F2;
+  --status-critical-soft-hover: #FFE4E6;
+  --status-good: #047857;
+}
+
+:root[data-scheme="dark"] {
+  --status-critical: #FB7185;
+  --status-critical-soft: color-mix(in oklab, #F43F5E 14%, transparent);
+  --status-critical-soft-hover: color-mix(in oklab, #F43F5E 22%, transparent);
+  --status-good: #34D399;
+}
+
 @theme inline {
   --color-brand-pink: var(--brand-primary);
   --color-brand-pink-dark: var(--brand-primary-deep);
@@ -240,6 +262,11 @@
      `text-white` wherever it sat on a pink fill — white drops to 3.5:1 on the
      brand pink and would vanish entirely on a pale preset. */
   --color-on-primary: var(--on-primary);
+
+  --color-critical: var(--status-critical);
+  --color-critical-soft: var(--status-critical-soft);
+  --color-critical-soft-hover: var(--status-critical-soft-hover);
+  --color-good: var(--status-good);
 }
 
 /* --------------------------------------------------------------------------
