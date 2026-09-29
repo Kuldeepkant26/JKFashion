@@ -18,7 +18,8 @@ function Option({ icon: Icon, title, text, meta, onClick }) {
                  focus-visible:outline-2 focus-visible:outline-offset-2
                  focus-visible:outline-brand-pink"
     >
-      <span className="flex items-center justify-between gap-2">
+      {/* w-full: older Safari does not stretch a <button>'s children. */}
+      <span className="flex w-full items-center justify-between gap-2">
         <span className="grid h-11 w-11 place-items-center rounded-xl bg-brand-pink/12 text-brand-pink">
           <Icon aria-hidden size={20} />
         </span>
@@ -137,11 +138,18 @@ export default function NewOrderFlow({
   }
 
   const approved = open?.statusCounts?.APPROVED ?? 0;
+  const delivered = open?.statusCounts?.DELIVERED ?? 0;
   const inProgress = open?.statusCounts?.IN_PROGRESS ?? 0;
   const sampleMeta = !open
     ? null
-    : approved + inProgress
-      ? `${approved} approved · ${inProgress} in progress`
+    : approved + delivered + inProgress
+      ? [
+          `${approved} approved`,
+          delivered ? `${delivered} delivered` : null,
+          `${inProgress} in progress`,
+        ]
+          .filter(Boolean)
+          .join(' · ')
       : 'No samples waiting right now';
 
   return (

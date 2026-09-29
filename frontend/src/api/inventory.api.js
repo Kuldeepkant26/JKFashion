@@ -139,8 +139,14 @@ export const getSample = (id) => api.get(`/inventory/samples/${id}`).then(unwrap
 export const createSample = (payload, file) =>
   api.post('/inventory/samples', toFormData(payload, file), multipart).then(unwrap);
 
+/** Unlike `prune`, keeps null: it is how the sample form says a field was cleared. */
 export const updateSample = (id, patch) =>
-  api.patch(`/inventory/samples/${id}`, prune(patch)).then(unwrap);
+  api
+    .patch(
+      `/inventory/samples/${id}`,
+      Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined && v !== ''))
+    )
+    .then(unwrap);
 
 export const previewSampleNumber = (companyId) =>
   api.get('/inventory/samples/next-number', { params: { companyId } }).then(unwrap);

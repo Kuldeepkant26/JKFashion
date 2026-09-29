@@ -8,6 +8,10 @@ import { type IMediaRef } from "./processSection.model.js";
  * work is done and judged before any quantity is committed, and mixing the two
  * made the order list report samples as production.
  *
+ * Made, then DELIVERED — handed to the buyer and waiting on their answer —
+ * then APPROVED or REJECTED. Delivering is optional: a sample the buyer judged
+ * on the spot can go straight from in progress to their answer.
+ *
  * A sample becomes a production order one to one. Converting moves the
  * sample to IN_PRODUCTION, which takes it out of the Sampling list and into
  * its "In production" tab; the order points back at it through `sample` on
@@ -18,6 +22,7 @@ import { type IMediaRef } from "./processSection.model.js";
  */
 export const SAMPLE_STATUS = {
   IN_PROGRESS: "IN_PROGRESS",
+  DELIVERED: "DELIVERED",
   APPROVED: "APPROVED",
   REJECTED: "REJECTED",
   IN_PRODUCTION: "IN_PRODUCTION",
@@ -34,6 +39,7 @@ export const SAMPLE_STATUSES: SampleStatus[] = Object.values(SAMPLE_STATUS);
  */
 export const SAMPLING_STATUSES: SampleStatus[] = [
   SAMPLE_STATUS.IN_PROGRESS,
+  SAMPLE_STATUS.DELIVERED,
   SAMPLE_STATUS.APPROVED,
   SAMPLE_STATUS.REJECTED,
 ];
@@ -44,6 +50,7 @@ export const SAMPLING_STATUSES: SampleStatus[] = [
  */
 export const OPEN_SAMPLE_STATUSES: SampleStatus[] = [
   SAMPLE_STATUS.IN_PROGRESS,
+  SAMPLE_STATUS.DELIVERED,
   SAMPLE_STATUS.APPROVED,
 ];
 
@@ -70,8 +77,9 @@ export interface ISample extends Document {
   yarnColor: string;
   repeat?: string;
   stitches?: number;
-  quantity: number;
+  quantity: string;
   deadline?: Date;
+  deliveredAt?: Date;
   decidedAt?: Date;
   remarks: string;
   createdBy?: Types.ObjectId;
@@ -114,10 +122,23 @@ const sampleSchema = new Schema<ISample>(
     /** Stitch count for one repeat of the design. Carried onto its orders. */
     stitches: { type: Number, min: 0 },
 
-    /** Metres made for the sample itself — usually a few, often zero. */
-    quantity: { type: Number, default: 0, min: 0 },
+    /**
+     * What was made for the sample, in the floor's own words — "10m",
+     * "2 pcs", "1 panel + swatch". Free text: samples come in metres, pieces
+     * or panels, and nothing adds these up. It was metres-only once; the
+     * migrate:samples script turns those old numbers into "10m".
+     */
+    quantity: { type: String, trim: true, maxlength: 100, default: "" },
 
     deadline: { type: Date },
+
+    /**
+     * When the sample was handed to the buyer, stamped by the service when the
+     * status moves to DELIVERED. It stays through the buyer's answer and into
+     * production — it is when the sample reached them — and is cleared only
+     * if the sample is reopened to be made again.
+     */
+    deliveredAt: { type: Date },
 
     /**
      * When the buyer's answer was recorded — approved or rejected — stamped by

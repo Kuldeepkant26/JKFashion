@@ -300,6 +300,7 @@ export const clearLogo = async (id: string): Promise<Record<string, unknown>> =>
 
 export type ActivityKind =
   | "SAMPLE_CREATED"
+  | "SAMPLE_DELIVERED"
   | "SAMPLE_APPROVED"
   | "SAMPLE_REJECTED"
   | "ORDER_CREATED"
@@ -330,7 +331,7 @@ const ACTIVITY_LIMIT = 80;
 const companyActivity = async (companyId: Types.ObjectId): Promise<ActivityItem[]> => {
   const [samples, orders, logs] = await Promise.all([
     Sample.find({ company: companyId })
-      .select("sampleNumber designNumber status createdAt decidedAt")
+      .select("sampleNumber designNumber status createdAt deliveredAt decidedAt")
       .sort({ createdAt: -1 })
       .limit(ACTIVITY_LIMIT)
       .lean()
@@ -363,6 +364,9 @@ const companyActivity = async (companyId: Types.ObjectId): Promise<ActivityItem[
     const base = { ref, designNumber: smp.designNumber };
 
     items.push({ ...base, kind: "SAMPLE_CREATED", date: smp.createdAt });
+    if (smp.deliveredAt) {
+      items.push({ ...base, kind: "SAMPLE_DELIVERED", date: smp.deliveredAt });
+    }
     // A sample in production was approved on the way — converting it records that.
     if (
       smp.decidedAt &&

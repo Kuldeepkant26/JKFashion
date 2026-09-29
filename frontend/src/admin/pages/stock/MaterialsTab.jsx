@@ -82,7 +82,8 @@ function ItemCard({ item, onOpen }) {
                       flagged ? 'ring-rose-200' : 'ring-black/5'
                     }`}
       >
-        <span className="flex items-start justify-between gap-2">
+        {/* w-full: older Safari does not stretch a <button>'s children. */}
+        <span className="flex w-full items-start justify-between gap-2">
           <span className="min-w-0 font-body text-sm font-semibold text-brand-ink">{item.name}</span>
           <FiChevronRight aria-hidden className="mt-0.5 shrink-0 text-brand-ink/30" />
         </span>

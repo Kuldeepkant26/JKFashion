@@ -344,7 +344,11 @@ export default function AdminDashboard() {
           label="Samples open"
           value={fmt.count(samples.open)}
           alert={samples.overdue ? `${samples.overdue} overdue` : null}
-          sub={`${fmt.count(samples.ready)} ready for production`}
+          sub={
+            samples.delivered
+              ? `${fmt.count(samples.delivered)} with the buyer · ${fmt.count(samples.ready)} ready`
+              : `${fmt.count(samples.ready)} ready for production`
+          }
           palette={palette}
         />
         <KpiCard
@@ -477,6 +481,7 @@ export default function AdminDashboard() {
               emptyText="No samples yet."
               rows={[
                 ['IN_PROGRESS', 'In progress', null],
+                ['DELIVERED', 'Delivered', 'with the buyer'],
                 ['APPROVED', 'Approved', 'ready for production'],
                 ['IN_PRODUCTION', 'In production', null],
                 ['REJECTED', 'Rejected', null],

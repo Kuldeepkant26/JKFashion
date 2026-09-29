@@ -6,6 +6,8 @@
  * folder keep working and this file stays the one place an orders screen
  * imports from.
  */
+import { formatQuantity } from '../../constants/ui.js';
+
 export {
   MAIN_ADMIN,
   inputClass,
@@ -17,6 +19,14 @@ export {
 
 // Metres are this section's unit; the shared formatter is unit-agnostic.
 export { formatQuantity as formatMetres } from '../../constants/ui.js';
+
+/**
+ * A sample's quantity, as text. The field is free text ("10m", "2 pcs"); a
+ * number is a value saved before that, when it was metres only and 0 meant
+ * nothing entered — until migrate:samples has turned those into text.
+ */
+export const sampleQuantity = (q) =>
+  typeof q === 'number' ? (q > 0 ? `${formatQuantity(q)}m` : '') : String(q ?? '').trim();
 
 /**
  * Mirrors ORDER_STATUSES in the API's productionOrder model, in lifecycle
@@ -63,14 +73,16 @@ export const IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp,image/avif';
  * The statuses a person sets on a sample, in lifecycle order. Mirrors
  * SAMPLING_STATUSES in the API's sample model.
  *
- * IN_PRODUCTION is the fourth, and is not here: a sample reaches it only by
+ * DELIVERED is the sample handed to the buyer, waiting on their answer.
+ * IN_PRODUCTION is the last, and is not here: a sample reaches it only by
  * being converted into a production order, which also takes it out of the
  * Sampling list and into its "In production" tab.
  */
-export const SAMPLE_STATUSES = ['IN_PROGRESS', 'APPROVED', 'REJECTED'];
+export const SAMPLE_STATUSES = ['IN_PROGRESS', 'DELIVERED', 'APPROVED', 'REJECTED'];
 
 export const SAMPLE_STATUS_LABELS = {
   IN_PROGRESS: 'In progress',
+  DELIVERED: 'Delivered',
   APPROVED: 'Approved',
   REJECTED: 'Rejected',
   IN_PRODUCTION: 'In production',
@@ -79,6 +91,7 @@ export const SAMPLE_STATUS_LABELS = {
 
 export const SAMPLE_STATUS_STYLES = {
   IN_PROGRESS: 'bg-violet-50 text-violet-700',
+  DELIVERED: 'bg-amber-50 text-amber-800',
   APPROVED: 'bg-emerald-50 text-emerald-700',
   REJECTED: 'bg-brand-ink/8 text-brand-ink/60',
   IN_PRODUCTION: 'bg-sky-50 text-sky-700',

@@ -12,8 +12,8 @@
  *    that has production logged against it is not a sample — metres were
  *    made — so it is kept as an order and moved to RUNNING.
  *
- * 2. Samples marked "sent to buyer", a status that no longer exists, go back
- *    to in progress.
+ * 2. Samples marked "sent to buyer", a status that no longer exists, become
+ *    delivered — what that status now records — keeping the date.
  *
  * 3. Samples that already have an order are marked in production, so they
  *    leave the Sampling list the way a converted sample does.
@@ -21,6 +21,10 @@
  * 4. Orders that have already produced what was ordered but are not marked
  *    completed — logged before completion followed the quantity — are marked
  *    completed, as logging that final entry would now do.
+ *
+ * 5. Sample quantities stored as numbers become text. The field was metres
+ *    only; it is now free text ("10m", "2 pcs"), so 10 becomes "10m" and an
+ *    old 0 — the default, meaning nothing entered — becomes blank.
  *
  * Safe to re-run: each step only ever touches rows not yet in the new shape.
  */
@@ -37,7 +41,7 @@ import {
 import { reachedGoal } from "../services/productionOrder.service.js";
 import { Sample, SAMPLE_STATUS } from "../models/sample.model.js";
 
-/** The retired "sent to buyer" status — no longer in the schema's enum. */
+/** The retired "sent to buyer" status — what DELIVERED now records. */
 const LEGACY_SENT = "SENT";
 import { jobNumbers } from "../utils/docketNumber.js";
 
@@ -109,14 +113,21 @@ const run = async (): Promise<void> => {
   /*
    * Through the raw collection: "SENT" is no longer a valid value for the
    * model's enum, and this is the one place that has to match it anyway.
+   * Sent to the buyer is what DELIVERED records, so it maps across with its
+   * date — sentAt where the old field has one.
    */
   const sent = await Sample.collection.countDocuments({ status: LEGACY_SENT });
-  logger.info(`${sent} sample(s) marked sent to buyer → in progress`);
+  logger.info(`${sent} sample(s) marked sent to buyer → delivered`);
   if (apply && sent) {
-    await Sample.collection.updateMany(
-      { status: LEGACY_SENT },
-      { $set: { status: SAMPLE_STATUS.IN_PROGRESS }, $unset: { sentAt: "" } }
-    );
+    await Sample.collection.updateMany({ status: LEGACY_SENT }, [
+      {
+        $set: {
+          status: SAMPLE_STATUS.DELIVERED,
+          deliveredAt: { $ifNull: ["$sentAt", "$updatedAt"] },
+        },
+      },
+      { $unset: "sentAt" },
+    ]);
   }
 
   const withOrders = await ProductionOrder.distinct("sample", { sample: { $ne: null } }).exec();
@@ -147,7 +158,23 @@ const run = async (): Promise<void> => {
     ).exec();
   }
 
-  if (!apply && (legacy.length || sent || stranded || finished.length)) {
+  /*
+   * Through the raw collection, because the model now casts quantity to a
+   * string on read — a number stored in the field is only visible here.
+   */
+  const numericQuantity = await Sample.collection.countDocuments({ quantity: { $type: "number" } });
+  logger.info(`${numericQuantity} sample(s) with a numeric quantity → text`);
+  if (apply && numericQuantity) {
+    await Sample.collection.updateMany({ quantity: { $type: "number", $gt: 0 } }, [
+      { $set: { quantity: { $concat: [{ $toString: "$quantity" }, "m"] } } },
+    ]);
+    await Sample.collection.updateMany(
+      { quantity: { $type: "number" } },
+      { $set: { quantity: "" } }
+    );
+  }
+
+  if (!apply && (legacy.length || sent || stranded || finished.length || numericQuantity)) {
     logger.info("Re-run with --apply to make these changes.");
   }
 

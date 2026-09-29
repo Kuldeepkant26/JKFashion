@@ -215,6 +215,7 @@ const sampleFigures = async () => {
 
   const counts: Record<string, number> = {
     IN_PROGRESS: 0,
+    DELIVERED: 0,
     APPROVED: 0,
     IN_PRODUCTION: 0,
     REJECTED: 0,
@@ -224,6 +225,7 @@ const sampleFigures = async () => {
   return {
     counts,
     open: OPEN_SAMPLE_STATUSES.reduce((n, s) => n + (counts[s] ?? 0), 0),
+    delivered: counts.DELIVERED ?? 0,
     ready: counts.APPROVED ?? 0,
     overdue,
   };

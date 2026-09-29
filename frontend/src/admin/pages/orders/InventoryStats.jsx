@@ -134,8 +134,9 @@ export default function InventoryStats({ summary }) {
       </dl>
 
       <SectionTitle>Sampling</SectionTitle>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <Tile label="In progress" value={samples.IN_PROGRESS ?? 0} tone="brand" />
+        <Tile label="Delivered" value={samples.DELIVERED ?? 0} />
         <Tile label="Ready for production" value={samples.APPROVED ?? 0} tone="good" />
         <Tile label="In production" value={samples.IN_PRODUCTION ?? 0} />
         <Tile label="Rejected" value={samples.REJECTED ?? 0} />

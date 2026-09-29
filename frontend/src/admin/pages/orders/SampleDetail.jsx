@@ -12,6 +12,7 @@ import {
   STATUS_STYLES,
   formatDate,
   formatMetres,
+  sampleQuantity,
 } from './constants.js';
 
 const Detail = ({ label, value }) => (
@@ -171,6 +172,13 @@ export default function SampleDetail({
             </div>
           )}
 
+          {sample.status === 'DELIVERED' ? (
+            <p className="rounded-xl bg-amber-50 px-3 py-2 font-body text-xs text-amber-900">
+              With the buyer since {formatDate(sample.deliveredAt)} — mark it <b>Approved</b> or{' '}
+              <b>Rejected</b> when they answer.
+            </p>
+          ) : null}
+
           {sample.status === 'APPROVED' ? (
             <p className="rounded-xl bg-emerald-50 px-3 py-2 font-body text-xs text-emerald-800">
               Ready for production — convert it from <b>Production → New order → Choose from
@@ -233,10 +241,14 @@ export default function SampleDetail({
             />
             <Detail
               label="Sample qty"
-              value={sample.quantity ? `${formatMetres(sample.quantity)}m` : ''}
+              value={sampleQuantity(sample.quantity)}
             />
             <Detail label="Due to buyer" value={formatDate(sample.deadline)} />
             <Detail label="Raised" value={formatDate(sample.createdAt)} />
+            <Detail
+              label="Delivered"
+              value={sample.deliveredAt ? formatDate(sample.deliveredAt) : ''}
+            />
             <Detail
               label={sample.status === 'REJECTED' ? 'Rejected' : 'Approved'}
               value={sample.decidedAt ? formatDate(sample.decidedAt) : ''}

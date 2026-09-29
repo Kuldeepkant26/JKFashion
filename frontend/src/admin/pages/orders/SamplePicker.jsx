@@ -42,16 +42,17 @@ function SampleRow({ sample, showCompany, onPick }) {
 
         <span className="min-w-0 flex-1">
           <span className="block truncate font-body text-sm font-semibold text-brand-ink">
-            Design {sample.designNumber}
+            {sample.sampleNumber}
             {showCompany ? (
               <span className="font-normal text-brand-ink/60"> · {sample.companyName}</span>
             ) : null}
           </span>
           <span className="mt-0.5 block truncate font-body text-xs text-brand-ink/50">
             {[
-              sample.sampleNumber,
+              `Design ${sample.designNumber}`,
               [sample.fabricType, sample.yarnColor].filter(Boolean).join(' · '),
               sample.status === 'APPROVED' ? `approved ${formatDate(sample.decidedAt)}` : '',
+              sample.status === 'DELIVERED' ? `delivered ${formatDate(sample.deliveredAt)}` : '',
             ]
               .filter(Boolean)
               .join(' · ')}
@@ -95,8 +96,8 @@ function Group({ title, hint, items, showCompany, onPick }) {
  * order is for.
  *
  * Samples still open are offered — approved first, since those are what the
- * buyer has said yes to, then the ones still in progress (converting one of
- * those records the approval). A sample already in production has its order,
+ * buyer has said yes to, then the ones delivered and waiting on an answer,
+ * then the ones still in progress (converting either records the approval). A sample already in production has its order,
  * and a rejected one has to be reopened first, so neither is listed.
  *
  * @param companyId      scope to one buyer (inside their dashboard)
@@ -132,6 +133,7 @@ export default function SamplePicker({
 
   const items = data?.items ?? [];
   const approved = items.filter((s) => s.status === 'APPROVED');
+  const delivered = items.filter((s) => s.status === 'DELIVERED');
   const inProgress = items.filter((s) => s.status === 'IN_PROGRESS');
   const showCompany = !companyId;
 
@@ -197,6 +199,13 @@ export default function SamplePicker({
               title="Approved"
               hint="Ready for production"
               items={approved}
+              showCompany={showCompany}
+              onPick={onPick}
+            />
+            <Group
+              title="Delivered"
+              hint="With the buyer — converting one records their approval"
+              items={delivered}
               showCompany={showCompany}
               onPick={onPick}
             />

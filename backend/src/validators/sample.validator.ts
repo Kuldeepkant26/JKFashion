@@ -39,7 +39,15 @@ const sampleFields = (): ValidationChain[] => {
       .matches(REPEAT_PATTERN)
       .withMessage("Write the repeat like 8/4"),
     opt(body("stitches").isInt({ min: 0, max: 100_000_000 }).toInt()),
-    opt(body("quantity").isFloat({ min: 0, max: 1_000_000 }).toFloat()),
+    // Free text — "10m", "2 pcs", "1 panel" — so only its length is checked.
+    opt(
+      body("quantity")
+        .customSanitizer((v: unknown) => (typeof v === "number" ? String(v) : v))
+        .isString()
+        .trim()
+        .isLength({ max: 100 })
+        .withMessage("Keep the sample quantity under 100 characters")
+    ),
     body("deadline").optional({ checkFalsy: true }).isISO8601().toDate(),
     // IN_PRODUCTION is set by converting the sample into an order, never by hand.
     body("status").optional().isIn(SAMPLING_STATUSES).withMessage("Unknown status"),

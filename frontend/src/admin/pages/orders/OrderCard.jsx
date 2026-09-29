@@ -7,6 +7,10 @@ import { STATUS_LABELS, STATUS_STYLES, formatDate, formatMetres } from './consta
  * The progress bar carries the number as well as the fill: a bar alone is hard
  * to read precisely, and "how many metres are left" is the question the floor
  * actually asks.
+ *
+ * Every row is `w-full`: older Safari does not stretch a <button>'s children,
+ * and without it the rows shrink to their content — the badge slides off the
+ * card and the progress bar collapses. (The same fix is on SampleCard.)
  */
 export default function OrderCard({ order, onOpen, showCompany = true }) {
   const ordered = Number(order.orderedMetres ?? 0);
@@ -28,7 +32,7 @@ export default function OrderCard({ order, onOpen, showCompany = true }) {
                    focus-visible:outline-2 focus-visible:outline-offset-2
                    focus-visible:outline-brand-pink"
       >
-        <div className="flex items-start gap-3">
+        <div className="flex w-full items-start gap-3">
           {order.designImage?.url ? (
             <img
               src={order.designImage.url}
@@ -65,7 +69,7 @@ export default function OrderCard({ order, onOpen, showCompany = true }) {
           </span>
         </div>
 
-        <div>
+        <div className="w-full">
           <div className="flex items-center justify-between font-body text-xs text-brand-ink/50">
             <span>Progress</span>
             <span className="font-semibold text-brand-ink">{pct.toFixed(0)}%</span>
@@ -91,7 +95,7 @@ export default function OrderCard({ order, onOpen, showCompany = true }) {
           </div>
         </div>
 
-        <dl className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 font-body text-xs">
+        <dl className="flex w-full flex-wrap items-baseline justify-between gap-x-4 gap-y-1 font-body text-xs">
           <div className="flex gap-3">
             <span>
               <dt className="sr-only">Ordered</dt>

@@ -11,6 +11,7 @@ import {
   inputClass,
   labelClass,
   toDateInput,
+  sampleQuantity,
 } from './constants.js';
 
 /** The sample's fields as data, grouped the way the floor reads them. */
@@ -20,7 +21,13 @@ const SECTIONS = [
     fields: [
       { name: 'designNumber', label: 'Design number', required: true, placeholder: 'D-55' },
       { name: 'status', label: 'Status', type: 'select' },
-      { name: 'quantity', label: 'Sample quantity (m)', type: 'number', step: '0.1', min: '0' },
+      // Free text: samples come in metres, pieces or panels.
+      {
+        name: 'quantity',
+        label: 'Sample quantity',
+        placeholder: 'e.g. 10m, 2 pcs, 1 panel',
+        maxLength: 100,
+      },
       { name: 'deadline', label: 'Due to buyer', type: 'date' },
     ],
   },
@@ -63,6 +70,7 @@ const fromSample = (sample) => ({
   ...Object.fromEntries(Object.keys(EMPTY).map((k) => [k, sample[k] ?? ''])),
   companyId: sample.company ?? '',
   deadline: toDateInput(sample.deadline),
+  quantity: sampleQuantity(sample.quantity),
 });
 
 export default function SampleForm({
@@ -116,7 +124,14 @@ export default function SampleForm({
     setFieldErrors({});
     try {
       if (editing) {
-        const { status, ...rest } = form;
+        /*
+         * A field emptied here goes as null — the API's "clear it". Sent as
+         * "" it would be read as "not sent", and the old value would stay.
+         */
+        const before = fromSample(initial);
+        const { status, ...rest } = Object.fromEntries(
+          Object.entries(form).map(([k, v]) => [k, v === '' && before[k] !== '' ? null : v])
+        );
         await inventoryApi.updateSample(initial._id, inProduction ? rest : { ...rest, status });
         if (file) await inventoryApi.setSampleImage(initial._id, file);
         else if (removeImage) await inventoryApi.clearSampleImage(initial._id);
@@ -172,6 +187,7 @@ export default function SampleForm({
             type={f.type ?? 'text'}
             step={f.step}
             min={f.min}
+            maxLength={f.maxLength}
             placeholder={f.placeholder}
             {...common}
           />

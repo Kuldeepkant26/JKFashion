@@ -27,7 +27,8 @@ export const previewSampleNumber = async (companyId: string): Promise<string> =>
 
 /**
  * A sample still being made, past the date it was due to the buyer. Once it
- * is approved the sample itself has been delivered, so it can no longer be late.
+ * is delivered — or answered, which means it reached them — it can no longer
+ * be late.
  */
 const isOverdue = (sample: { deadline?: Date | null; status: SampleStatus }): boolean =>
   Boolean(
@@ -179,7 +180,7 @@ export interface SampleInput {
   yarnColor?: string;
   repeat?: string;
   stitches?: number;
-  quantity?: number;
+  quantity?: string;
   deadline?: string;
   remarks?: string;
 }
@@ -189,19 +190,26 @@ export interface SampleInput {
  *
  * Only a real change is an event — the edit form sends the status on every
  * save, and re-stamping would move "approved on the 3rd" to today. Reopening a
- * sample (back to in progress) clears the answer, because it no longer stands.
+ * sample (back to in progress) clears the answer, because it no longer stands,
+ * and the delivery, because it will be made and handed over again. Moving an
+ * answered sample back to delivered clears the answer but keeps the date it
+ * was delivered — that still happened.
  */
 const statusStamps = (
   status: SampleStatus | undefined,
   existing?: ISample
-): Partial<Pick<ISample, "decidedAt">> => {
+): Partial<Pick<ISample, "decidedAt" | "deliveredAt">> => {
   if (!status || status === existing?.status) return {};
 
   if (status === SAMPLE_STATUS.APPROVED || status === SAMPLE_STATUS.REJECTED) {
     return { decidedAt: new Date() };
   }
 
-  if (status === SAMPLE_STATUS.IN_PROGRESS) return { decidedAt: undefined };
+  if (status === SAMPLE_STATUS.DELIVERED) {
+    return { deliveredAt: existing?.deliveredAt ?? new Date(), decidedAt: undefined };
+  }
+
+  if (status === SAMPLE_STATUS.IN_PROGRESS) return { decidedAt: undefined, deliveredAt: undefined };
   return {};
 };
 

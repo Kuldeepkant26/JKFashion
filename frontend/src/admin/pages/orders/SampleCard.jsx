@@ -4,6 +4,8 @@ import { SAMPLE_STATUS_LABELS, SAMPLE_STATUS_STYLES, formatDate } from './consta
 /** The one date worth showing for where the sample is. */
 const dateLine = (sample) => {
   switch (sample.status) {
+    case 'DELIVERED':
+      return `Delivered ${formatDate(sample.deliveredAt)}`;
     case 'APPROVED':
       return `Approved ${formatDate(sample.decidedAt)}`;
     case 'REJECTED':
@@ -15,7 +17,15 @@ const dateLine = (sample) => {
   }
 };
 
-/** One sample, as a card. */
+/**
+ * One sample, as a card. The sample number leads — it is how the floor and
+ * the buyer name the job — with the design and buyer under it.
+ *
+ * Every row is `w-full`. The card is a <button>, and older Safari does not
+ * stretch a button's children to its width: each row shrank to its own
+ * content, so a long buyer name pushed the badge off the card and the date
+ * line bunched up on the left.
+ */
 export default function SampleCard({ sample, onOpen, showCompany = true }) {
   // Overdue outranks the stored status on the badge, as on order cards.
   const badge = sample.isOverdue ? 'OVERDUE' : sample.status;
@@ -30,7 +40,7 @@ export default function SampleCard({ sample, onOpen, showCompany = true }) {
                    focus-visible:outline-2 focus-visible:outline-offset-2
                    focus-visible:outline-brand-pink"
       >
-        <div className="flex items-start gap-3">
+        <div className="flex w-full items-start gap-3">
           {sample.designImage?.url ? (
             <img
               src={sample.designImage.url}
@@ -47,24 +57,27 @@ export default function SampleCard({ sample, onOpen, showCompany = true }) {
           )}
 
           <span className="min-w-0 flex-1">
-            <span className="block truncate font-body text-sm font-semibold text-brand-ink">
-              Design {sample.designNumber}
+            {/* The badge shares the number's line only, so the buyer's name
+                below gets the card's full width. */}
+            <span className="flex items-center justify-between gap-2">
+              <span className="min-w-0 truncate font-body text-sm font-semibold text-brand-ink">
+                {sample.sampleNumber}
+              </span>
+              <span
+                className={`shrink-0 rounded-full px-2 py-0.5 font-body text-[10px] font-semibold
+                            uppercase tracking-wider ${SAMPLE_STATUS_STYLES[badge]}`}
+              >
+                {SAMPLE_STATUS_LABELS[badge]}
+              </span>
             </span>
             <span className="mt-0.5 block truncate font-body text-xs text-brand-ink/50">
-              {showCompany ? `${sample.companyName} · ` : ''}
-              {sample.sampleNumber}
+              Design {sample.designNumber}
+              {showCompany ? ` · ${sample.companyName}` : ''}
             </span>
-          </span>
-
-          <span
-            className={`shrink-0 rounded-full px-2 py-0.5 font-body text-[10px] font-semibold
-                        uppercase tracking-wider ${SAMPLE_STATUS_STYLES[badge]}`}
-          >
-            {SAMPLE_STATUS_LABELS[badge]}
           </span>
         </div>
 
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 font-body text-xs text-brand-ink/50">
+        <div className="flex w-full flex-wrap items-baseline justify-between gap-x-4 gap-y-1 font-body text-xs text-brand-ink/50">
           <span>
             {[sample.fabricType, sample.yarnColor].filter(Boolean).join(' · ') || 'No fabric set'}
           </span>

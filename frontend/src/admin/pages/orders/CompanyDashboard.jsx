@@ -32,15 +32,16 @@ const TABS = [
 /** How each history entry reads. */
 const ACTIVITY = {
   SAMPLE_CREATED: { label: 'Sample started', dot: 'bg-violet-400' },
+  SAMPLE_DELIVERED: { label: 'Sample delivered', dot: 'bg-orange-400' },
   SAMPLE_APPROVED: { label: 'Sample approved', dot: 'bg-emerald-500' },
   SAMPLE_REJECTED: { label: 'Sample rejected', dot: 'bg-brand-ink/30' },
   ORDER_CREATED: { label: 'Order confirmed', dot: 'bg-brand-pink' },
   PRODUCTION_LOGGED: { label: 'Production logged', dot: 'bg-amber-400' },
 };
 
-function Figure({ label, value, unit, tone = 'text-brand-ink' }) {
+function Figure({ label, value, unit, tone = 'text-brand-ink', className = '' }) {
   return (
-    <div className="rounded-2xl bg-surface-card px-4 py-3 shadow-sm ring-1 ring-black/5">
+    <div className={`rounded-2xl bg-surface-card px-4 py-3 shadow-sm ring-1 ring-black/5 ${className}`}>
       <dt className="font-body text-xs text-brand-ink/50">{label}</dt>
       <dd className={`font-display text-xl font-bold ${tone}`}>
         {value}
@@ -310,12 +311,13 @@ export default function CompanyDashboard() {
       ) : null}
 
       {/* ------------------------------------------------------ figures */}
-      <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Figure
           label="Samples in progress"
           value={samples.IN_PROGRESS ?? 0}
           tone="text-violet-700"
         />
+        <Figure label="With the buyer" value={samples.DELIVERED ?? 0} tone="text-amber-700" />
         <Figure
           label="Ready for production"
           value={samples.APPROVED ?? 0}
@@ -323,6 +325,7 @@ export default function CompanyDashboard() {
         />
         <Figure label="Orders active" value={orders.active} tone="text-sky-700" />
         <Figure
+          className="col-span-2 lg:col-span-1"
           label="Orders overdue"
           value={orders.overdue}
           tone={orders.overdue ? 'text-rose-600' : 'text-brand-ink'}
