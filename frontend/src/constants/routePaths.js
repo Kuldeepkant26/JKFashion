@@ -37,7 +37,6 @@ export const ROUTES = {
   ADMIN_INVENTORY_EXPENSES: '/admin/inventory/expenses',
   ADMIN_STAFF: '/admin/staff',
   ADMIN_ENQUIRIES: '/admin/enquiries',
-  ADMIN_CONTENT: '/admin/content',
   ADMIN_SETTINGS: '/admin/settings',
 
   /**

@@ -28,7 +28,6 @@ export const PERMISSIONS = Object.freeze({
   /** The daily materials ledger: stock on the floor, and expenses. */
   STOCK: "STOCK",
   ENQUIRIES: "ENQUIRIES",
-  CONTENT: "CONTENT",
   SETTINGS: "SETTINGS",
   DASHBOARD: "DASHBOARD",
 });

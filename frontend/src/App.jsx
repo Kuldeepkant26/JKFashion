@@ -27,7 +27,6 @@ import { useAppStore } from './store/useAppStore.js';
 const AdminLayout = lazy(() => import('./admin/layouts/AdminLayout'));
 const AdminLogin = lazy(() => import('./admin/pages/AdminLogin'));
 const AdminDashboard = lazy(() => import('./admin/pages/AdminDashboard'));
-const AdminPlaceholder = lazy(() => import('./admin/pages/AdminPlaceholder'));
 const AdminEnquiries = lazy(() => import('./admin/pages/AdminEnquiries.jsx'));
 const AdminStaff = lazy(() => import('./admin/pages/AdminStaff.jsx'));
 const AdminNoAccess = lazy(() => import('./admin/pages/AdminNoAccess.jsx'));
@@ -187,14 +186,6 @@ function App() {
             element={
               <PermissionRoute section="ENQUIRIES">
                 <AdminEnquiries />
-              </PermissionRoute>
-            }
-          />
-          <Route
-            path="content"
-            element={
-              <PermissionRoute section="CONTENT">
-                <AdminPlaceholder title="Content" />
               </PermissionRoute>
             }
           />

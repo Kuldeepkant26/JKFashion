@@ -4,7 +4,6 @@ import {
   FiClipboard,
   FiPackage,
   FiMail,
-  FiFileText,
   FiSettings,
   FiUsers,
   FiLogOut,
@@ -36,7 +35,6 @@ const NAV_GROUPS = [
     { to: ROUTES.ADMIN_ORDERS, label: 'Orders', Icon: FiClipboard, permission: 'INVENTORY' },
     { to: ROUTES.ADMIN_INVENTORY, label: 'Inventory', Icon: FiPackage, permission: 'STOCK' },
     { to: ROUTES.ADMIN_ENQUIRIES, label: 'Enquiries', Icon: FiMail, permission: 'ENQUIRIES' },
-    { to: ROUTES.ADMIN_CONTENT, label: 'Content', Icon: FiFileText, permission: 'CONTENT' },
   ],
   [
     /* Never grantable — managing accounts is the ability to mint an owner. */

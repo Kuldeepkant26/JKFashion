@@ -32,11 +32,6 @@ export const PERMISSIONS = [
     hint: 'Read and reply to website enquiries',
   },
   {
-    id: 'CONTENT',
-    label: 'Content',
-    hint: 'Website copy and pages',
-  },
-  {
     id: 'SETTINGS',
     label: 'Settings',
     hint: 'Appearance, gallery, hero and process sections',
@@ -72,7 +67,6 @@ export const landingRouteFor = (user) => {
     ['STOCK', ROUTES.ADMIN_INVENTORY],
     ['DASHBOARD', ROUTES.ADMIN_DASHBOARD],
     ['ENQUIRIES', ROUTES.ADMIN_ENQUIRIES],
-    ['CONTENT', ROUTES.ADMIN_CONTENT],
     ['SETTINGS', ROUTES.ADMIN_SETTINGS],
   ].find(([section]) => hasPermission(user, section));
 
