@@ -135,6 +135,8 @@ export const logProductionRules: ValidationChain[] = [
     .toFloat(),
   body("date").optional({ checkFalsy: true }).isISO8601(),
   body("designNumber").optional({ checkFalsy: true }).isString().trim().isLength({ max: 60 }),
+  // Text on purpose — letters and digits both, leading zeros kept. Never coerce it to a number.
+  body("poNumber").optional({ checkFalsy: true }).isString().trim().isLength({ max: 60 }),
   body("note").optional({ checkFalsy: true }).isString().trim().isLength({ max: 200 }),
 ];
 

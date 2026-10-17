@@ -579,6 +579,7 @@ export interface LogInput {
   thans?: number;
   date?: string;
   designNumber?: string;
+  poNumber?: string;
   note?: string;
 }
 
@@ -628,11 +629,12 @@ export const logProduction = async (
   const entry = {
     date: startOfDayUTC(input.date),
     metres: input.metres,
-    // Both optional: left off the entry when not given, rather than stored as 0 or "".
+    // All optional: left off the entry when not given, rather than stored as 0 or "".
     ...(Number(input.thans) ? { thans: Number(input.thans) } : {}),
     ...(typeof input.designNumber === "string" && input.designNumber
       ? { designNumber: input.designNumber }
       : {}),
+    ...(typeof input.poNumber === "string" && input.poNumber ? { poNumber: input.poNumber } : {}),
     note: input.note ?? "",
     loggedBy: user._id,
     loggedByName: user.name,

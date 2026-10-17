@@ -47,6 +47,7 @@ function LogForm({
   const [metres, setMetres] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [designNumber, setDesignNumber] = useState(orderDesign ?? '');
+  const [poNumber, setPoNumber] = useState('');
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -61,6 +62,7 @@ function LogForm({
         thans: thans === '' ? undefined : Number(thans),
         date,
         designNumber,
+        poNumber,
         note,
       });
       onLogged(updated);
@@ -130,7 +132,22 @@ function LogForm({
           />
         </label>
 
-        <label className="flex flex-col gap-1.5 sm:col-span-2">
+        {/* Text, not a number input: P.O. numbers mix letters and digits. */}
+        <label className="flex flex-col gap-1.5">
+          <span className="font-body text-xs font-semibold uppercase tracking-[0.12em] text-brand-ink/60">
+            P.O. no.
+          </span>
+          <input
+            type="text"
+            maxLength={60}
+            value={poNumber}
+            onChange={(e) => setPoNumber(e.target.value)}
+            className={inputClass}
+            placeholder="e.g. PO-4521"
+          />
+        </label>
+
+        <label className="flex flex-col gap-1.5">
           <span className="font-body text-xs font-semibold uppercase tracking-[0.12em] text-brand-ink/60">
             Note
           </span>
@@ -484,10 +501,15 @@ export default function OrderDetail({
                       <span className="font-body text-sm text-brand-ink">
                         {formatDate(entry.date)}
                       </span>
-                      {/* Only entries logged since it was asked for carry a design number. */}
+                      {/* Only entries logged since these were asked for carry them. */}
                       {entry.designNumber ? (
                         <span className="ml-2 inline-block font-body text-xs font-semibold text-brand-ink/70">
                           Design {entry.designNumber}
+                        </span>
+                      ) : null}
+                      {entry.poNumber ? (
+                        <span className="ml-2 inline-block font-body text-xs font-semibold text-brand-ink/70">
+                          P.O. {entry.poNumber}
                         </span>
                       ) : null}
                       {entry.note ? (

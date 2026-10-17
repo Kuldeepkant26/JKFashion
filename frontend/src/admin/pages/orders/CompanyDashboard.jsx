@@ -94,6 +94,7 @@ function History({ items, onOpen }) {
                       ? `${item.metres > 0 && item.kind === 'PRODUCTION_LOGGED' ? '+' : ''}${formatMetres(item.metres)}m`
                       : '',
                     item.thans ? formatThans(item.thans) : '',
+                    item.poNumber ? `P.O. ${item.poNumber}` : '',
                     item.note,
                     item.by,
                   ]

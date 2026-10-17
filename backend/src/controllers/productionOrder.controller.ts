@@ -145,17 +145,18 @@ export const setStatus = asyncHandler<AuthedRequest>(async (req, res) => {
 });
 
 export const logProduction = asyncHandler<AuthedRequest>(async (req, res) => {
-  const { metres, thans, date, designNumber, note } = req.body as {
+  const { metres, thans, date, designNumber, poNumber, note } = req.body as {
     metres: number;
     thans?: number;
     date?: string;
     designNumber?: string;
+    poNumber?: string;
     note?: string;
   };
 
   const order = await orderService.logProduction(
     req.params.id as string,
-    { metres, thans, date, designNumber, note },
+    { metres, thans, date, designNumber, poNumber, note },
     { _id: req.user!._id as never, name: req.user!.name }
   );
 

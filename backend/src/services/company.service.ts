@@ -314,6 +314,7 @@ export interface ActivityItem {
   designNumber: string;
   metres?: number;
   thans?: number;
+  poNumber?: string;
   note?: string;
   by?: string;
 }
@@ -352,6 +353,7 @@ const companyActivity = async (companyId: Types.ObjectId): Promise<ActivityItem[
         metres: number;
         thans?: number;
         designNumber?: string;
+        poNumber?: string;
         note: string;
         loggedByName: string;
       };
@@ -407,6 +409,7 @@ const companyActivity = async (companyId: Types.ObjectId): Promise<ActivityItem[
       designNumber: row.entry.designNumber || row.designNumber,
       metres: row.entry.metres,
       thans: row.entry.thans,
+      poNumber: row.entry.poNumber,
       note: row.entry.note,
       by: row.entry.loggedByName,
     });
