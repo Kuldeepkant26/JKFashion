@@ -11,6 +11,7 @@ import {
   STATUS_STYLES,
   formatDate,
   formatMetres,
+  formatThans,
   inputClass,
 } from './constants.js';
 
@@ -24,14 +25,28 @@ const Detail = ({ label, value }) => (
 );
 
 /**
- * Add a day's production. Inline rather than a modal — it is two fields.
+ * Add a day's production. Inline rather than a modal — it is a handful of fields.
  *
  * Shows what is left on the order and what this entry would leave, so the
  * person logging sees Ordered − Produced = Remaining as they type.
+ *
+ * The design number starts as the order's own, since that is nearly always
+ * what was run; it can be changed for an entry where it was not.
  */
-function LogForm({ orderId, ordered, produced, status, onLogged, onCancel, setError }) {
+function LogForm({
+  orderId,
+  orderDesign,
+  ordered,
+  produced,
+  status,
+  onLogged,
+  onCancel,
+  setError,
+}) {
+  const [thans, setThans] = useState('');
   const [metres, setMetres] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [designNumber, setDesignNumber] = useState(orderDesign ?? '');
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -42,7 +57,10 @@ function LogForm({ orderId, ordered, produced, status, onLogged, onCancel, setEr
     try {
       const updated = await inventoryApi.logProduction(orderId, {
         metres: Number(metres),
+        // Optional — left out when blank rather than sent as 0.
+        thans: thans === '' ? undefined : Number(thans),
         date,
+        designNumber,
         note,
       });
       onLogged(updated);
@@ -58,13 +76,27 @@ function LogForm({ orderId, ordered, produced, status, onLogged, onCancel, setEr
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="flex flex-col gap-1.5">
           <span className="font-body text-xs font-semibold uppercase tracking-[0.12em] text-brand-ink/60">
+            Thans
+          </span>
+          <input
+            type="number"
+            step="any"
+            autoFocus
+            value={thans}
+            onChange={(e) => setThans(e.target.value)}
+            className={inputClass}
+            placeholder="Optional"
+          />
+        </label>
+
+        <label className="flex flex-col gap-1.5">
+          <span className="font-body text-xs font-semibold uppercase tracking-[0.12em] text-brand-ink/60">
             Metres *
           </span>
           <input
             type="number"
             step="0.1"
             required
-            autoFocus
             value={metres}
             onChange={(e) => setMetres(e.target.value)}
             className={inputClass}
@@ -85,6 +117,20 @@ function LogForm({ orderId, ordered, produced, status, onLogged, onCancel, setEr
         </label>
 
         <label className="flex flex-col gap-1.5">
+          <span className="font-body text-xs font-semibold uppercase tracking-[0.12em] text-brand-ink/60">
+            Design no.
+          </span>
+          <input
+            type="text"
+            maxLength={60}
+            value={designNumber}
+            onChange={(e) => setDesignNumber(e.target.value)}
+            className={inputClass}
+            placeholder="Optional"
+          />
+        </label>
+
+        <label className="flex flex-col gap-1.5 sm:col-span-2">
           <span className="font-body text-xs font-semibold uppercase tracking-[0.12em] text-brand-ink/60">
             Note
           </span>
@@ -413,6 +459,7 @@ export default function OrderDetail({
             {logging ? (
               <LogForm
                 orderId={order._id}
+                orderDesign={order.designNumber}
                 ordered={ordered}
                 produced={done}
                 status={order.status}
@@ -437,6 +484,12 @@ export default function OrderDetail({
                       <span className="font-body text-sm text-brand-ink">
                         {formatDate(entry.date)}
                       </span>
+                      {/* Only entries logged since it was asked for carry a design number. */}
+                      {entry.designNumber ? (
+                        <span className="ml-2 inline-block font-body text-xs font-semibold text-brand-ink/70">
+                          Design {entry.designNumber}
+                        </span>
+                      ) : null}
                       {entry.note ? (
                         <span className="ml-2 font-body text-xs text-brand-ink/50">{entry.note}</span>
                       ) : null}
@@ -446,6 +499,15 @@ export default function OrderDetail({
                     </span>
 
                     <span className="flex shrink-0 items-center gap-2">
+                      {entry.thans ? (
+                        <span
+                          className={`font-body text-xs ${
+                            entry.thans < 0 ? 'text-rose-600' : 'text-brand-ink/60'
+                          }`}
+                        >
+                          {formatThans(entry.thans)}
+                        </span>
+                      ) : null}
                       <span
                         className={`font-body text-sm font-semibold ${
                           entry.metres < 0 ? 'text-rose-600' : 'text-brand-ink'

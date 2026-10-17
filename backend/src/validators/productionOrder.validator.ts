@@ -127,7 +127,14 @@ export const logProductionRules: ValidationChain[] = [
     .toFloat()
     .custom((v: number) => v !== 0)
     .withMessage("Enter a number other than zero"),
+  // Optional, and signed like metres so a correction can take thans back too.
+  body("thans")
+    .optional({ checkFalsy: true })
+    .isFloat({ min: -100_000, max: 100_000 })
+    .withMessage("Enter the thans as a number")
+    .toFloat(),
   body("date").optional({ checkFalsy: true }).isISO8601(),
+  body("designNumber").optional({ checkFalsy: true }).isString().trim().isLength({ max: 60 }),
   body("note").optional({ checkFalsy: true }).isString().trim().isLength({ max: 200 }),
 ];
 

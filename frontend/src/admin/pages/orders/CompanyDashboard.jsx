@@ -21,7 +21,7 @@ import CompanyForm from './CompanyForm.jsx';
 import CompanyLogo from './CompanyLogo.jsx';
 import SamplesBoard from './SamplesBoard.jsx';
 import OrdersBoard from './OrdersBoard.jsx';
-import { MAIN_ADMIN, formatDate, formatMetres } from './constants.js';
+import { MAIN_ADMIN, formatDate, formatMetres, formatThans } from './constants.js';
 
 const TABS = [
   { value: 'history', label: 'History' },
@@ -93,6 +93,7 @@ function History({ items, onOpen }) {
                     item.metres !== undefined
                       ? `${item.metres > 0 && item.kind === 'PRODUCTION_LOGGED' ? '+' : ''}${formatMetres(item.metres)}m`
                       : '',
+                    item.thans ? formatThans(item.thans) : '',
                     item.note,
                     item.by,
                   ]

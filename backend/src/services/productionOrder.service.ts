@@ -576,7 +576,9 @@ const settleStatus = async (
 
 export interface LogInput {
   metres: number;
+  thans?: number;
   date?: string;
+  designNumber?: string;
   note?: string;
 }
 
@@ -626,6 +628,11 @@ export const logProduction = async (
   const entry = {
     date: startOfDayUTC(input.date),
     metres: input.metres,
+    // Both optional: left off the entry when not given, rather than stored as 0 or "".
+    ...(Number(input.thans) ? { thans: Number(input.thans) } : {}),
+    ...(typeof input.designNumber === "string" && input.designNumber
+      ? { designNumber: input.designNumber }
+      : {}),
     note: input.note ?? "",
     loggedBy: user._id,
     loggedByName: user.name,

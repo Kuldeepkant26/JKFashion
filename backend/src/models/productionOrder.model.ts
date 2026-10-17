@@ -75,6 +75,8 @@ export interface IProductionLogEntry {
   _id: Types.ObjectId;
   date: Date;
   metres: number;
+  thans?: number;
+  designNumber?: string;
   note: string;
   loggedBy?: Types.ObjectId;
   loggedByName: string;
@@ -87,6 +89,19 @@ const productionLogEntrySchema = new Schema<IProductionLogEntry>({
 
   // Signed: a negative entry is how a mistyped figure gets corrected.
   metres: { type: Number, required: true },
+
+  /**
+   * The thans (rolls) the metres came off as, and the design that was run —
+   * recorded beside the metres, the way the floor writes them down.
+   *
+   * Both optional and deliberately without a default: entries logged before
+   * these existed, or with them left blank, simply lack them — so "not
+   * recorded" never reads as a recorded 0, and old entries read back exactly
+   * as they were written. Thans are signed like metres, so a correction can
+   * take them back too.
+   */
+  thans: { type: Number },
+  designNumber: { type: String, trim: true, maxlength: 60 },
 
   note: { type: String, trim: true, maxlength: 200, default: "" },
 

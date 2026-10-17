@@ -313,6 +313,7 @@ export interface ActivityItem {
   ref: { type: "sample" | "order"; id: string; number: string };
   designNumber: string;
   metres?: number;
+  thans?: number;
   note?: string;
   by?: string;
 }
@@ -346,7 +347,14 @@ const companyActivity = async (companyId: Types.ObjectId): Promise<ActivityItem[
       _id: Types.ObjectId;
       orderNumber: string;
       designNumber: string;
-      entry: { date: Date; metres: number; note: string; loggedByName: string };
+      entry: {
+        date: Date;
+        metres: number;
+        thans?: number;
+        designNumber?: string;
+        note: string;
+        loggedByName: string;
+      };
     }>([
       { $match: { company: companyId } },
       { $project: { orderNumber: 1, designNumber: 1, log: 1 } },
@@ -395,8 +403,10 @@ const companyActivity = async (companyId: Types.ObjectId): Promise<ActivityItem[
       kind: "PRODUCTION_LOGGED",
       date: row.entry.date,
       ref: { type: "order", id: String(row._id), number: row.orderNumber },
-      designNumber: row.designNumber,
+      // The design the entry recorded; entries from before it was asked for fall back to the order's.
+      designNumber: row.entry.designNumber || row.designNumber,
       metres: row.entry.metres,
+      thans: row.entry.thans,
       note: row.entry.note,
       by: row.entry.loggedByName,
     });

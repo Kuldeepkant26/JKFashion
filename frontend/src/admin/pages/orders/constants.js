@@ -20,6 +20,10 @@ export {
 // Metres are this section's unit; the shared formatter is unit-agnostic.
 export { formatQuantity as formatMetres } from '../../constants/ui.js';
 
+/** Thans, which a production entry may record beside its metres: "3 thans", "1 than". */
+export const formatThans = (n) =>
+  `${formatQuantity(n)} ${Math.abs(Number(n)) === 1 ? 'than' : 'thans'}`;
+
 /**
  * A sample's quantity, as text. The field is free text ("10m", "2 pcs"); a
  * number is a value saved before that, when it was metres only and 0 meant
