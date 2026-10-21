@@ -5,6 +5,7 @@ import { invalidate } from '../../../api/useCachedQuery.js';
 import Modal from '../../components/Modal.jsx';
 import DesignImageField from './DesignImageField.jsx';
 import RepeatInput from './RepeatInput.jsx';
+import FabricRows from './FabricRows.jsx';
 import {
   SAMPLE_STATUSES,
   SAMPLE_STATUS_LABELS,
@@ -12,6 +13,8 @@ import {
   labelClass,
   toDateInput,
   sampleQuantity,
+  fabricRowsForForm,
+  fabricRowsForSave,
 } from './constants.js';
 
 /** The sample's fields as data, grouped the way the floor reads them. */
@@ -31,15 +34,8 @@ const SECTIONS = [
       { name: 'deadline', label: 'Due to buyer', type: 'date' },
     ],
   },
-  {
-    title: 'Fabric & yarn',
-    fields: [
-      { name: 'fabricType', label: 'Fabric type', placeholder: 'Cambric' },
-      { name: 'fabricWidth', label: 'Fabric width', placeholder: '44 inch' },
-      { name: 'yarnType', label: 'Yarn type', placeholder: 'Viscose rayon' },
-      { name: 'yarnColor', label: 'Yarn colour', placeholder: 'Ivory' },
-    ],
-  },
+  // As many rows as fabrics the design is made on — the same rows as an order's.
+  { title: 'Fabric & yarn', rows: true },
   {
     title: 'Repeat & stitches',
     fields: [
@@ -56,10 +52,6 @@ const EMPTY = {
   status: 'IN_PROGRESS',
   quantity: '',
   deadline: '',
-  fabricType: '',
-  fabricWidth: '',
-  yarnType: '',
-  yarnColor: '',
   repeat: '',
   stitches: '',
   remarks: '',
@@ -71,6 +63,7 @@ const fromSample = (sample) => ({
   companyId: sample.company ?? '',
   deadline: toDateInput(sample.deadline),
   quantity: sampleQuantity(sample.quantity),
+  fabrics: fabricRowsForForm(sample.fabrics),
 });
 
 export default function SampleForm({
@@ -90,7 +83,9 @@ export default function SampleForm({
   const inProduction = initial?.status === 'IN_PRODUCTION';
 
   const [form, setForm] = useState(() =>
-    initial ? fromSample(initial) : { ...EMPTY, companyId: fixedCompanyId ?? '' }
+    initial
+      ? fromSample(initial)
+      : { ...EMPTY, fabrics: fabricRowsForForm([]), companyId: fixedCompanyId ?? '' }
   );
   const [fieldErrors, setFieldErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -132,11 +127,13 @@ export default function SampleForm({
         const { status, ...rest } = Object.fromEntries(
           Object.entries(form).map(([k, v]) => [k, v === '' && before[k] !== '' ? null : v])
         );
+        // Rows always go, without form keys or blank rows — so removing them all clears them.
+        rest.fabrics = fabricRowsForSave(form.fabrics);
         await inventoryApi.updateSample(initial._id, inProduction ? rest : { ...rest, status });
         if (file) await inventoryApi.setSampleImage(initial._id, file);
         else if (removeImage) await inventoryApi.clearSampleImage(initial._id);
       } else {
-        await inventoryApi.createSample(form, file);
+        await inventoryApi.createSample({ ...form, fabrics: fabricRowsForSave(form.fabrics) }, file);
       }
 
       invalidate('samples', 'summary', 'companies', 'company-overview');
@@ -286,9 +283,20 @@ export default function SampleForm({
             <legend className="font-body text-xs font-semibold uppercase tracking-[0.18em] text-brand-pink">
               {section.title}
             </legend>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {section.fields.map(renderField)}
-            </div>
+            {section.rows ? (
+              <FabricRows
+                rows={form.fabrics}
+                onChange={(rows) => set('fabrics', rows)}
+                disabled={saving}
+                error={
+                  Object.entries(fieldErrors).find(([field]) => field.startsWith('fabrics'))?.[1]
+                }
+              />
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {section.fields.map(renderField)}
+              </div>
+            )}
           </fieldset>
         ))}
 

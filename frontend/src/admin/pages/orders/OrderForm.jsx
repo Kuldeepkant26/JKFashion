@@ -5,6 +5,7 @@ import { invalidate } from '../../../api/useCachedQuery.js';
 import Modal from '../../components/Modal.jsx';
 import DesignImageField from './DesignImageField.jsx';
 import RepeatInput from './RepeatInput.jsx';
+import FabricRows from './FabricRows.jsx';
 import {
   ORDER_STATUSES,
   STATUS_LABELS,
@@ -14,6 +15,8 @@ import {
   labelClass,
   toDateInput,
   formatMetres,
+  fabricRowsForForm,
+  fabricRowsForSave,
 } from './constants.js';
 
 /**
@@ -43,15 +46,8 @@ const SECTIONS = [
       { name: 'status', label: 'Status', type: 'select', options: ORDER_STATUSES },
     ],
   },
-  {
-    title: 'Fabric & yarn',
-    fields: [
-      { name: 'fabricType', label: 'Fabric type', placeholder: 'Cambric' },
-      { name: 'fabricWidth', label: 'Fabric width', placeholder: '44 inch' },
-      { name: 'yarnType', label: 'Yarn type', placeholder: 'Viscose rayon' },
-      { name: 'yarnColor', label: 'Yarn colour', placeholder: 'Ivory' },
-    ],
-  },
+  // As many rows as fabrics the design is run on — see FabricRows.
+  { title: 'Fabric & yarn', rows: true },
   {
     title: 'Repeat & stitches',
     fields: [
@@ -70,26 +66,17 @@ const SECTIONS = [
   },
 ];
 
-/** The design fields a sample hands to the order it is converted into. */
-const FROM_SAMPLE = [
-  'designNumber',
-  'fabricType',
-  'fabricWidth',
-  'yarnType',
-  'yarnColor',
-  'repeat',
-  'stitches',
-];
+/**
+ * The design fields a sample hands to the order it is converted into. Its
+ * fabric rows come too (see fromSampleFields).
+ */
+const FROM_SAMPLE = ['designNumber', 'repeat', 'stitches'];
 
 /** An order opens at PENDING: the buyer has said yes, the floor has not started. */
 const EMPTY = {
   designNumber: '',
   orderedMetres: '',
   status: 'PENDING',
-  fabricType: '',
-  fabricWidth: '',
-  yarnType: '',
-  yarnColor: '',
   repeat: '',
   stitches: '',
   startDate: '',
@@ -108,11 +95,14 @@ const fromOrder = (order) => ({
   startDate: toDateInput(order.startDate),
   deadline: toDateInput(order.deadline),
   estCompletion: toDateInput(order.estCompletion),
+  fabrics: fabricRowsForForm(order.fabrics),
 });
 
 const fromSampleFields = (sample) => ({
   ...EMPTY,
   ...Object.fromEntries(FROM_SAMPLE.map((k) => [k, sample[k] ?? ''])),
+  // The sample's rows carry over, and more can be added.
+  fabrics: fabricRowsForForm(sample.fabrics),
 });
 
 /** The sample an order is (or was) converted from, as a read-only card. */
@@ -203,7 +193,7 @@ export default function OrderForm({
       ? fromOrder(initial)
       : fromSample
         ? fromSampleFields(fromSample)
-        : { ...EMPTY, companyId: fixedCompanyId ?? '' }
+        : { ...EMPTY, fabrics: fabricRowsForForm([]), companyId: fixedCompanyId ?? '' }
   );
   const [fieldErrors, setFieldErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -265,9 +255,12 @@ export default function OrderForm({
     setSaving(true);
     setError('');
     setFieldErrors({});
+    // Rows go as the API stores them: no form keys, no blank rows. Always
+    // sent, so removing every row clears the order's fabric.
+    const payload = { ...form, fabrics: fabricRowsForSave(form.fabrics) };
     try {
       if (editing) {
-        const { companyId, ...fields } = form;
+        const { companyId, ...fields } = payload;
         await inventoryApi.updateOrder(
           initial._id,
           buyerLocked || fixedCompanyId ? fields : { ...fields, companyId }
@@ -276,11 +269,11 @@ export default function OrderForm({
         else if (removeImage) await inventoryApi.clearOrderImage(initial._id);
       } else if (direct) {
         // `form.companyId` is the buyer chosen above, or the dashboard's own.
-        await inventoryApi.createOrder(form, file);
+        await inventoryApi.createOrder(payload, file);
       } else {
         await inventoryApi.createOrder(
           {
-            ...form,
+            ...payload,
             sampleId: fromSample._id,
             useSampleImage: Boolean(useSampleImage && !file && sampleImage),
           },
@@ -516,9 +509,20 @@ export default function OrderForm({
             <legend className="font-body text-xs font-semibold uppercase tracking-[0.18em] text-brand-pink">
               {section.title}
             </legend>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {section.fields.map(renderField)}
-            </div>
+            {section.rows ? (
+              <FabricRows
+                rows={form.fabrics}
+                onChange={(rows) => set('fabrics', rows)}
+                disabled={saving}
+                error={
+                  Object.entries(fieldErrors).find(([field]) => field.startsWith('fabrics'))?.[1]
+                }
+              />
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {section.fields.map(renderField)}
+              </div>
+            )}
           </fieldset>
         ))}
 

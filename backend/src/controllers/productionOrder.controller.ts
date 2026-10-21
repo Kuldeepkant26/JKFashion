@@ -51,10 +51,7 @@ const ORDER_FIELDS = [
   "designNumber",
   "status",
   "orderedMetres",
-  "fabricType",
-  "fabricWidth",
-  "yarnType",
-  "yarnColor",
+  "fabrics",
   "repeat",
   "stitches",
   "startDate",
@@ -93,7 +90,15 @@ const pickFields = (body: Record<string, unknown>): Record<string, unknown> => {
     if (value === undefined) continue;
     if (typeof value === "string" && value.trim() === "") continue;
 
-    out[field] = value === null ? (DATE_FIELDS.has(field) ? undefined : "") : value;
+    // A cleared list is an empty list, not "".
+    out[field] =
+      value === null
+        ? DATE_FIELDS.has(field)
+          ? undefined
+          : field === "fabrics"
+            ? []
+            : ""
+        : value;
   }
 
   return out;

@@ -4,6 +4,7 @@ import { TbCalculator } from 'react-icons/tb';
 import * as inventoryApi from '../../../api/inventory.api.js';
 import Modal from '../../components/Modal.jsx';
 import StitchCalculator from './StitchCalculator.jsx';
+import FabricList from './FabricList.jsx';
 import {
   SAMPLE_STATUSES,
   SAMPLE_STATUS_LABELS,
@@ -229,11 +230,9 @@ export default function SampleDetail({
             </div>
           ) : null}
 
+          <FabricList rows={sample.fabrics} />
+
           <dl className="grid gap-4 border-t border-brand-ink/8 pt-4 grid-cols-2 sm:grid-cols-4">
-            <Detail label="Fabric" value={sample.fabricType} />
-            <Detail label="Width" value={sample.fabricWidth} />
-            <Detail label="Yarn" value={sample.yarnType} />
-            <Detail label="Colour" value={sample.yarnColor} />
             <Detail label="Repeat" value={sample.repeat ? String(sample.repeat) : ''} />
             <Detail
               label="Stitches"

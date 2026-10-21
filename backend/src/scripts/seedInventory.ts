@@ -348,15 +348,28 @@ const run = async (): Promise<void> => {
 
   logger.info(`Created ${companies.length} companies`);
 
-  /** One sample's worth of design, shared by a sample and the order it becomes. */
-  const design = () => ({
+  /** One fabric row; the option number is the buyer's colourway. */
+  const fabric = (optionNumber: string) => ({
     fabricType: pick(FABRICS),
     fabricWidth: pick(WIDTHS),
     yarnType: pick(YARNS),
+    optionNumber,
     yarnColor: pick(COLOURS),
-    repeat: pick(["4/4", "6/4", "8/4", "12/4", "16/4"]),
-    stitches: Math.round(between(8000, 60000)),
   });
+
+  /**
+   * One sample's worth of design, shared by a sample and the order it
+   * becomes. Every fourth design comes in a second option.
+   */
+  let designs = 0;
+  const design = () => {
+    designs += 1;
+    return {
+      fabrics: designs % 4 === 0 ? [fabric("1"), fabric("2")] : [fabric("1")],
+      repeat: pick(["4/4", "6/4", "8/4", "12/4", "16/4"]),
+      stitches: Math.round(between(8000, 60000)),
+    };
+  };
 
   for (let i = 0; i < SAMPLE_PLANS.length; i += 1) {
     const plan = SAMPLE_PLANS[i]!;

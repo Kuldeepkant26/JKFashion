@@ -10,6 +10,7 @@ import {
   SAMPLE_STATUS_LABELS,
   SAMPLE_STATUS_STYLES,
   SAMPLE_PICKER_LIMIT,
+  fabricSummary,
   formatDate,
   inputClass,
 } from './constants.js';
@@ -50,7 +51,7 @@ function SampleRow({ sample, showCompany, onPick }) {
           <span className="mt-0.5 block truncate font-body text-xs text-brand-ink/50">
             {[
               `Design ${sample.designNumber}`,
-              [sample.fabricType, sample.yarnColor].filter(Boolean).join(' · '),
+              fabricSummary(sample.fabrics),
               sample.status === 'APPROVED' ? `approved ${formatDate(sample.decidedAt)}` : '',
               sample.status === 'DELIVERED' ? `delivered ${formatDate(sample.deliveredAt)}` : '',
             ]

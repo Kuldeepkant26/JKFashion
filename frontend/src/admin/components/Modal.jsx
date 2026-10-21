@@ -78,6 +78,13 @@ export default function Modal({
   size = 'lg',
   /** Set false for a form with unsaved input, where a stray click is costly. */
   closeOnBackdrop = true,
+  /**
+   * Set false for a record to read rather than a form to fill: focus starts on
+   * the panel itself, at the top. Otherwise it goes to the first control —
+   * which in a read-only popup can be a button far down, and on a phone the
+   * popup would open scrolled past its own heading to reach it.
+   */
+  focusFirstControl = true,
 }) {
   const panelRef = useRef(null);
   const titleId = useRef(`modal-${Math.random().toString(36).slice(2, 9)}`).current;
@@ -141,7 +148,7 @@ export default function Modal({
     /* Focus the first real control, so a keyboard user starts in the form
        rather than on the close button. */
     const timer = setTimeout(() => {
-      const nodes = panelRef.current?.querySelectorAll(FOCUSABLE);
+      const nodes = focusFirstControl ? panelRef.current?.querySelectorAll(FOCUSABLE) : null;
       const target = [...(nodes ?? [])].find((el) => !el.dataset.modalDismiss);
       (target ?? panelRef.current)?.focus();
     }, 0);
@@ -154,7 +161,8 @@ export default function Modal({
       // Only take focus back if it is still inside the dialog being removed.
       if (restoreTo.current?.isConnected) restoreTo.current.focus?.();
     };
-  }, [open, close]);
+    // focusFirstControl is fixed for a given popup, so it never re-runs this.
+  }, [open, close, focusFirstControl]);
 
   if (!open) return null;
 

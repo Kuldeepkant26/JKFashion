@@ -1,5 +1,6 @@
 import mongoose, { Schema, type Document, type Model, type Types } from "mongoose";
 import { type IMediaRef } from "./processSection.model.js";
+import { fabricsPath, legacyFabricPaths, type IFabricRow } from "./fabricRow.js";
 
 /**
  * Where a sample is.
@@ -71,10 +72,12 @@ export interface ISample extends Document {
   designNumber: string;
   status: SampleStatus;
   designImage: IMediaRef;
-  fabricType: string;
-  fabricWidth: string;
-  yarnType: string;
-  yarnColor: string;
+  fabrics: Types.Array<IFabricRow>;
+  /** Legacy single fabric — see models/fabricRow. */
+  fabricType?: string;
+  fabricWidth?: string;
+  yarnType?: string;
+  yarnColor?: string;
   repeat?: string;
   stitches?: number;
   quantity: string;
@@ -108,10 +111,9 @@ const sampleSchema = new Schema<ISample>(
 
     designImage: { type: mediaRefSchema, default: () => ({}) },
 
-    fabricType: { type: String, trim: true, maxlength: 80, default: "" },
-    fabricWidth: { type: String, trim: true, maxlength: 40, default: "" },
-    yarnType: { type: String, trim: true, maxlength: 80, default: "" },
-    yarnColor: { type: String, trim: true, maxlength: 60, default: "" },
+    // The fabrics it is made on — the same rows as an order; see models/fabricRow.
+    fabrics: fabricsPath,
+    ...legacyFabricPaths,
 
     /**
      * The design's repeat as the floor writes it — "8/4", quarters of a Swiss

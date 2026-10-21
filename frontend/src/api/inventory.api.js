@@ -64,7 +64,9 @@ export const getOrder = (id) => api.get(`/inventory/orders/${id}`).then(unwrap);
 const toFormData = (payload, file) => {
   const form = new FormData();
   Object.entries(payload).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== '') form.append(key, value);
+    if (value === undefined || value === null || value === '') return;
+    // A list (an order's fabric rows) goes as JSON text; the API parses it back.
+    form.append(key, Array.isArray(value) ? JSON.stringify(value) : value);
   });
   if (file) form.append('image', file);
   return form;

@@ -1,5 +1,5 @@
 import { FiImage } from 'react-icons/fi';
-import { SAMPLE_STATUS_LABELS, SAMPLE_STATUS_STYLES, formatDate } from './constants.js';
+import { SAMPLE_STATUS_LABELS, SAMPLE_STATUS_STYLES, fabricSummary, formatDate } from './constants.js';
 
 /** The one date worth showing for where the sample is. */
 const dateLine = (sample) => {
@@ -79,7 +79,7 @@ export default function SampleCard({ sample, onOpen, showCompany = true }) {
 
         <div className="flex w-full flex-wrap items-baseline justify-between gap-x-4 gap-y-1 font-body text-xs text-brand-ink/50">
           <span>
-            {[sample.fabricType, sample.yarnColor].filter(Boolean).join(' · ') || 'No fabric set'}
+            {fabricSummary(sample.fabrics) || 'No fabric set'}
           </span>
           <span className={sample.isOverdue ? 'font-semibold text-rose-600' : ''}>
             {dateLine(sample)}

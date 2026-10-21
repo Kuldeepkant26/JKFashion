@@ -26,6 +26,11 @@
  *    only; it is now free text ("10m", "2 pcs"), so 10 becomes "10m" and an
  *    old 0 — the default, meaning nothing entered — becomes blank.
  *
+ * 6. The single fabric of an order or sample (four flat fields, from before
+ *    they could have several) becomes its first fabric row, and the flat
+ *    fields are removed. Until this runs the app already reads them as that
+ *    first row.
+ *
  * Safe to re-run: each step only ever touches rows not yet in the new shape.
  */
 import mongoose from "mongoose";
@@ -39,6 +44,8 @@ import {
   OPEN_ORDER_STATUSES,
 } from "../models/productionOrder.model.js";
 import { reachedGoal } from "../services/productionOrder.service.js";
+import { fabricRows } from "../utils/fabricRows.js";
+import { LEGACY_FABRIC_FIELDS } from "../models/fabricRow.js";
 import { Sample, SAMPLE_STATUS } from "../models/sample.model.js";
 
 /** The retired "sent to buyer" status — what DELIVERED now records. */
@@ -88,10 +95,8 @@ const run = async (): Promise<void> => {
         designNumber: order.designNumber,
         status: SAMPLE_STATUS.IN_PROGRESS,
         designImage: order.designImage ?? {},
-        fabricType: order.fabricType,
-        fabricWidth: order.fabricWidth,
-        yarnType: order.yarnType,
-        yarnColor: order.yarnColor,
+        // The order's fabric rows (or its legacy single fabric).
+        fabrics: fabricRows(order),
         deadline: order.deadline,
         remarks: [order.remarks, `Moved from order ${order.orderNumber}.`]
           .filter(Boolean)
@@ -174,7 +179,53 @@ const run = async (): Promise<void> => {
     );
   }
 
-  if (!apply && (legacy.length || sent || stranded || finished.length || numericQuantity)) {
+  /*
+   * Through the raw collections: the flat fields are only read now, never
+   * written, and a record whose rows were saved already has them cleared.
+   */
+  const hasLegacyValue = { $or: LEGACY_FABRIC_FIELDS.map((f) => ({ [f]: { $nin: [null, ""] } })) };
+  const hasLegacyField = { $or: LEGACY_FABRIC_FIELDS.map((f) => ({ [f]: { $exists: true } })) };
+  const noRows = { $or: [{ fabrics: { $exists: false } }, { fabrics: { $size: 0 } }] };
+  let leftover = 0;
+
+  for (const [label, collection] of [
+    ["order", ProductionOrder.collection],
+    ["sample", Sample.collection],
+  ] as const) {
+    const toMove = await collection.countDocuments({ $and: [noRows, hasLegacyValue] });
+    const carrying = await collection.countDocuments(hasLegacyField);
+    leftover += carrying;
+    logger.info(`${toMove} ${label}(s) with a single fabric → first fabric row`);
+
+    if (apply && carrying) {
+      if (toMove) {
+        await collection.updateMany({ $and: [noRows, hasLegacyValue] }, [
+          {
+            $set: {
+              fabrics: [
+                {
+                  fabricType: { $ifNull: ["$fabricType", ""] },
+                  fabricWidth: { $ifNull: ["$fabricWidth", ""] },
+                  yarnType: { $ifNull: ["$yarnType", ""] },
+                  optionNumber: "",
+                  yarnColor: { $ifNull: ["$yarnColor", ""] },
+                },
+              ],
+            },
+          },
+        ]);
+      }
+      // Moved, blank, or superseded by rows saved since: the flat fields go.
+      await collection.updateMany(hasLegacyField, {
+        $unset: Object.fromEntries(LEGACY_FABRIC_FIELDS.map((f) => [f, ""])),
+      });
+    }
+  }
+
+  if (
+    !apply &&
+    (legacy.length || sent || stranded || finished.length || numericQuantity || leftover)
+  ) {
     logger.info("Re-run with --apply to make these changes.");
   }
 

@@ -33,10 +33,7 @@ export const getSample = asyncHandler<AuthedRequest>(async (req, res) => {
 const SAMPLE_FIELDS = [
   "designNumber",
   "status",
-  "fabricType",
-  "fabricWidth",
-  "yarnType",
-  "yarnColor",
+  "fabrics",
   "repeat",
   "stitches",
   "quantity",
@@ -58,7 +55,15 @@ const pickFields = (body: Record<string, unknown>): Record<string, unknown> => {
     if (value === undefined) continue;
     if (typeof value === "string" && value.trim() === "") continue;
 
-    out[field] = value === null ? (field === "deadline" ? undefined : "") : value;
+    // A cleared date is unset; a cleared list is empty; anything else is "".
+    out[field] =
+      value === null
+        ? field === "deadline"
+          ? undefined
+          : field === "fabrics"
+            ? []
+            : ""
+        : value;
   }
 
   return out;

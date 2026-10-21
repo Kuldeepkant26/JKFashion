@@ -1,5 +1,6 @@
 import { body, param, query, type ValidationChain } from "express-validator";
 import { ORDER_STATUSES } from "../models/productionOrder.model.js";
+import { fabricRules } from "./fabric.rules.js";
 import { REPEAT_PATTERN, normalizeRepeat } from "../utils/repeat.js";
 
 /** "OVERDUE" is a derived view of the list, not a stored status. */
@@ -40,10 +41,7 @@ const orderFields = (optional: boolean): ValidationChain[] => {
     optional ? chain.optional({ checkFalsy: true }) : chain;
 
   return [
-    opt(body("fabricType").isString().trim().isLength({ max: 80 })),
-    opt(body("fabricWidth").isString().trim().isLength({ max: 40 })),
-    opt(body("yarnType").isString().trim().isLength({ max: 80 })),
-    opt(body("yarnColor").isString().trim().isLength({ max: 60 })),
+    ...fabricRules(),
     opt(body("machine").isString().trim().isLength({ max: 80 })),
     opt(body("operator").isString().trim().isLength({ max: 120 })),
     opt(body("remarks").isString().trim().isLength({ max: 2000 })),

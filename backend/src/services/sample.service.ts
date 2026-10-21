@@ -13,6 +13,8 @@ import { jobNumbers } from "../utils/docketNumber.js";
 import { uploadImage, destroyImage } from "../config/cloudinary.js";
 import { ApiError } from "../utils/ApiError.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
+import { cleanFabricRows, setFabricRows, withFabricRows } from "../utils/fabricRows.js";
+import type { IFabricRow } from "../models/fabricRow.js";
 import { startOfDayUTC } from "../utils/productionDate.js";
 
 /** Same Cloudinary folder as order design images — they are the same kind of file. */
@@ -49,7 +51,8 @@ const toView = (sample: ISample | Record<string, unknown>): SampleView => {
     typeof (sample as ISample).toObject === "function" ? (sample as ISample).toObject() : sample
   ) as Record<string, unknown> & { deadline?: Date; status: SampleStatus };
 
-  return { ...plain, isOverdue: isOverdue(plain) };
+  // Rows only, whichever way the sample was saved; the legacy fields stay internal.
+  return { ...withFabricRows(plain), isOverdue: isOverdue(plain) };
 };
 
 /**
@@ -174,10 +177,8 @@ export interface SampleInput {
   companyId: string;
   designNumber: string;
   status?: SampleStatus;
-  fabricType?: string;
-  fabricWidth?: string;
-  yarnType?: string;
-  yarnColor?: string;
+  /** Replaces the sample's rows as a whole; see utils/fabricRows. */
+  fabrics?: Partial<IFabricRow>[];
   repeat?: string;
   stitches?: number;
   quantity?: string;
@@ -225,10 +226,11 @@ export const createSample = async (
 
   try {
     const sampleNumber = await jobNumbers.next(company.name);
-    const { companyId: _ignored, ...fields } = input;
+    const { companyId: _ignored, fabrics, ...fields } = input;
 
     const sample = await Sample.create({
       ...fields,
+      fabrics: cleanFabricRows(fabrics),
       ...statusStamps(input.status),
       sampleNumber,
       company: company._id,
@@ -281,7 +283,10 @@ export const updateSample = async (
   }
 
   const { companyId: _ignored, ...fields } = patch;
-  Object.assign(sample, fields, statusStamps(patch.status, sample));
+  const { fabrics, ...rest } = fields;
+  Object.assign(sample, rest, statusStamps(patch.status, sample));
+  // Rows replace rows (and clear the legacy flat fields).
+  if (fabrics !== undefined) setFabricRows(sample, fabrics);
   sample.updatedBy = updatedBy;
 
   await sample.save();

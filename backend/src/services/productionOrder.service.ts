@@ -19,6 +19,8 @@ import { jobNumbers, JOB_NUMBER_PATTERN } from "../utils/docketNumber.js";
 import { uploadImage, destroyImage, copyImage } from "../config/cloudinary.js";
 import { ApiError } from "../utils/ApiError.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
+import { cleanFabricRows, fabricRows, setFabricRows, withFabricRows } from "../utils/fabricRows.js";
+import type { IFabricRow } from "../models/fabricRow.js";
 import { startOfDayUTC, endOfDayUTC } from "../utils/productionDate.js";
 
 /** Where Cloudinary keeps design images, under the configured base folder. */
@@ -87,7 +89,8 @@ const toView = (order: IProductionOrder | Record<string, unknown>): OrderView =>
       : order
   ) as Record<string, unknown> & { deadline?: Date; status: OrderStatus };
 
-  return { ...plain, isOverdue: isOverdue(plain) };
+  // Rows only, whichever way the order was saved; the legacy fields stay internal.
+  return { ...withFabricRows(plain), isOverdue: isOverdue(plain) };
 };
 
 /**
@@ -234,10 +237,8 @@ export interface OrderFields {
   designNumber: string;
   status?: OrderStatus;
   orderedMetres: number;
-  fabricType?: string;
-  fabricWidth?: string;
-  yarnType?: string;
-  yarnColor?: string;
+  /** Replaces the order's rows as a whole; see cleanFabricRows. */
+  fabrics?: Partial<IFabricRow>[];
   repeat?: string;
   stitches?: number;
   startDate?: string;
@@ -329,10 +330,11 @@ const createDirect = async (
   try {
     // The buyer's next job number — after the upload, so a failed image does not burn one.
     const orderNumber = await jobNumbers.next(company.name);
-    const { sampleId: _s, companyId: _c, useSampleImage: _u, ...fields } = input;
+    const { sampleId: _s, companyId: _c, useSampleImage: _u, fabrics, ...fields } = input;
 
     const order = await ProductionOrder.create({
       ...fields,
+      fabrics: cleanFabricRows(fabrics),
       orderNumber,
       company: company._id,
       companyName: company.name,
@@ -419,13 +421,15 @@ const convertSample = async (
   try {
     // The sample's own number: the order is the same job, confirmed.
     const orderNumber = await numberFromSample(sample, company.name);
-    const { sampleId: _s, companyId: _c, useSampleImage: _u, ...fields } = input;
+    const { sampleId: _s, companyId: _c, useSampleImage: _u, fabrics, ...fields } = input;
 
     const order = await ProductionOrder.create({
       // The design's repeat and stitches carry over unless this order says otherwise.
       repeat: sample.repeat,
       stitches: sample.stitches,
       ...fields,
+      // So do the sample's fabric rows, when the order sent none of its own.
+      fabrics: cleanFabricRows(fabrics === undefined ? fabricRows(sample) : fabrics),
       orderNumber,
       company: company._id,
       companyName: company.name,
@@ -492,8 +496,12 @@ export const updateOrder = async (
     order.companyName = company.name;
   }
 
-  const { companyId: _c, ...fields } = patch;
+  const { companyId: _c, fabrics, ...fields } = patch;
   Object.assign(order, fields);
+
+  // Rows replace rows (and clear the legacy flat fields).
+  if (fabrics !== undefined) setFabricRows(order, fabrics);
+
   order.updatedBy = updatedBy;
 
   await order.save();

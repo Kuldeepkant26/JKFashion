@@ -1,4 +1,5 @@
 import mongoose, { Schema, type Document, type Model, type Types } from "mongoose";
+import { fabricsPath, legacyFabricPaths, type IFabricRow } from "./fabricRow.js";
 import { type IMediaRef } from "./processSection.model.js";
 
 /**
@@ -132,10 +133,12 @@ export interface IProductionOrder extends Document {
   designNumber: string;
   status: OrderStatus;
   designImage: IMediaRef;
-  fabricType: string;
-  fabricWidth: string;
-  yarnType: string;
-  yarnColor: string;
+  fabrics: Types.Array<IFabricRow>;
+  /** Legacy single fabric — see models/fabricRow. */
+  fabricType?: string;
+  fabricWidth?: string;
+  yarnType?: string;
+  yarnColor?: string;
   repeat?: string;
   stitches?: number;
   orderedMetres: number;
@@ -199,13 +202,9 @@ const productionOrderSchema = new Schema<IProductionOrder>(
 
     designImage: { type: mediaRefSchema, default: () => ({}) },
 
-    fabricType: { type: String, trim: true, maxlength: 80, default: "" },
-
-    /** Text, not a number: the floor writes "44 inch" and `60"`. */
-    fabricWidth: { type: String, trim: true, maxlength: 40, default: "" },
-
-    yarnType: { type: String, trim: true, maxlength: 80, default: "" },
-    yarnColor: { type: String, trim: true, maxlength: 60, default: "" },
+    // The fabrics it is run on, and the single fabric of an older order; see models/fabricRow.
+    fabrics: fabricsPath,
+    ...legacyFabricPaths,
 
     /** The design's repeat as the floor writes it ("8/4"), and its stitch count. */
     repeat: { type: String, trim: true, maxlength: 20 },

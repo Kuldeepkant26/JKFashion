@@ -5,8 +5,8 @@ import * as inventoryApi from '../../../api/inventory.api.js';
 import Modal from '../../components/Modal.jsx';
 import ConfirmDialog from '../../components/ConfirmDialog.jsx';
 import StitchCalculator from './StitchCalculator.jsx';
+import FabricList from './FabricList.jsx';
 import {
-  ORDER_STATUSES,
   STATUS_LABELS,
   STATUS_STYLES,
   formatDate,
@@ -216,6 +216,10 @@ const secondaryButton =
 /**
  * One order, in a popup: progress, status, the design, and the production log.
  *
+ * The status is shown, not set, here. It changes in Edit order with the other
+ * fields — a one-click pill in the popup was too easy to hit by accident. (The
+ * log still moves it to Completed and back on its own, and says so.)
+ *
  * A popup rather than a panel opened inside the list: the list stays where it
  * was, and the record gets the whole screen's attention while it is open. The
  * calculator and the confirmations open over it, not in place of it.
@@ -262,16 +266,6 @@ export default function OrderDetail({
   const pct = ordered > 0 ? Math.min(100, (done / ordered) * 100) : 0;
   const log = order.log ?? [];
 
-  const setStatus = async (status) => {
-    setError('');
-    setNotice('');
-    try {
-      onChanged(await inventoryApi.setOrderStatus(order._id, status));
-    } catch (err) {
-      setError(err?.message ?? 'Could not change the status.');
-    }
-  };
-
   const removeEntry = async () => {
     setError('');
     try {
@@ -289,6 +283,7 @@ export default function OrderDetail({
         error={error}
         open
         onClose={onClose}
+        focusFirstControl={false}
         title={`Order ${order.orderNumber}`}
         description={`${order.companyName} · Design ${order.designNumber}${
           // The record is on screen either way; this only says the log is
@@ -391,35 +386,24 @@ export default function OrderDetail({
             ) : null}
           </div>
 
-          {/* status */}
+          {/* status — read only; it is changed in Edit order */}
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-body text-xs font-semibold uppercase tracking-[0.12em] text-brand-ink/60">
               Status
             </span>
-            {ORDER_STATUSES.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setStatus(s)}
-                disabled={busy || s === order.status}
-                aria-pressed={s === order.status}
-                className={`rounded-full px-3 py-1.5 font-body text-xs font-semibold transition-colors
-                            disabled:cursor-default ${
-                              s === order.status
-                                ? STATUS_STYLES[s]
-                                : 'text-brand-ink/50 ring-1 ring-brand-ink/12 hover:bg-brand-ink/5'
-                            }`}
-              >
-                {STATUS_LABELS[s]}
-              </button>
-            ))}
+            <span
+              className={`rounded-full px-3 py-1.5 font-body text-xs font-semibold ${
+                STATUS_STYLES[order.status] ?? ''
+              }`}
+            >
+              {STATUS_LABELS[order.status] ?? order.status}
+            </span>
+            <span className="font-body text-xs text-brand-ink/45">Change it in Edit order.</span>
           </div>
 
+          <FabricList rows={order.fabrics} />
+
           <dl className="grid grid-cols-2 gap-4 border-t border-brand-ink/8 pt-4 sm:grid-cols-4">
-            <Detail label="Fabric" value={order.fabricType} />
-            <Detail label="Width" value={order.fabricWidth} />
-            <Detail label="Yarn" value={order.yarnType} />
-            <Detail label="Colour" value={order.yarnColor} />
             <Detail label="Repeat" value={order.repeat ? String(order.repeat) : ''} />
             <Detail
               label="Stitches"

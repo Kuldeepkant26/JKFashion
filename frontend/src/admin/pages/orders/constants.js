@@ -120,6 +120,50 @@ export const SAMPLE_FILTERS = [
 export const SAMPLE_PICKER_LIMIT = 100;
 
 /**
+ * One fabric row on an order, field by field, in the order the form shows
+ * them. Mirrors FABRIC_ROW_FIELDS (and each maxlength) in the API's
+ * productionOrder model. An order has as many rows as fabrics it is run on.
+ */
+export const FABRIC_FIELDS = [
+  { name: 'fabricType', label: 'Fabric type', short: 'Fabric', placeholder: 'Cambric', maxLength: 80 },
+  { name: 'fabricWidth', label: 'Fabric width', short: 'Width', placeholder: '44 inch', maxLength: 40 },
+  { name: 'yarnType', label: 'Yarn type', short: 'Yarn', placeholder: 'Viscose rayon', maxLength: 80 },
+  // "no." like the log's "Design no." and "P.O. no." — and it fits one line beside the remove button.
+  { name: 'optionNumber', label: 'Option no.', short: 'Option no.', placeholder: 'e.g. 2', maxLength: 60 },
+  { name: 'yarnColor', label: 'Yarn colour', short: 'Colour', placeholder: 'Ivory', maxLength: 60 },
+];
+
+export const MAX_FABRIC_ROWS = 20;
+
+let fabricRowKey = 0;
+
+/** A row as the form holds it: its fields, plus a key React keeps while rows come and go. */
+export const fabricRow = (values = {}) => ({
+  key: `fabric-${(fabricRowKey += 1)}`,
+  ...Object.fromEntries(FABRIC_FIELDS.map(({ name }) => [name, values?.[name] ?? ''])),
+});
+
+/** Rows for the form — always at least one, so there is somewhere to type. */
+export const fabricRowsForForm = (rows) =>
+  rows?.length ? rows.map((row) => fabricRow(row)) : [fabricRow()];
+
+/** A one-line summary for a card: the first fabric and colour, and how many more. */
+export const fabricSummary = (rows) => {
+  if (!rows?.length) return '';
+  const first = [rows[0].fabricType, rows[0].yarnColor].filter(Boolean).join(' · ');
+  const more = rows.length > 1 ? `+${rows.length - 1} more` : '';
+  return [first, more].filter(Boolean).join(' ');
+};
+
+/** Rows as they are saved: the fields only, trimmed, with blank rows left out. */
+export const fabricRowsForSave = (rows) =>
+  rows
+    .map((row) =>
+      Object.fromEntries(FABRIC_FIELDS.map(({ name }) => [name, String(row[name] ?? '').trim()]))
+    )
+    .filter((row) => FABRIC_FIELDS.some(({ name }) => row[name]));
+
+/**
  * Common repeats, as the floor writes them — quarters of a Swiss inch. Offered
  * as one-tap choices under the Repeat field; anything else can be typed.
  */
